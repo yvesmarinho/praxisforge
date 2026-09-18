@@ -1,0 +1,20 @@
+scaffold_version: 1.0.0
+created_at: '2026-09-18T18:56:11Z'
+updated_at: '2026-09-18T18:56:29Z'
+project:
+  name: praxisforge
+  title: Praxisforge
+  description: Curadoria e engenharia de agentes para Claude — pesquisa, síntese e
+    refino contínuo de conhecimento aplicado ao desenvolvimento de agentic AI.
+  domain: programming
+  language: python
+  github_repo: git@github.com:yvesmarinho/praxisforge.git
+  ai_assistant: claude
+paths:
+  target_dir: /home/yves_marinho/Documentos/DevOps/Projetos
+  shared_dir: /home/yves_marinho/Documentos/DevOps/.copilot-shared
+profiles_applied:
+- devops-programming
+- devops-security
+template_versions: {}
+template_bases: {}
