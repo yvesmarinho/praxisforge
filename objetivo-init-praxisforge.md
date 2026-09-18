@@ -1,9 +1,8 @@
 # objetivo-init — PraxisForge
 
-> **RASCUNHO — gerado a partir de `objetivo-init-minimal.yaml` + contexto da conversa, revisado em 18/09/2026.**
-> Campos marcados `⚠️ SUPOSIÇÃO` foram inferidos (do histórico da conversa e do perfil salvo do usuário) e precisam de confirmação.
+> **VERSÃO FINAL — gerado a partir de `objetivo-init-minimal.yaml` + contexto da conversa, revisado e aprovado em 18/09/2026.**
 >
-> _meta: criado_em: "18/09/2026 15:59" | modificado_em: "18/09/2026 17:40"
+> _meta: criado_em: "18/09/2026 15:59" | modificado_em: "18/09/2026 17:46"
 
 ---
 
@@ -291,8 +290,6 @@ Pipeline: `pastas de origem → registro de pastas → curadoria/avaliação →
 
 ---
 
-## Resumo das decisões pendentes (revisar antes de aprovar este documento)
+## Status das decisões
 
-| # | Item | Ação necessária |
-|---|------|------------------|
-| — | Nenhuma decisão pendente | Revisar e aprovar este documento |
+Todas as decisões da revisão de 18/09/2026 foram resolvidas; não há itens pendentes.
