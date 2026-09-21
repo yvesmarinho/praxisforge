@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 15:59 -->
-<!-- Modificado em: 21/09/2026 16:01 -->
+<!-- Modificado em: 21/09/2026 16:09 -->
 
 # Contrato da CLI — `praxisforge`
 
@@ -10,7 +10,7 @@ de uso e traduz exceções em mensagens e códigos de saída.
 
 | Comando | Efeito | Idempotente |
 |---------|--------|-------------|
-| `praxisforge folders add --alias A --description D --content-type T --license L [--status S]` | Registra pasta. Alias idêntico com dados idênticos ⇒ "inalterado" | sim |
+| `praxisforge folders add --alias A --description D --content-type T --license L [--status S]` | Registra pasta; cria o arquivo do registro se não existir. Alias idêntico com dados idênticos ⇒ "inalterado" | sim |
 | `praxisforge folders list [--status S]` | Lista pastas (alias, tipo, licença, status, última varredura) | — |
 | `praxisforge folders show ALIAS` | Mostra todos os dados de uma pasta (sem caminho absoluto) | — |
 | `praxisforge folders update ALIAS [--status S] [--last-scanned ISO] [--license L]` | Atualiza campos informados (atômico) | sim |

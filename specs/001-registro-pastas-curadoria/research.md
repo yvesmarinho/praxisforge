@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 15:59 -->
-<!-- Modificado em: 21/09/2026 16:00 -->
+<!-- Modificado em: 21/09/2026 16:09 -->
 
 # Research — 001-registro-pastas-curadoria
 
@@ -37,10 +37,9 @@ decisões técnicas e as premissas da spec que este plano fixa.
 - **Decisão**: o valor da variável deve ser absoluto, sem segmento `..`; após `Path.resolve()`
   deve existir, ser diretório e legível. Link simbólico é seguido e o **caminho real** é
   validado. Caminho relativo, com `..`, inexistente ou ilegível ⇒ `FolderPathInvalidError`.
-- **Racional**: a spec (edge case) pede recusa de relativo e `..`; "link simbólico para fora da
-  área esperada" não define "área esperada" — como o material bruto fica por definição fora do
-  repo (V), não há raiz permitida a impor. Fica registrado como **premissa desta fase**; se for
-  necessária uma raiz permitida, vira feature futura.
+- **Racional**: decidido no `/speckit-clarify` (21/09/2026): o link é seguido e o destino real
+  é validado; o material bruto fica por definição fora do repo (V), então não há raiz permitida
+  a impor. Se uma raiz permitida for necessária, vira feature futura.
 - **Alternativas**: restringir a uma raiz configurada (over-engineering para único curador).
 
 ## D5. Escrita do registro: atômica, determinística, sem preservar comentários
@@ -52,6 +51,10 @@ decisões técnicas e as premissas da spec que este plano fixa.
   da escrita (FR-017).
 - **Alternativas**: `ruamel.yaml` (preserva comentários, mas é dependência nova fora do
   conjunto-chave da constituição); reescrita direta (não atômica).
+
+- **Arquivo ausente** (`/speckit-clarify`, 21/09/2026): `RegistryFileNotFoundError` em todos os
+  comandos, exceto `folders add`, que cria o arquivo (com `schema_version` e `folders: {}`) na
+  primeira gravação. Arquivo existente com `folders: {}` é registro vazio válido.
 
 ## D6. Idempotência do "registrar"
 

@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 15:55 -->
-<!-- Modificado em: 21/09/2026 15:56 -->
+<!-- Modificado em: 21/09/2026 16:09 -->
 
 # Feature Specification: Registro de Pastas a Curar e Contratos Versionados
 
@@ -10,6 +10,14 @@
 **Status**: Draft
 
 **Input**: User description: "Primeira feature da Fase 2 do PraxisForge: estrutura do repositório em camadas, contratos (schemas) versionados de fonte e de pasta, e registro das pastas a curar, com o primeiro registro `github_forks` e caminho resolvido por configuração externa."
+
+## Clarifications
+
+### Session 2026-09-21
+
+- Q: Ao atualizar uma pasta já registrada, o curador também deve poder mudar a licença, além do status e da data da última varredura? → A: Sim; `update` aceita status, data da última varredura e licença, aplicados de forma atômica (tudo ou nada).
+- Q: Se o arquivo do registro não existir, deve ser tratado como "nenhuma pasta registrada" ou como erro? → A: Erro explícito em todos os comandos, exceto o registro de nova pasta, que cria o arquivo; arquivo existente sem pastas é registro vazio válido.
+- Q: Quando a variável de ambiente de uma pasta aponta para um link simbólico, seguir o link ou recusar o caminho? → A: Seguir o link e validar o destino real (absoluto, existente, diretório e legível); o link em si não é motivo de recusa.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -26,7 +34,8 @@ Como curador do PraxisForge, quero manter um registro versionado das pastas que 
 1. **Given** um registro vazio, **When** o curador registra a pasta com alias `github_forks` e todos os campos obrigatórios, **Then** o registro passa a conter a pasta e ela aparece na listagem com descrição, tipo de conteúdo, licença e status de curadoria.
 2. **Given** um registro com pastas, **When** o curador consulta uma pasta pelo alias, **Then** recebe todos os seus dados, exceto qualquer caminho absoluto.
 3. **Given** um registro com o alias `github_forks`, **When** o curador tenta registrar outra pasta com o mesmo alias, **Then** o registro é recusado com uma mensagem que identifica o alias duplicado e o registro existente permanece inalterado.
-4. **Given** uma pasta registrada, **When** o curador atualiza o status de curadoria ou a data da última varredura, **Then** apenas esses campos mudam e a alteração fica visível no histórico do repositório.
+4. **Given** uma pasta registrada, **When** o curador atualiza o status de curadoria, a data da última varredura e/ou a licença, **Then** apenas os campos informados mudam, a alteração é aplicada por inteiro ou não é aplicada (tudo ou nada) e fica visível no histórico do repositório.
+5. **Given** uma pasta com licença desconhecida e status "pendente", **When** o curador atualiza a licença para uma licença válida e o status na mesma operação, **Then** a pasta passa a ter a nova licença e o novo status; se apenas o status fosse alterado mantendo a licença desconhecida, a operação seria recusada e nada mudaria.
 
 ---
 
@@ -82,13 +91,13 @@ Como mantenedor, quero que o repositório tenha a estrutura de camadas definida 
 
 ### Edge Cases
 
-- Registro de pastas vazio ou arquivo ausente: tratado como "nenhuma pasta registrada" (vazio válido) ou erro explícito de arquivo ausente, conforme o caso, nunca como erro genérico.
+- Arquivo do registro ausente: erro explícito e específico em consulta, listagem, atualização, validação e resolução; apenas o registro de uma nova pasta cria o arquivo na primeira vez. Arquivo existente sem nenhuma pasta é um registro vazio válido ("nenhuma pasta registrada").
 - Arquivo do registro com formato corrompido (não interpretável): falha explícita indicando o arquivo e a posição do problema.
 - Alias com caracteres inválidos, vazio, apenas espaços ou apenas maiúsculas/minúsculas diferentes de um alias existente (colisão): rejeitado.
 - Data de última varredura no futuro ou em formato inválido: rejeitada.
 - Status de curadoria com valor desconhecido: rejeitado com a lista de valores permitidos.
 - Mesma pasta física registrada sob dois aliases: sinalizado como aviso, não como erro.
-- Configuração local com caminho relativo, com `..` ou com link simbólico para fora da área esperada: tratado como caminho inválido e recusado.
+- Configuração local com caminho relativo ou com segmento `..`: tratada como caminho inválido e recusada. Link simbólico é seguido e o destino real deve ser absoluto, existir, ser diretório e ser legível; o link em si não é motivo de recusa.
 - Pasta registrada mas com licença desconhecida: aceita apenas com status "pendente".
 - Muitas pastas registradas (centenas): listagem e validação continuam usáveis (ver critérios de sucesso).
 - Versão de contrato mais nova que a suportada pela ferramenta: rejeitada de forma explícita, sem tentativa de interpretação parcial.
@@ -98,7 +107,7 @@ Como mantenedor, quero que o repositório tenha a estrutura de camadas definida 
 ### Functional Requirements
 
 - **FR-001**: O sistema MUST manter um registro versionado no repositório com as pastas a curar; cada pasta MUST ter alias único, descrição, tipo de conteúdo, licença, data da última varredura (ou ausência dela) e status de curadoria.
-- **FR-002**: O sistema MUST permitir registrar, consultar, listar e atualizar (status e data da última varredura) pastas do registro.
+- **FR-002**: O sistema MUST permitir registrar, consultar, listar e atualizar (status, data da última varredura e licença, de forma atômica) pastas do registro.
 - **FR-003**: O sistema MUST rejeitar alias duplicado (inclusive diferindo só por maiúsculas/minúsculas), vazio ou com caracteres fora do conjunto permitido, sem alterar o registro existente.
 - **FR-004**: O sistema MUST NOT armazenar caminho absoluto no registro nem no código; o registro guarda apenas o alias, e um registro que contenha caminho absoluto no lugar do alias MUST ser rejeitado.
 - **FR-005**: O sistema MUST resolver o caminho real de cada alias a partir de configuração do ambiente local e MUST falhar com erro específico e identificável quando a configuração estiver ausente, o caminho não existir ou não puder ser lido.

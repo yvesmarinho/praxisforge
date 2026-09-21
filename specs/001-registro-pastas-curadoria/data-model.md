@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 15:59 -->
-<!-- Modificado em: 21/09/2026 16:00 -->
+<!-- Modificado em: 21/09/2026 16:09 -->
 
 # Data Model — 001-registro-pastas-curadoria
 
@@ -87,7 +87,8 @@ PraxisForgeError
 │   └── FutureScanDateError
 ├── AliasAlreadyRegisteredError
 ├── FolderNotFoundError
-├── RegistryUnavailableError       # arquivo ausente/ilegível/corrompido (Infrastructure)
+├── RegistryUnavailableError       # arquivo ilegível/corrompido (Infrastructure)
+│   └── RegistryFileNotFoundError  # arquivo ausente (só `add` cria o arquivo)
 ├── FolderPathNotConfiguredError
 ├── FolderPathInvalidError
 └── FolderPathUnreadableError
