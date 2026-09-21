@@ -225,7 +225,8 @@ jobs:
 
           if [ "${{ needs.validate-branch.result }}" != "success" ] || \
              [ "${{ needs.validate-commits.result }}" != "success" ] || \
-             [ "${{ needs.validate-pr-title.result }}" != "success" ]; then
+             { [ "${{ needs.validate-pr-title.result }}" != "success" ] && \
+               [ "${{ needs.validate-pr-title.result }}" != "skipped" ]; }; then
             echo "❌ Some validations failed. Please fix the issues above."
             exit 1
           fi
