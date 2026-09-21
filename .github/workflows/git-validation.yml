@@ -31,7 +31,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
 
       - name: Install dependencies
         run: |
@@ -57,18 +56,20 @@ jobs:
 
           branch_name = '$BRANCH_NAME'
 
-          # Pattern: tipo/[NNN-]descricao
-          pattern = r'^(?:feature|fix|hotfix|chore|docs|refactor|test)/(?:\d+-)?[a-z0-9-]+$'
+          # Pattern: tipo(/|-)[NNN-]descricao, NNN-descricao ou dependabot/*
+          pattern = r'^(?:(?:feat|feature|fix|hotfix|chore|docs|refactor|test)[/-](?:\d+-)?[a-z0-9-]+|\d{3}-[a-z0-9-]+|dependabot/[a-z0-9_./-]+)$'
 
           if not re.match(pattern, branch_name):
               print(f'❌ Branch name inválido: {branch_name}')
               print()
-              print('✅ Padrão esperado: tipo/[NNN-]descricao')
-              print('   Tipos aceitos: feature, fix, hotfix, chore, docs, refactor, test')
+              print('✅ Padrão esperado: tipo(/|-)[NNN-]descricao, NNN-descricao ou dependabot/*')
+              print('   Tipos aceitos: feat, feature, fix, hotfix, chore, docs, refactor, test')
               print('   Exemplos válidos:')
               print('     - feature/042-user-authentication')
               print('     - fix/memory-leak')
               print('     - docs/update-readme')
+              print('     - docs-update-readme')
+              print('     - 042-user-authentication')
               sys.exit(1)
 
           print(f'✅ Branch name válido: {branch_name}')
@@ -224,7 +225,8 @@ jobs:
 
           if [ "${{ needs.validate-branch.result }}" != "success" ] || \
              [ "${{ needs.validate-commits.result }}" != "success" ] || \
-             [ "${{ needs.validate-pr-title.result }}" != "success" ]; then
+             { [ "${{ needs.validate-pr-title.result }}" != "success" ] && \
+               [ "${{ needs.validate-pr-title.result }}" != "skipped" ]; }; then
             echo "❌ Some validations failed. Please fix the issues above."
             exit 1
           fi
