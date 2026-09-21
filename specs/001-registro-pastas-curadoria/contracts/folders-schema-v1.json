@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "criado_em": "21/09/2026 15:59",
+    "modificado_em": "2026-09-21T16:00:58-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/folders-schema-v1.json",
+  "title": "Registro de pastas a curar (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "folders"],
+  "properties": {
+    "schema_version": { "const": "1" },
+    "folders": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]{1,62}$" },
+      "additionalProperties": { "$ref": "#/$defs/folder" }
+    }
+  },
+  "$defs": {
+    "folder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "content_type", "license", "last_scanned", "status"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "content_type": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,62}$" },
+        "license": { "type": "string", "minLength": 1 },
+        "last_scanned": {
+          "oneOf": [{ "type": "null" }, { "type": "string", "format": "date-time" }]
+        },
+        "status": {
+          "enum": ["not_scanned", "scanned", "in_curation", "curated", "pending"]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "license": { "const": "unknown" } }, "required": ["license"] },
+          "then": { "properties": { "status": { "const": "pending" } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "not_scanned" } }, "required": ["status"] },
+          "then": { "properties": { "last_scanned": { "type": "null" } } }
+        }
+      ]
+    }
+  }
+}
