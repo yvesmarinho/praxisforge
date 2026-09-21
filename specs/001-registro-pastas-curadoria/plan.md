@@ -26,7 +26,7 @@ alternativas descartadas em [research.md](research.md).
 
 **Language/Version**: Python 3.12+ (`requires-python >=3.12`), gerenciado por `uv`
 
-**Primary Dependencies**: `pyyaml` (registro), `jsonschema` (validação por contrato), `pydantic`
+**Primary Dependencies**: `pyyaml` (registro), `jsonschema[format]` (validação por contrato, com `date-time` efetivo), `pydantic`
 (DTOs de entrada da Application/CLI); CLI com `argparse` da stdlib (sem dependência nova)
 
 **Storage**: arquivo YAML versionado em `src/data/folders.yaml`; fontes em

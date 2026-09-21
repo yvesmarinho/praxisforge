@@ -15,7 +15,7 @@ de uso e traduz exceções em mensagens e códigos de saída.
 | `praxisforge folders show ALIAS` | Mostra todos os dados de uma pasta (sem caminho absoluto) | — |
 | `praxisforge folders update ALIAS [--status S] [--last-scanned ISO] [--license L]` | Atualiza campos informados (atômico) | sim |
 | `praxisforge folders validate` | Valida o registro contra `folders-schema-v1`; lista todas as violações; agrega falhas por pasta | — |
-| `praxisforge folders resolve ALIAS` | Resolve alias → caminho real via ambiente (única saída que imprime caminho) | — |
+| `praxisforge folders resolve (ALIAS \| --all)` | Resolve alias → caminho real via ambiente (única saída que imprime caminho). `--all` resolve todos, imprime `alias → ok/falha (motivo)` e o resumo `N ok, M com falha`; código 1 se houver falhas; falha de um alias não afeta os demais | — |
 | `praxisforge sources validate PATH...` | Valida frontmatter de fontes (`source-schema-v1`); PATH = arquivo ou diretório; lote com falha por item | — |
 
 Opções globais: `--registry PATH` (padrão `src/data/folders.yaml`), `--log-level`.

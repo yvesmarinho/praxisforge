@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 15:55 -->
-<!-- Modificado em: 21/09/2026 16:09 -->
+<!-- Modificado em: 21/09/2026 16:41 -->
 
 # Feature Specification: Registro de Pastas a Curar e Contratos Versionados
 
@@ -96,7 +96,6 @@ Como mantenedor, quero que o repositório tenha a estrutura de camadas definida 
 - Alias com caracteres inválidos, vazio, apenas espaços ou apenas maiúsculas/minúsculas diferentes de um alias existente (colisão): rejeitado.
 - Data de última varredura no futuro ou em formato inválido: rejeitada.
 - Status de curadoria com valor desconhecido: rejeitado com a lista de valores permitidos.
-- Mesma pasta física registrada sob dois aliases: sinalizado como aviso, não como erro.
 - Configuração local com caminho relativo ou com segmento `..`: tratada como caminho inválido e recusada. Link simbólico é seguido e o destino real deve ser absoluto, existir, ser diretório e ser legível; o link em si não é motivo de recusa.
 - Pasta registrada mas com licença desconhecida: aceita apenas com status "pendente".
 - Muitas pastas registradas (centenas): listagem e validação continuam usáveis (ver critérios de sucesso).
@@ -108,7 +107,7 @@ Como mantenedor, quero que o repositório tenha a estrutura de camadas definida 
 
 - **FR-001**: O sistema MUST manter um registro versionado no repositório com as pastas a curar; cada pasta MUST ter alias único, descrição, tipo de conteúdo, licença, data da última varredura (ou ausência dela) e status de curadoria.
 - **FR-002**: O sistema MUST permitir registrar, consultar, listar e atualizar (status, data da última varredura e licença, de forma atômica) pastas do registro.
-- **FR-003**: O sistema MUST rejeitar alias duplicado (inclusive diferindo só por maiúsculas/minúsculas), vazio ou com caracteres fora do conjunto permitido, sem alterar o registro existente.
+- **FR-003**: O sistema MUST rejeitar alias duplicado (o alias é sempre minúsculo; maiúsculas são recusadas), vazio ou com caracteres fora do conjunto permitido, sem alterar o registro existente.
 - **FR-004**: O sistema MUST NOT armazenar caminho absoluto no registro nem no código; o registro guarda apenas o alias, e um registro que contenha caminho absoluto no lugar do alias MUST ser rejeitado.
 - **FR-005**: O sistema MUST resolver o caminho real de cada alias a partir de configuração do ambiente local e MUST falhar com erro específico e identificável quando a configuração estiver ausente, o caminho não existir ou não puder ser lido.
 - **FR-006**: A falha de resolução ou validação de uma pasta MUST ser registrada e agregada, sem impedir o processamento das demais pastas do lote.
@@ -149,8 +148,8 @@ Como mantenedor, quero que o repositório tenha a estrutura de camadas definida 
 - O único usuário é o curador (Yves Marinho); não há controle de acesso por perfil nesta feature.
 - O registro de pastas fica em `src/data/folders.yaml` e os contratos em `schemas/`, conforme decidido no objetivo-init (versão final, 18/09/2026); o primeiro alias é `github_forks`.
 - O material bruto fica fora do repositório (`~/DevOps/github_forks`) e nunca é copiado para ele; o caminho real vem de configuração do ambiente local.
-- Fora do escopo desta feature: varredura/coleta do conteúdo das pastas, curadoria e síntese, integração com provedores de IA, criação e publicação de skills. A data da última varredura e o status são apenas armazenados e atualizáveis aqui; quem os atualiza automaticamente é a feature de varredura (próxima).
-- O conjunto de valores de status de curadoria será definido na fase de planejamento; assume-se ao menos: não varrida, varrida, em curadoria, curada, pendente.
+- Fora do escopo desta feature: detecção da mesma pasta física registrada sob dois aliases (pendência da feature de varredura), varredura/coleta do conteúdo das pastas, curadoria e síntese, integração com provedores de IA, criação e publicação de skills. A data da última varredura e o status são apenas armazenados e atualizáveis aqui; quem os atualiza automaticamente é a feature de varredura (próxima).
+- Valores do status de curadoria, definidos no plano: não varrida, varrida, em curadoria, curada, pendente.
 - O registro é editado por um único curador por vez; conflitos de edição concorrente são tratados pelo controle de versão do repositório, não pela ferramenta.
 - Aplicam-se os princípios da constituição v1.0.0: camadas, contratos versionados, test-first, erros semânticos, proveniência/licença e memória no vault.
 - Dependência existente reaproveitada: o ambiente reprodutível e os gates de qualidade automáticos (lint, tipagem, testes com cobertura mínima de 90% e CI) já estão configurados no repositório.

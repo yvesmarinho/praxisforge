@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 15:59 -->
-<!-- Modificado em: 21/09/2026 16:09 -->
+<!-- Modificado em: 21/09/2026 16:41 -->
 
 # Research — 001-registro-pastas-curadoria
 
@@ -100,7 +100,7 @@ decisões técnicas e as premissas da spec que este plano fixa.
 
 ## D11. CLI
 
-- **Decisão**: `argparse` com subcomandos `folders add|list|show|update|validate|resolve` e
+- **Decisão**: `argparse` com subcomandos `folders add|list|show|update|validate|resolve (ALIAS|--all)` e
   `sources validate`; entrypoint `praxisforge` em `[project.scripts]`. Códigos de saída: 0 ok,
   1 falha de validação/negócio, 2 uso incorreto, 3 falha de ambiente. Saída para usuário em
   stdout; erros em stderr; logs estruturados via `logging` (não `print` fora da CLI).
@@ -133,3 +133,22 @@ decisões técnicas e as premissas da spec que este plano fixa.
   domínio sem pydantic; registro YAML sem preservação de comentários; verificação de camadas por
   AST) como parte das tasks.
 - **Racional**: constituição (Restrições Adicionais).
+
+## D16. Datas no YAML e formatos do JSON Schema (`/speckit-analyze`, 21/09/2026)
+
+- **Decisão**: o loader YAML é um `SafeLoader` sem o resolvedor implícito de timestamp, então
+  `last_scanned` e `date` permanecem `str` ISO 8601 (o `yaml.safe_load` padrão os converteria em
+  `datetime`/`date` e o schema, `type: string`, rejeitaria). O validador usa
+  `FormatChecker` e a dependência `jsonschema[format]` (traz `rfc3339-validator`), para que
+  `format: date-time`/`date` sejam efetivos.
+- **Alternativas**: converter `datetime` → string antes de validar (esconde o problema e altera
+  bytes na regravação); ignorar `format` (contrato sem efeito).
+
+## D17. Gates da constituição (`/speckit-analyze`, 21/09/2026)
+
+- **Decisão**: incluir nesta feature `bandit` e `safety` (alvo `make security`), o
+  `.pre-commit-config.yaml` (modo manual, com ruff, mypy e ggshield) e o workflow
+  `quality-gates.yml` (bloqueante no PR); registrado nas tasks T003, T069 e T070.
+- **Racional**: a constituição os lista como gates bloqueantes; a feature é a primeira com
+  código a validar.
+- **Alternativa**: feature `chore` separada (adia o cumprimento da constituição).

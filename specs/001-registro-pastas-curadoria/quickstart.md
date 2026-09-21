@@ -9,7 +9,7 @@ Contratos: [contracts/](contracts/) · Modelo: [data-model.md](data-model.md).
 ## 1. Gates de qualidade
 
 ```bash
-make lint && make test
+make lint && make test && make validate-data && make security
 ```
 
 Esperado: ruff e mypy sem erros; pytest verde com cobertura ≥ 90%, incluindo
@@ -43,6 +43,7 @@ export PRAXISFORGE_FOLDER_GITHUB_FORKS="$HOME/DevOps/github_forks"
 uv run praxisforge folders resolve github_forks                    # código 0
 unset PRAXISFORGE_FOLDER_GITHUB_FORKS
 uv run praxisforge folders resolve github_forks                    # código 3, variável ausente
+uv run praxisforge folders resolve --all                             # resumo N ok, M com falha
 ```
 
 ## 5. Contratos inválidos (US3)
