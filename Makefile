@@ -17,7 +17,7 @@ init:
 
 ## Instala dependências
 install-deps:
-	@echo "Instalando dependências..."
+	@uv sync
 
 ## Inicia servidor de desenvolvimento
 dev:
@@ -29,15 +29,15 @@ build:
 
 ## Executa testes
 test:
-	@echo "Executando testes..."
+	@uv run pytest
 
 ## Lint do código
 lint:
-	@echo "Linting..."
+	@uv run ruff check . && uv run mypy
 
 ## Formata código
 format:
-	@echo "Formatando..."
+	@uv run ruff format src tests
 
 ## Remove arquivos gerados
 clean:

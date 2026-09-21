@@ -1,0 +1,55 @@
+[project]
+name = "praxisforge"
+version = "0.1.0"
+description = "Curadoria e engenharia de agentes para Claude — pesquisa, síntese e refino contínuo de conhecimento aplicado ao desenvolvimento de agentic AI."
+readme = "README.md"
+authors = [
+    { name = "Yves Marinho", email = "yvesmarinho@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "jsonschema>=4.26.0",
+    "pydantic>=2.13.5",
+    "pyyaml>=6.0.3",
+    "requests>=2.34.2",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.16,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "check-jsonschema>=0.38.0",
+    "mypy>=2.3.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.8",
+    "types-jsonschema>=4.26.0.20260518",
+    "types-pyyaml>=6.0.12.20260906",
+    "types-requests>=2.33.0.20260906",
+    "yamllint>=1.38.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+# scripts/ são utilitários do scaffold (usam print); fora do gate até serem refatorados
+extend-exclude = ["scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "S", "T20"]
+# UP009: cabeçalho "# -*- coding: utf-8 -*-" é exigido pelas regras do projeto
+ignore = ["UP009"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=praxisforge --cov-report=term-missing --cov-fail-under=90"
