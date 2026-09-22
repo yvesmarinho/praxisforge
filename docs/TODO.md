@@ -15,6 +15,12 @@
 - [ ] Adicionar testes unitários
 - [ ] Documentar APIs
 - [ ] Feature futura: catálogo de skills (fora do escopo da 001)
+- [ ] Feature futura: detectar deriva de curadoria — quando o conteúdo de uma pasta `curated`
+      (git) mudar em relação ao commit HEAD registrado na última curadoria, reverter status
+      automaticamente para `in_curation`; exige novo campo na entidade (ex.:
+      `last_curated_commit_hash`) e nova versão do schema. Ver
+      `docs/reference/folders-yaml.md` ("Limitação conhecida"). Ainda sem número/spec formal —
+      candidata a próxima feature depois da 003 (bootstrap).
 - [ ] `scripts/` fora do gate do ruff (`extend-exclude` em `pyproject.toml`) — refatorar e incluir no lint quando houver tempo
 
 ## ✅ Concluído

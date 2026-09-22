@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 22/09/2026 14:33 -->
+<!-- Modificado em: 22/09/2026 14:42 -->
 
 # Referência — `src/data/folders.yaml`
 
@@ -114,6 +114,23 @@ exige `folders update github_forks --license <licença real>` manualmente.
   (`schema_version` primeiro, depois cada pasta) antes de ser reconstruído como entidades de
   domínio (`Folder`/`FolderRegistry`), que reforçam as mesmas invariantes de novo no
   `__post_init__` — nenhum dado inválido sobrevive às duas camadas.
+
+## Limitação conhecida: mudança de conteúdo não é detectada
+
+Hoje **nenhum campo deste arquivo reflete se o conteúdo da pasta mudou desde a última
+curadoria**. `last_scanned` só confirma que o caminho continua acessível (`folders scan`) — não
+compara conteúdo, não calcula hash, não olha commits. Uma pasta `curated` (curada) pode ganhar
+novos commits/arquivos e o `status` permanece `curated` indefinidamente, como se nada tivesse
+mudado.
+
+**Comportamento planejado** (feature futura, ainda sem número/spec formal): quando o conteúdo de
+uma pasta git mudar em relação ao commit HEAD registrado na última curadoria, o sistema deve
+reverter automaticamente o `status` de `curated` para `in_curation`, forçando nova revisão antes
+de voltar a ser considerada curada. A detecção é por hash do commit HEAD (só funciona para pastas
+que são repositórios git — outras pastas ficam fora desse mecanismo até uma decisão futura). Isso
+exigirá um campo novo na entidade (ex.: `last_curated_commit_hash`) e portanto uma nova versão do
+schema (`schemas/folders-schema-v2.json` ou aditiva, a depender da decisão de `/speckit-plan`
+quando essa feature for especificada).
 
 ## Mudança planejada (feature 003, ainda não implementada)
 
