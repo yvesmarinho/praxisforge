@@ -1,0 +1,39 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    name: Lint, tipagem, testes e validação de dados
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+
+      - name: Sync dependencies
+        run: uv sync
+
+      - name: Lint (ruff + mypy)
+        run: make lint
+
+      - name: Testes (pytest, cobertura mínima 90%)
+        run: make test
+
+      - name: Validar dados versionados contra os contratos
+        run: make validate-data
+
+      - name: Security (bandit + safety)
+        run: make security
