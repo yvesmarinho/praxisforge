@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 10:10
+MODIFICADO: 22/09/2026 12:04
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -36,6 +36,7 @@ from praxisforge.application.resolve_folder_path import (
     resolve_all_folder_paths,
     resolve_folder_path,
 )
+from praxisforge.application.scan_folders import scan_all_folders, scan_folder
 from praxisforge.application.update_folder import update_folder
 from praxisforge.application.validate_registry import validate_registry
 from praxisforge.infrastructure.env_path_resolver import EnvPathResolver
@@ -97,6 +98,11 @@ def _build_parser() -> argparse.ArgumentParser:
     resolve_group = resolve_parser.add_mutually_exclusive_group(required=True)
     resolve_group.add_argument("alias", nargs="?", default=None)
     resolve_group.add_argument("--all", action="store_true", dest="all_aliases")
+
+    scan_parser = folders_sub.add_parser("scan")
+    scan_group = scan_parser.add_mutually_exclusive_group(required=True)
+    scan_group.add_argument("alias", nargs="?", default=None)
+    scan_group.add_argument("--all", action="store_true", dest="all_aliases")
 
     folders_sub.add_parser("validate")
 
@@ -204,6 +210,36 @@ def _cmd_folders_resolve(
     return _EXIT_OK
 
 
+def _cmd_folders_scan(
+    args: argparse.Namespace, repository: FolderRegistryRepository, resolver: PathResolver
+) -> int:
+    if args.all_aliases:
+        report = scan_all_folders(repository, resolver)
+        for resultado in report.ok:
+            sys.stdout.write(
+                f"{resultado.alias} → varrida ({resultado.status.label_pt_br()})\n"
+            )
+        for failure in report.failures:
+            sys.stdout.write(f"{failure.alias} → falha ({failure.message})\n")
+        for grupo in report.duplicates:
+            sys.stdout.write(f"duplicidade: {', '.join(grupo.aliases)} apontam pro mesmo caminho\n")
+        sys.stdout.write(f"{len(report.ok)} ok, {len(report.failures)} com falha\n")
+        return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
+    try:
+        resultado = scan_folder(repository, resolver, args.alias)
+    except FolderNotFoundError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    except _EXIT_AMBIENTE_ERRORS as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    sys.stdout.write(
+        f"pasta '{resultado.alias}' varrida — status: {resultado.status.label_pt_br()}, "
+        f"última varredura: {_formatar_data(resultado.last_scanned)}\n"
+    )
+    return _EXIT_OK
+
+
 def _cmd_folders_validate(
     args: argparse.Namespace,
     repository: FolderRegistryRepository,
@@ -269,6 +305,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_folders_update(args, repository)
         if args.subcomando == "resolve":
             return _cmd_folders_resolve(args, repository, EnvPathResolver())
+        if args.subcomando == "scan":
+            return _cmd_folders_scan(args, repository, EnvPathResolver())
         if args.subcomando == "validate":
             return _cmd_folders_validate(args, repository, validator)
 
