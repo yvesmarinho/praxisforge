@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 17:20 -->
-<!-- Modificado em: 22/09/2026 16:27 -->
+<!-- Modificado em: 22/09/2026 16:32 -->
 
 ---
 
@@ -119,7 +119,13 @@ registro vazio, rodar e confirmar que as 3 aparecem em `folders.yaml` com os cam
       nenhuma subpasta → 0 registradas, sem erro; duas subpastas novas cujos nomes slugificam para
       o mesmo alias → a primeira (ordem alfabética) é registrada, a segunda vira falha individual
       (`AliasAlreadyRegisteredError`); nome de subpasta que não vira alias válido mesmo
-      slugificado → falha individual (`InvalidAliasError`)
+      slugificado → falha individual (`InvalidAliasError`); **escala (SC-003)** — pasta-raiz com
+      50 subpastas sintéticas (40 com README+LICENSE reconhecíveis, 10 sem nenhum dos dois) → as
+      50 são registradas com sucesso (as 10 como `unknown`/`pending`), sem interromper a execução;
+      **FR-012 explícito** — em nenhum dos casos acima nenhuma pasta registrada pelo bootstrap
+      recebe `status: CurationStatus.IGNORE` (`assert all(f.status is not CurationStatus.IGNORE
+      for f in <pastas registradas>)`), documentando por nome a garantia de que o bootstrap nunca
+      atribui `ignore` sozinho
 - [ ] T014 [US1] Escrever `tests/integration/test_cli_bootstrap.py`: `folders bootstrap <root>`
       com subpastas válidas → exit code 0, resumo lista as registradas; `root` inexistente → exit
       code 1, mensagem cita o caminho de `root` (exceção explícita de FR-014); nenhuma saída
@@ -150,7 +156,9 @@ registro vazio, rodar e confirmar que as 3 aparecem em `folders.yaml` com os cam
       `src/praxisforge/presentation/cli.py` (parser + handler; composição de
       `FilesystemFolderProbe()` em `main()`); handler converte `BootstrapReport` em resumo amigável
       (exit 0) e `InvalidRootPathError`/demais `PraxisForgeError` em mensagem + exit code 1, citando
-      o caminho de `root` quando for o próprio erro — faz T014 passar
+      o caminho de `root` quando for o próprio erro — faz T014 passar. **Nota**: nesta fase
+      `skipped_existing`/`skipped_ignored` sempre vêm vazios no resumo impresso (a lógica que os
+      popula só chega em T024, US2) — comportamento esperado, não é bug desta tarefa
 - [ ] T020 [US1] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: MVP entregável — bootstrap registra pastas novas a partir de uma raiz
