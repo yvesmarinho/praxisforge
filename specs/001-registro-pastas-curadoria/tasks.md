@@ -1,5 +1,5 @@
 <!-- Criado em: 21/09/2026 16:20 -->
-<!-- Modificado em: 22/09/2026 10:19 -->
+<!-- Modificado em: 22/09/2026 11:22 -->
 
 ---
 
@@ -199,7 +199,7 @@ description: "Tasks — 001-registro-pastas-curadoria"
 - [X] T070 Rodar todos os gates: `uv run ruff check .`, `uv run ruff format --check src tests`, `uv run mypy` (0 erros), `uv run pytest` (cobertura ≥ 90%, incluindo cenários de falha de FS e ambiente — SC-007), `make validate-data`, `make security`
 - [X] T071 Executar o `quickstart.md` completo (§1–§7) e confirmar cada resultado esperado; registrar divergências em `docs/bugs/` se houver (relatório de erro + correção)
 - [X] T072 Atualizar `graphify` (`graphify update .`) e registrar no vault `claude_memory` a feature concluída: `projects/praxisforge.md` (decisões, catálogo, pendências) e `daily/AAAA-MM-DD.md`, listando novas notas no `00-index.md`; sem segredos nem caminhos internos
-- [ ] T073 Abrir o PR da branch `001-registro-pastas-curadoria` para `main` (commits Conventional em pt-BR, corpo do PR com "o quê / por quê / verificação"); aguardar CI verde antes de qualquer merge
+- [X] T073 Abrir o PR da branch `001-registro-pastas-curadoria` para `main` (commits Conventional em pt-BR, corpo do PR com "o quê / por quê / verificação"); aguardar CI verde antes de qualquer merge
 
 ---
 
