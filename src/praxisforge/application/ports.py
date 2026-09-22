@@ -3,11 +3,12 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:51
+MODIFICADO: 22/09/2026 16:39
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T023)
+    - 22/09/2026 18:05: +RootFolderProbe (T016, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -91,4 +92,42 @@ class ContractValidator(ABC):
         :param schema_name: nome do schema em `schemas/` (sem extensão).
         :type schema_name: str
         :raises ContractValidationError: violações encontradas (todas de uma vez).
+        """
+
+
+class RootFolderProbe(ABC):
+    """Porta para inspecionar uma pasta-raiz arbitrária (feature 003 — bootstrap)."""
+
+    @abstractmethod
+    def list_subfolders(self, root: Path) -> list[Path]:
+        """
+        Lista as subpastas de primeiro nível de uma pasta-raiz.
+
+        :param root: caminho da pasta-raiz.
+        :type root: Path
+        :return: subpastas de primeiro nível, ordenadas alfabeticamente pelo nome.
+        :rtype: list[Path]
+        :raises InvalidRootPathError: `root` inexistente, não é diretório, ou sem permissão.
+        """
+
+    @abstractmethod
+    def read_description(self, path: Path) -> str | None:
+        """
+        Extrai uma descrição a partir do README de uma pasta, se existir.
+
+        :param path: caminho da pasta.
+        :type path: Path
+        :return: primeiro parágrafo útil do README, truncado em 500 caracteres, ou `None`.
+        :rtype: str | None
+        """
+
+    @abstractmethod
+    def detect_license(self, path: Path) -> str | None:
+        """
+        Tenta identificar a licença a partir do LICENSE de uma pasta.
+
+        :param path: caminho da pasta.
+        :type path: Path
+        :return: identificador da licença reconhecida, ou `None` se ausente/não reconhecida/ambígua.
+        :rtype: str | None
         """

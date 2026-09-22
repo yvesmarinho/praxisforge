@@ -3,11 +3,12 @@
 NOME: test_scan_folders.py
 TITULO: Testes de falha — casos de uso scan_folder e scan_all_folders (fakes)
 DATA: 22/09/2026 12:35
-MODIFICADO: 22/09/2026 12:05
+MODIFICADO: 22/09/2026 16:45
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.scan_folders
 HISTÓRICO:
     - 22/09/2026 12:35: criação (T002/T008/T014)
+    - 22/09/2026 19:05: +caso pular status ignore no lote (T028, feature 003-bootstrap)
 STATUS: DEV
 """
 
@@ -299,3 +300,34 @@ def test_caminhos_distintos_nao_geram_duplicidade(tmp_path: Path) -> None:
     resolver = _FakeResolver({"demo_a": tmp_path, "demo_b": outro})
     report = scan_all_folders(repo, resolver)
     assert report.duplicates == []
+
+
+# --- pastas com status ignore (feature 003) -------------------------------------------
+
+
+def test_lote_pula_pasta_com_status_ignore(tmp_path: Path) -> None:
+    """scan_all_folders pula pasta ignore: não resolve caminho, não conta ok/failures."""
+    folders = [
+        _folder("demo_a", CurationStatus.NOT_SCANNED),
+        _folder("pasta_ignorada", CurationStatus.IGNORE, license="unknown"),
+    ]
+    repo = _FakeRepository(_registry(*folders))
+    resolver = _FakeResolver({"demo_a": tmp_path})  # sem entrada para pasta_ignorada
+    report = scan_all_folders(repo, resolver)
+    assert [r.alias for r in report.ok] == ["demo_a"]
+    assert report.failures == []
+    assert report.ignored == ["pasta_ignorada"]
+
+
+def test_lote_ignora_apenas_pasta_ignore_demais_normais(tmp_path: Path) -> None:
+    """Demais pastas continuam processadas normalmente quando há uma pasta ignore no meio."""
+    folders = [
+        _folder("demo_a", CurationStatus.NOT_SCANNED),
+        _folder("demo_b", CurationStatus.NOT_SCANNED),
+        _folder("pasta_ignorada", CurationStatus.IGNORE, license="unknown"),
+    ]
+    repo = _FakeRepository(_registry(*folders))
+    resolver = _FakeResolver({"demo_a": tmp_path, "demo_b": tmp_path})
+    report = scan_all_folders(repo, resolver)
+    assert {r.alias for r in report.ok} == {"demo_a", "demo_b"}
+    assert report.ignored == ["pasta_ignorada"]

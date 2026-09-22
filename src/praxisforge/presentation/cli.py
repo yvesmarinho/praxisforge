@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 12:04
+MODIFICADO: 22/09/2026 16:45
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
+from praxisforge.application.bootstrap_folders import bootstrap_folders
 from praxisforge.application.dto import RegisterFolderInput, UpdateFolderInput
 from praxisforge.application.errors import (
     ContractValidationError,
@@ -26,10 +27,11 @@ from praxisforge.application.errors import (
     FolderPathInvalidError,
     FolderPathNotConfiguredError,
     FolderPathUnreadableError,
+    InvalidRootPathError,
     PraxisForgeError,
     RegistryUnavailableError,
 )
-from praxisforge.application.ports import FolderRegistryRepository, PathResolver
+from praxisforge.application.ports import FolderRegistryRepository, PathResolver, RootFolderProbe
 from praxisforge.application.query_folders import list_folders, show_folder
 from praxisforge.application.register_folder import register_folder
 from praxisforge.application.resolve_folder_path import (
@@ -40,6 +42,7 @@ from praxisforge.application.scan_folders import scan_all_folders, scan_folder
 from praxisforge.application.update_folder import update_folder
 from praxisforge.application.validate_registry import validate_registry
 from praxisforge.infrastructure.env_path_resolver import EnvPathResolver
+from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.logging_setup import configure_logging
 from praxisforge.infrastructure.source_frontmatter import read_frontmatter
@@ -103,6 +106,9 @@ def _build_parser() -> argparse.ArgumentParser:
     scan_group = scan_parser.add_mutually_exclusive_group(required=True)
     scan_group.add_argument("alias", nargs="?", default=None)
     scan_group.add_argument("--all", action="store_true", dest="all_aliases")
+
+    bootstrap_parser = folders_sub.add_parser("bootstrap")
+    bootstrap_parser.add_argument("root", type=Path)
 
     folders_sub.add_parser("validate")
 
@@ -223,7 +229,10 @@ def _cmd_folders_scan(
             sys.stdout.write(f"{failure.alias} → falha ({failure.message})\n")
         for grupo in report.duplicates:
             sys.stdout.write(f"duplicidade: {', '.join(grupo.aliases)} apontam pro mesmo caminho\n")
-        sys.stdout.write(f"{len(report.ok)} ok, {len(report.failures)} com falha\n")
+        sys.stdout.write(
+            f"{len(report.ok)} ok, {len(report.failures)} com falha, "
+            f"{len(report.ignored)} ignoradas\n"
+        )
         return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
     try:
         resultado = scan_folder(repository, resolver, args.alias)
@@ -236,6 +245,25 @@ def _cmd_folders_scan(
     sys.stdout.write(
         f"pasta '{resultado.alias}' varrida — status: {resultado.status.label_pt_br()}, "
         f"última varredura: {_formatar_data(resultado.last_scanned)}\n"
+    )
+    return _EXIT_OK
+
+
+def _cmd_folders_bootstrap(
+    args: argparse.Namespace, repository: FolderRegistryRepository, probe: RootFolderProbe
+) -> int:
+    try:
+        report = bootstrap_folders(repository, probe, args.root)
+    except InvalidRootPathError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    for alias in report.registered:
+        sys.stdout.write(f"{alias} → registrada\n")
+    for failure in report.failures:
+        sys.stdout.write(f"{failure.alias} → falha ({failure.message})\n")
+    sys.stdout.write(
+        f"{len(report.registered)} registradas, {len(report.skipped_existing)} já existentes, "
+        f"{len(report.skipped_ignored)} ignoradas, {len(report.failures)} com falha\n"
     )
     return _EXIT_OK
 
@@ -307,6 +335,8 @@ def main(argv: list[str] | None = None) -> int:
             return _cmd_folders_resolve(args, repository, EnvPathResolver())
         if args.subcomando == "scan":
             return _cmd_folders_scan(args, repository, EnvPathResolver())
+        if args.subcomando == "bootstrap":
+            return _cmd_folders_bootstrap(args, repository, FilesystemFolderProbe())
         if args.subcomando == "validate":
             return _cmd_folders_validate(args, repository, validator)
 
