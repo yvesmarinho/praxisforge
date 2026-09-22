@@ -66,3 +66,6 @@ tmp/*
 !.session-index/README.md
 .session-time/*
 !.session-time/README.md
+
+# graphify (artefato gerado localmente por `graphify update .`)
+graphify-out/
