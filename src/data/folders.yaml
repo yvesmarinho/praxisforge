@@ -1,0 +1,8 @@
+folders:
+  github_forks:
+    content_type: repository_forks
+    description: Forks de repositórios de referência sobre engenharia de agentes
+    last_scanned: null
+    license: unknown
+    status: pending
+schema_version: '1'
