@@ -1,0 +1,94 @@
+# -*- coding: utf-8 -*-
+"""
+NOME: ports.py
+TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
+DATA: 22/09/2026 09:45
+MODIFICADO: 22/09/2026 09:51
+VERSÃO: 0.1.0
+DEPEND: praxisforge.domain
+HISTÓRICO:
+    - 22/09/2026 09:45: criação (T023)
+STATUS: DEV
+"""
+
+from abc import ABC, abstractmethod
+from collections.abc import Mapping
+from pathlib import Path
+
+from praxisforge.domain.folder_registry import FolderRegistry
+
+
+class FolderRegistryRepository(ABC):
+    """Porta para persistência do agregado FolderRegistry."""
+
+    @abstractmethod
+    def load(self) -> FolderRegistry:
+        """
+        Carrega e valida o registro completo.
+
+        :return: agregado reconstruído a partir do arquivo persistido.
+        :rtype: FolderRegistry
+        :raises RegistryFileNotFoundError: arquivo ausente.
+        :raises RegistryUnavailableError: arquivo ilegível/corrompido.
+        """
+
+    @abstractmethod
+    def load_raw(self) -> Mapping[str, object]:
+        """
+        Carrega o documento bruto (sem reconstruir entidades), para validação por item.
+
+        :return: dict com `schema_version` e `folders`.
+        :rtype: Mapping[str, object]
+        """
+
+    @abstractmethod
+    def save(self, registry: FolderRegistry) -> None:
+        """
+        Grava o registro de forma atômica e determinística.
+
+        :param registry: agregado a persistir.
+        :type registry: FolderRegistry
+        """
+
+    @abstractmethod
+    def exists(self) -> bool:
+        """
+        Indica se o arquivo do registro existe.
+
+        :return: True se o arquivo existe.
+        :rtype: bool
+        """
+
+
+class PathResolver(ABC):
+    """Porta para resolução de alias → caminho real (fonte: ambiente)."""
+
+    @abstractmethod
+    def resolve(self, alias: str) -> Path:
+        """
+        Resolve o caminho real configurado para um alias.
+
+        :param alias: alias já registrado.
+        :type alias: str
+        :return: caminho real, absoluto e legível.
+        :rtype: Path
+        :raises FolderPathNotConfiguredError: variável ausente/vazia.
+        :raises FolderPathInvalidError: caminho relativo, com `..`, inexistente ou não é diretório.
+        :raises FolderPathUnreadableError: sem permissão de leitura.
+        """
+
+
+class ContractValidator(ABC):
+    """Porta para validação de documentos contra contratos JSON Schema versionados."""
+
+    @abstractmethod
+    def validate(self, document: Mapping[str, object], schema_name: str) -> None:
+        """
+        Valida um documento contra o schema nomeado.
+
+        :param document: documento a validar (dict já carregado).
+        :type document: Mapping[str, object]
+        :param schema_name: nome do schema em `schemas/` (sem extensão).
+        :type schema_name: str
+        :raises ContractValidationError: violações encontradas (todas de uma vez).
+        """
