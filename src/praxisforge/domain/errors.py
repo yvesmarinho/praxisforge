@@ -1,0 +1,176 @@
+# -*- coding: utf-8 -*-
+"""
+NOME: errors.py
+TITULO: Hierarquia de exceções semânticas do Domain e Application
+DATA: 22/09/2026 09:45
+MODIFICADO: 22/09/2026 09:49
+VERSÃO: 0.1.0
+DEPEND: (nenhuma — stdlib apenas; camada Domain)
+HISTÓRICO:
+    - 22/09/2026 09:45: criação (T017) — faz tests/unit/domain/test_errors.py passar
+STATUS: DEV
+"""
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class Violation:
+    """
+    Uma violação de contrato: campo e motivo.
+
+    :param field: nome do campo violado (dot-path quando aninhado).
+    :type field: str
+    :param reason: motivo em pt-BR, sem caminho absoluto.
+    :type reason: str
+    """
+
+    field: str
+    reason: str
+
+
+class PraxisForgeError(Exception):
+    """Raiz da hierarquia de exceções semânticas do PraxisForge."""
+
+
+class ContractValidationError(PraxisForgeError):
+    """
+    Um documento (registro ou fonte) viola o contrato JSON Schema.
+
+    :param violations: lista de todas as violações encontradas de uma vez.
+    :type violations: list[Violation]
+    """
+
+    def __init__(self, violations: list[Violation]) -> None:
+        self.violations = violations
+        resumo = "; ".join(f"{v.field}: {v.reason}" for v in violations)
+        super().__init__(f"documento inválido — {resumo}" if resumo else "documento inválido")
+
+
+class UnsupportedSchemaVersionError(ContractValidationError):
+    """
+    `schema_version` do documento não é suportada por esta versão do PraxisForge.
+
+    :param found: versão encontrada no documento (ou None se ausente).
+    :type found: str | None
+    :param supported: tupla das versões suportadas.
+    :type supported: tuple[str, ...]
+    """
+
+    def __init__(self, found: str | None, supported: tuple[str, ...]) -> None:
+        self.found = found
+        self.supported = supported
+        violation = Violation(
+            field="schema_version",
+            reason=(
+                f"versão '{found}' não suportada; suportadas: {', '.join(supported)}"
+                if found is not None
+                else f"campo ausente; suportadas: {', '.join(supported)}"
+            ),
+        )
+        super().__init__([violation])
+
+
+class InvalidAliasError(PraxisForgeError):
+    """Alias fora do formato `^[a-z][a-z0-9_]{1,62}$`."""
+
+
+class InvalidFolderError(PraxisForgeError):
+    """Uma invariante da entidade Folder foi violada."""
+
+
+class UnknownLicenseRequiresPendingError(InvalidFolderError):
+    """Licença `unknown` exige status `pending`."""
+
+    def __init__(self, alias: str = "") -> None:
+        super().__init__(
+            f"pasta '{alias}': licença 'unknown' exige status 'pending'"
+            if alias
+            else "licença 'unknown' exige status 'pending'"
+        )
+
+
+class FutureScanDateError(InvalidFolderError):
+    """`last_scanned` está no futuro."""
+
+    def __init__(self, alias: str = "") -> None:
+        super().__init__(
+            f"pasta '{alias}': last_scanned não pode estar no futuro"
+            if alias
+            else "last_scanned não pode estar no futuro"
+        )
+
+
+class AliasAlreadyRegisteredError(PraxisForgeError):
+    """Alias já registrado com dados diferentes dos informados."""
+
+    def __init__(self, alias: str) -> None:
+        self.alias = alias
+        super().__init__(f"alias '{alias}' já registrado com dados diferentes")
+
+
+class FolderNotFoundError(PraxisForgeError):
+    """Alias não encontrado no registro."""
+
+    def __init__(self, alias: str) -> None:
+        self.alias = alias
+        super().__init__(f"pasta '{alias}' não encontrada no registro")
+
+
+class RegistryUnavailableError(PraxisForgeError):
+    """Registro ilegível ou corrompido (Infrastructure)."""
+
+    def __init__(self, reason: str = "registro indisponível") -> None:
+        super().__init__(reason)
+
+
+class RegistryFileNotFoundError(RegistryUnavailableError):
+    """Arquivo do registro ausente (só `folders add` pode criá-lo)."""
+
+    def __init__(self) -> None:
+        super().__init__("registro ausente")
+
+
+class FolderPathNotConfiguredError(PraxisForgeError):
+    """Variável de ambiente `PRAXISFORGE_FOLDER_<ALIAS>` ausente ou vazia."""
+
+    def __init__(self, alias: str) -> None:
+        self.alias = alias
+        super().__init__(
+            f"variável PRAXISFORGE_FOLDER_{alias.upper()} não configurada para '{alias}'"
+        )
+
+
+class FolderPathInvalidError(PraxisForgeError):
+    """Caminho configurado é relativo, contém `..`, não existe ou não é diretório."""
+
+    def __init__(self, alias: str, reason: str = "caminho inválido") -> None:
+        self.alias = alias
+        super().__init__(f"pasta '{alias}': {reason}")
+
+
+class FolderPathUnreadableError(PraxisForgeError):
+    """Caminho configurado existe mas sem permissão de leitura."""
+
+    def __init__(self, alias: str) -> None:
+        self.alias = alias
+        super().__init__(f"pasta '{alias}': sem permissão de leitura")
+
+
+__all__ = [
+    "AliasAlreadyRegisteredError",
+    "ContractValidationError",
+    "FolderNotFoundError",
+    "FolderPathInvalidError",
+    "FolderPathNotConfiguredError",
+    "FolderPathUnreadableError",
+    "FutureScanDateError",
+    "InvalidAliasError",
+    "InvalidFolderError",
+    "PraxisForgeError",
+    "RegistryFileNotFoundError",
+    "RegistryUnavailableError",
+    "UnknownLicenseRequiresPendingError",
+    "UnsupportedSchemaVersionError",
+    "Violation",
+]

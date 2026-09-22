@@ -23,3 +23,11 @@ jobs:
           fail-on-severity: moderate
           warn-on-OpenSSF-scorecard-level: 3
           comment-summary-in-pr: always
+          # GHSA-8mgp-746c-j5xp (nltk, high): path traversal nas APIs de
+          # treino/persistência de modelo do NLTK. nltk é dependência
+          # transitiva do `safety` (dev, exigido pela constituição para
+          # `make security`) — o praxisforge nunca importa nltk nem chama
+          # essas APIs. Sem versão corrigida disponível (first_patched_version
+          # null na advisory, 22/09/2026). Risco aceito e documentado; revisar
+          # quando uma versão corrigida do nltk ou do safety existir.
+          allow-ghsas: GHSA-8mgp-746c-j5xp

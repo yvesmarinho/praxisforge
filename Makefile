@@ -1,7 +1,7 @@
 # Makefile — Praxisforge
 # Gerado por scaffold.py em 2026-09-18T18:56:11Z
 
-.PHONY: help init dev build test lint format clean
+.PHONY: help init dev build test lint format clean validate-data security
 
 ## Mostra esta ajuda
 help:
@@ -42,6 +42,17 @@ format:
 ## Remove arquivos gerados
 clean:
 	@rm -rf dist/ build/ __pycache__/ .pytest_cache/ *.egg-info/ .coverage htmlcov/
+
+## Valida src/data contra os contratos versionados em schemas/
+validate-data:
+	@uv run yamllint src/data
+	@uv run check-jsonschema --schemafile schemas/folders-schema-v1.json src/data/folders.yaml
+
+## Roda bandit e safety sobre o código-fonte
+security:
+	@uv run bandit -r src -q
+	@uv run safety check
+
 ## Carrega variáveis MCP do .secrets/.env e orienta a abrir o VS Code
 mcp:
 	@bash scripts/load-mcp.sh

@@ -1,0 +1,9 @@
+---
+# Criado em: 22/09/2026 09:45
+# Modificado em: 22/09/2026 09:45
+extends: relaxed
+
+rules:
+  line-length:
+    max: 120
+    level: warning

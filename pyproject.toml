@@ -8,11 +8,14 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
-    "jsonschema>=4.26.0",
+    "jsonschema[format]>=4.26.0",
     "pydantic>=2.13.5",
     "pyyaml>=6.0.3",
     "requests>=2.34.2",
 ]
+
+[project.scripts]
+praxisforge = "praxisforge.presentation.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.12.16,<0.13.0"]
@@ -20,11 +23,13 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "bandit>=1.9.4",
     "check-jsonschema>=0.38.0",
     "mypy>=2.3.1",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.8",
+    "safety>=3.8.1",
     "types-jsonschema>=4.26.0.20260518",
     "types-pyyaml>=6.0.12.20260906",
     "types-requests>=2.33.0.20260906",
@@ -53,3 +58,6 @@ files = ["src", "tests"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=praxisforge --cov-report=term-missing --cov-fail-under=90"
+markers = [
+    "slow: teste de desempenho/escala, mais lento que a suíte padrão",
+]
