@@ -3,11 +3,12 @@
 NOME: test_cli_scan.py
 TITULO: Testes de falha — CLI praxisforge folders scan
 DATA: 22/09/2026 12:40
-MODIFICADO: 22/09/2026 12:04
+MODIFICADO: 22/09/2026 16:44
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 12:40: criação (T003/T009/T015)
+    - 22/09/2026 19:10: +casos status ignore (T030, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -154,3 +155,52 @@ def test_scan_all_lista_aliases_duplicados(
     assert "demo_a" in out
     assert "demo_dup" in out
     assert str(destino) not in out
+
+
+# --- status ignore (feature 003) -------------------------------------------------------
+
+
+def test_scan_all_pula_pasta_ignore_sem_exigir_variavel(
+    tmp_registry_path: Path,
+    tmp_path: Path,
+    env_folder: object,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """folders scan --all pula pasta ignore, sem exigir PRAXISFORGE_FOLDER_<ALIAS> para ela."""
+    _add_folder(tmp_registry_path, "demo_a", capsys)
+    _add_folder(tmp_registry_path, "pasta_ignorada", capsys)
+    _run(
+        ["--registry", str(tmp_registry_path), "folders", "update", "pasta_ignorada",
+         "--status", "ignore"],
+        capsys,
+    )
+    destino = tmp_path / "real"
+    destino.mkdir()
+    env_folder.set("demo_a", str(destino))  # type: ignore[attr-defined]
+    # nenhuma variável PRAXISFORGE_FOLDER_PASTA_IGNORADA definida — não deve ser exigida
+    code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "scan", "--all"], capsys)
+    assert code == 0
+    assert "1 ignoradas" in out
+
+
+def test_scan_individual_em_alias_ignore_continua_funcionando(
+    tmp_registry_path: Path,
+    tmp_path: Path,
+    env_folder: object,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """folders scan <alias> individual sobre um alias ignore não é pulado (FR-013)."""
+    _add_folder(tmp_registry_path, "pasta_ignorada", capsys)
+    _run(
+        ["--registry", str(tmp_registry_path), "folders", "update", "pasta_ignorada",
+         "--status", "ignore"],
+        capsys,
+    )
+    destino = tmp_path / "real"
+    destino.mkdir()
+    env_folder.set("pasta_ignorada", str(destino))  # type: ignore[attr-defined]
+    code, out, _ = _run(
+        ["--registry", str(tmp_registry_path), "folders", "scan", "pasta_ignorada"], capsys
+    )
+    assert code == 0
+    assert "pasta_ignorada" in out

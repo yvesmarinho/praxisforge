@@ -4,12 +4,13 @@ NOME: scan_folders.py
 TITULO: Casos de uso — varrer uma pasta registrada e varrer todas em lote (com detecção de
         aliases duplicados)
 DATA: 22/09/2026 12:45
-MODIFICADO: 22/09/2026 12:05
+MODIFICADO: 22/09/2026 16:45
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain, praxisforge.application.ports,
         praxisforge.application.resolve_folder_path, praxisforge.application.logging_events
 HISTÓRICO:
     - 22/09/2026 12:45: criação (T005/T011/T017) — faz test_scan_folders.py passar
+    - 22/09/2026 19:15: pular pastas ignore no lote (T032, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -49,6 +50,7 @@ class ScanBatchReport:
     ok: list[ScanResult]
     failures: list[ItemFailure]
     duplicates: list[DuplicateAliasGroup] = field(default_factory=list)
+    ignored: list[str] = field(default_factory=list)
 
 
 def _aplicar_varredura(
@@ -121,9 +123,13 @@ def scan_all_folders(
     registry = repository.load()
     ok: list[ScanResult] = []
     failures: list[ItemFailure] = []
+    ignored: list[str] = []
     caminhos_por_alias: dict[str, Path] = {}
     for folder in registry.list():
         alias = folder.alias.value
+        if folder.status is CurationStatus.IGNORE:
+            ignored.append(alias)
+            continue
         try:
             caminho = resolver.resolve(alias)
         except Exception as error:  # noqa: BLE001 - agrega falha por item, não interrompe o lote
@@ -152,4 +158,4 @@ def scan_all_folders(
         outcome=f"{len(ok)} ok, {len(failures)} com falha, {len(duplicates)} grupo(s) duplicado(s)",
         error_type=None,
     )
-    return ScanBatchReport(ok=ok, failures=failures, duplicates=duplicates)
+    return ScanBatchReport(ok=ok, failures=failures, duplicates=duplicates, ignored=ignored)

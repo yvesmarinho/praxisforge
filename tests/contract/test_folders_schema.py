@@ -3,11 +3,12 @@
 NOME: test_folders_schema.py
 TITULO: Testes de contrato — schemas/folders-schema-v1.json
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:52
+MODIFICADO: 22/09/2026 16:35
 VERSÃO: 0.1.0
 DEPEND: pytest, jsonschema
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T010)
+    - 22/09/2026 17:34: +casos status "ignore" (T004, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -156,4 +157,55 @@ def test_documentos_invalidos_sao_rejeitados(
     schema: dict[str, object], documento: dict[str, object]
 ) -> None:
     """Cada variação inválida da spec é rejeitada pelo schema."""
+    assert _validar(schema, documento) != []
+
+
+def test_status_ignore_eh_valido(schema: dict[str, object]) -> None:
+    """status: 'ignore' é aceito pelo schema (feature 003, FR-010)."""
+    documento = {
+        "schema_version": "1",
+        "folders": {
+            "exemplo": {
+                "description": "x",
+                "content_type": "docs",
+                "license": "MIT",
+                "last_scanned": None,
+                "status": "ignore",
+            }
+        },
+    }
+    assert _validar(schema, documento) == []
+
+
+def test_licenca_unknown_com_status_ignore_eh_valido(schema: dict[str, object]) -> None:
+    """license: 'unknown' + status: 'ignore' é aceito (invariante relaxada, FR-011)."""
+    documento = {
+        "schema_version": "1",
+        "folders": {
+            "exemplo": {
+                "description": "x",
+                "content_type": "docs",
+                "license": "unknown",
+                "last_scanned": None,
+                "status": "ignore",
+            }
+        },
+    }
+    assert _validar(schema, documento) == []
+
+
+def test_licenca_unknown_com_status_scanned_continua_invalido(schema: dict[str, object]) -> None:
+    """Regressão: license: 'unknown' + status diferente de pending/ignore continua rejeitado."""
+    documento = {
+        "schema_version": "1",
+        "folders": {
+            "exemplo": {
+                "description": "x",
+                "content_type": "docs",
+                "license": "unknown",
+                "last_scanned": None,
+                "status": "scanned",
+            }
+        },
+    }
     assert _validar(schema, documento) != []

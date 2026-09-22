@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 22/09/2026 12:05 -->
+<!-- Modificado em: 22/09/2026 16:45 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -8,6 +8,13 @@
 > uso `scan_folder`/`scan_all_folders`, com detecção de aliases duplicados no lote) e o
 > subcomando `folders scan` em `presentation/cli.py`. Ver `specs/002-varredura-pastas-curadoria/
 > plan.md` e `research.md` para as decisões de design.
+>
+> **Feature 003 (Bootstrap do Registro de Pastas)**: mudança mínima de Domain/contrato (sexto
+> valor de `CurationStatus`, `ignore`, e invariante relaxada, aditiva — mesmo
+> `folders-schema-v1.json`), uma porta nova (`RootFolderProbe`) e seu adapter
+> (`FilesystemFolderProbe`), o caso de uso `application/bootstrap_folders.py`, e o subcomando
+> `folders bootstrap`. `folders scan --all` (feature 002) passa a pular pastas `ignore`. Ver
+> `specs/003-bootstrap-registro-pastas/plan.md` e `research.md`.
 
 ## Camadas
 
@@ -108,7 +115,8 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `application/query_folders.py` | Casos de uso: listar/consultar |
 | `application/update_folder.py` | Caso de uso: atualizar |
 | `application/resolve_folder_path.py` | Casos de uso: resolver caminho (individual/lote) |
-| `application/scan_folders.py` | Casos de uso: varrer pasta (individual/lote) + detectar aliases duplicados (feature 002) |
+| `application/scan_folders.py` | Casos de uso: varrer pasta (individual/lote) + detectar aliases duplicados (feature 002); pula pastas `ignore` no lote (feature 003) |
+| `application/bootstrap_folders.py` | Caso de uso: gerar registro inicial a partir de uma pasta-raiz (feature 003) |
 | `application/validate_registry.py` | Caso de uso: validar registro em lote |
 | `application/logging_events.py` | Log estruturado (versão Application) |
 | `application/errors.py` | Reexportação de erros para Presentation |
@@ -118,4 +126,5 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `infrastructure/source_frontmatter.py` | Leitor de frontmatter de fontes |
 | `infrastructure/logging_setup.py` | Configuração de logging (formatter JSON) |
 | `infrastructure/yaml_loader.py` | `SafeLoader` compartilhado |
+| `infrastructure/filesystem_folder_probe.py` | Adapter que lista subpastas e extrai description/license via filesystem (feature 003) |
 | `presentation/cli.py` | CLI `praxisforge` |

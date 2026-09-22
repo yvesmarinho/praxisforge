@@ -3,11 +3,12 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:50
+MODIFICADO: 22/09/2026 16:37
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T005) — hierarquia de data-model.md
+    - 22/09/2026 17:36: +InvalidRootPathError (T005, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -23,6 +24,7 @@ from praxisforge.domain.errors import (
     FutureScanDateError,
     InvalidAliasError,
     InvalidFolderError,
+    InvalidRootPathError,
     PraxisForgeError,
     RegistryFileNotFoundError,
     RegistryUnavailableError,
@@ -48,6 +50,7 @@ from praxisforge.domain.errors import (
         FolderPathNotConfiguredError,
         FolderPathInvalidError,
         FolderPathUnreadableError,
+        InvalidRootPathError,
     ],
 )
 def test_todas_derivam_de_praxisforge_error(exc_class: type[Exception]) -> None:
@@ -115,3 +118,13 @@ def test_mensagens_nao_contem_caminho_absoluto(make_error: object) -> None:
     message = str(error)
     assert "/home/" not in message
     assert "/Users/" not in message
+
+
+def test_invalid_root_path_error_cita_root_e_motivo() -> None:
+    """InvalidRootPathError(root, reason) cita a raiz e o motivo (exceção de FR-014)."""
+    raiz = "/tmp/raiz-inexistente"  # noqa: S108 - só usado como texto, nunca criado/acessado
+    error = InvalidRootPathError(raiz, reason="não existe")
+    assert issubclass(InvalidRootPathError, PraxisForgeError)
+    message = str(error)
+    assert raiz in message
+    assert "não existe" in message

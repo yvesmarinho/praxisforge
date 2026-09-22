@@ -3,11 +3,12 @@
 NOME: test_folder.py
 TITULO: Testes de falha — entidade Folder (invariantes em __post_init__)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:47
+MODIFICADO: 22/09/2026 16:37
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.folder
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T008)
+    - 22/09/2026 17:32: +caso unknown/ignore (T003, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -64,9 +65,22 @@ def test_licenca_vazia_levanta_erro() -> None:
 
 
 def test_licenca_unknown_com_status_diferente_de_pending_levanta_erro() -> None:
-    """Licença 'unknown' exige status 'pending'."""
+    """Licença 'unknown' com status 'not_scanned' continua inválido (regressão)."""
     with pytest.raises(UnknownLicenseRequiresPendingError):
         _make(license="unknown", status=CurationStatus.NOT_SCANNED)
+
+
+def test_licenca_unknown_com_status_scanned_levanta_erro() -> None:
+    """Regressão: licença 'unknown' com status 'scanned' continua inválido (feature 003)."""
+    with pytest.raises(UnknownLicenseRequiresPendingError):
+        _make(license="unknown", status=CurationStatus.SCANNED)
+
+
+def test_licenca_unknown_com_status_ignore_eh_aceito() -> None:
+    """Licença 'unknown' com status 'ignore' é aceito (invariante relaxada, FR-011)."""
+    folder = _make(license="unknown", status=CurationStatus.IGNORE)
+    assert folder.status is CurationStatus.IGNORE
+    assert folder.license == "unknown"
 
 
 def test_not_scanned_com_last_scanned_preenchido_levanta_erro() -> None:

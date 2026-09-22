@@ -2,7 +2,7 @@ folders:
   github_forks:
     content_type: repository_forks
     description: Forks de repositórios de referência sobre engenharia de agentes
-    last_scanned: null
+    last_scanned: '2026-09-22T15:46:38.646069+00:00'
     license: unknown
     status: pending
 schema_version: '1'

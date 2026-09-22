@@ -3,11 +3,12 @@
 NOME: test_cli_folders.py
 TITULO: Testes de falha — CLI praxisforge folders add|list|show|update
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:54
+MODIFICADO: 22/09/2026 16:44
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T032)
+    - 22/09/2026 19:08: +caso update --status ignore (T029, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -166,3 +167,32 @@ def test_nenhuma_saida_contem_caminho_absoluto(
     )
     code, out, _ = _run([*registry_arg, "folders", "list"], capsys)
     assert str(tmp_registry_path) not in out
+
+
+def test_update_status_ignore_aceito_codigo_0(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """folders update --status ignore é aceito mesmo com licença unknown (FR-011)."""
+    registry_arg = ["--registry", str(tmp_registry_path)]
+    _run(
+        [
+            *registry_arg,
+            "folders",
+            "add",
+            "--alias",
+            "pasta_tecnica",
+            "--description",
+            "Pasta técnica",
+            "--content-type",
+            "unclassified",
+            "--license",
+            "unknown",
+            "--status",
+            "pending",
+        ],
+        capsys,
+    )
+    code, out, _ = _run(
+        [*registry_arg, "folders", "update", "pasta_tecnica", "--status", "ignore"], capsys
+    )
+    assert code == 0

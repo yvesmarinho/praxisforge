@@ -1,7 +1,7 @@
 {
   "_meta": {
     "criado_em": "21/09/2026 15:59",
-    "modificado_em": "2026-09-21T16:00:58-03:00"
+    "modificado_em": "2026-09-22T16:36:58-03:00"
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://praxisforge.local/schemas/folders-schema-v1.json",
@@ -30,13 +30,13 @@
           "oneOf": [{ "type": "null" }, { "type": "string", "format": "date-time" }]
         },
         "status": {
-          "enum": ["not_scanned", "scanned", "in_curation", "curated", "pending"]
+          "enum": ["not_scanned", "scanned", "in_curation", "curated", "pending", "ignore"]
         }
       },
       "allOf": [
         {
           "if": { "properties": { "license": { "const": "unknown" } }, "required": ["license"] },
-          "then": { "properties": { "status": { "const": "pending" } } }
+          "then": { "properties": { "status": { "enum": ["pending", "ignore"] } } }
         },
         {
           "if": { "properties": { "status": { "const": "not_scanned" } }, "required": ["status"] },
