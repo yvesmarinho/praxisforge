@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 22/09/2026 10:09
+MODIFICADO: 22/09/2026 16:40
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -14,6 +14,7 @@ HISTÓRICO:
       CLI distinguir código de saída 1 (validação/negócio) de 3 (ambiente)
     - 22/09/2026 10:45: adiciona ContractValidationError e RegistryUnavailableError (US3),
       usados por `sources validate` na CLI
+    - 22/09/2026 18:20: adiciona InvalidRootPathError (feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -23,6 +24,7 @@ from praxisforge.domain.errors import (
     FolderPathInvalidError,
     FolderPathNotConfiguredError,
     FolderPathUnreadableError,
+    InvalidRootPathError,
     PraxisForgeError,
     RegistryUnavailableError,
 )
@@ -33,6 +35,7 @@ __all__ = [
     "FolderPathInvalidError",
     "FolderPathNotConfiguredError",
     "FolderPathUnreadableError",
+    "InvalidRootPathError",
     "PraxisForgeError",
     "RegistryUnavailableError",
 ]

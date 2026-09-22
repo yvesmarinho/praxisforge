@@ -3,11 +3,12 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:49
+MODIFICADO: 22/09/2026 16:36
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T017) — faz tests/unit/domain/test_errors.py passar
+    - 22/09/2026 17:42: +InvalidRootPathError (T009, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -157,6 +158,25 @@ class FolderPathUnreadableError(PraxisForgeError):
         super().__init__(f"pasta '{alias}': sem permissão de leitura")
 
 
+class InvalidRootPathError(PraxisForgeError):
+    """
+    Pasta-raiz do bootstrap inexistente, não é diretório ou sem permissão de leitura.
+
+    Diferente dos erros de caminho por alias, esta exceção cita o caminho da própria
+    pasta-raiz na mensagem — exceção explícita de FR-014 (a raiz é o "próprio item com
+    erro" quando ela mesma é o problema, sem alias para citar em seu lugar).
+
+    :param root: caminho da pasta-raiz recebida como argumento.
+    :type root: str
+    :param reason: motivo em pt-BR (ex.: "não existe", "não é um diretório").
+    :type reason: str
+    """
+
+    def __init__(self, root: str, reason: str = "caminho inválido") -> None:
+        self.root = root
+        super().__init__(f"pasta-raiz '{root}': {reason}")
+
+
 __all__ = [
     "AliasAlreadyRegisteredError",
     "ContractValidationError",
@@ -167,6 +187,7 @@ __all__ = [
     "FutureScanDateError",
     "InvalidAliasError",
     "InvalidFolderError",
+    "InvalidRootPathError",
     "PraxisForgeError",
     "RegistryFileNotFoundError",
     "RegistryUnavailableError",

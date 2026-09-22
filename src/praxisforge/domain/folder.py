@@ -3,11 +3,12 @@
 NOME: folder.py
 TITULO: Entidade Folder — pasta a curar, com invariantes de negócio
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:49
+MODIFICADO: 22/09/2026 16:36
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.alias, praxisforge.domain.curation_status, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T020) — faz tests/unit/domain/test_folder.py passar
+    - 22/09/2026 17:41: invariante relaxada (T008, feature 003-bootstrap-registro-pastas)
 STATUS: DEV
 """
 
@@ -64,7 +65,10 @@ class Folder:
             raise InvalidFolderError(f"pasta '{self.alias}': content_type fora do formato slug")
         if not self.license:
             raise InvalidFolderError(f"pasta '{self.alias}': licença vazia")
-        if self.license == "unknown" and self.status is not CurationStatus.PENDING:
+        if self.license == "unknown" and self.status not in (
+            CurationStatus.PENDING,
+            CurationStatus.IGNORE,
+        ):
             raise UnknownLicenseRequiresPendingError(str(self.alias))
         if self.status is CurationStatus.NOT_SCANNED and self.last_scanned is not None:
             raise InvalidFolderError(
