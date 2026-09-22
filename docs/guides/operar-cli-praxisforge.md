@@ -1,16 +1,18 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 22/09/2026 13:52 -->
+<!-- Modificado em: 22/09/2026 16:46 -->
 
-# Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002)
+# Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
-Este guia documenta **o que já existe e funciona hoje** na CLI `praxisforge`, antes da feature
-003 (descoberta de fontes dentro de pastas registradas, ainda em especificação). Cobre as duas
+Este guia documenta **o que já existe e funciona hoje** na CLI `praxisforge`. Cobre as três
 features já implementadas e mergeadas em `main`:
 
 - **001 — Registro de Pastas a Curar**: cadastro de pastas externas (fora do repo) via alias,
   contratos JSON Schema versionados.
 - **002 — Varredura das Pastas Registradas**: confirma acessibilidade e atualiza `status`/
   `last_scanned` das pastas já registradas.
+- **003 — Bootstrap do Registro de Pastas**: gera o registro inicial a partir de uma pasta-raiz,
+  lendo README/LICENSE de cada subpasta; adiciona o status `ignore` para excluir pastas
+  permanentemente de bootstrap/varredura futuros.
 
 ## Pré-requisitos
 
@@ -110,10 +112,14 @@ uv run praxisforge folders scan --all
   atualiza `last_scanned`. Pastas `pending` (licença `unknown`) continuam `pending` mesmo depois de
   varridas — resolver a licença é sempre manual (passo 6).
 - A varredura **não entra dentro da pasta**: não lista arquivos nem subpastas, só confirma que o
-  caminho existe e é legível. Descobrir o que tem dentro é a feature 003 (ainda não implementada).
+  caminho existe e é legível.
 - No modo `--all`, falha de uma pasta não impede as demais; o resumo final mostra quantas foram
-  atualizadas e quantas falharam, e também lista grupos de aliases que apontam para o **mesmo
-  caminho real** (duplicidade, só informativo).
+  atualizadas, quantas falharam e quantas foram **ignoradas** (pastas com `status: ignore`, ver
+  passo 9), e também lista grupos de aliases que apontam para o **mesmo caminho real**
+  (duplicidade, só informativo).
+- Pastas com `status: ignore` são puladas automaticamente no modo `--all` (não tentam resolver
+  caminho, não exigem variável de ambiente). A varredura **individual** explícita
+  (`folders scan <alias>`) continua funcionando normalmente mesmo para um alias `ignore`.
 
 **Exit codes**: `0` ok · `1` alias não registrado (individual) ou houve falha em algum item (modo
 `--all`) · `3` variável ausente/caminho inválido/sem permissão (modo individual).
@@ -134,7 +140,40 @@ manualmente, ou corrigir `last_scanned`.
 **Exit codes**: `0` ok · `1` regra de negócio violada (ex.: `last_scanned` no futuro, tentar mudar
 status sem resolver licença `unknown`) · `2` argumento inválido.
 
-### 7. Validar o registro inteiro contra o contrato
+### 7. Gerar o registro inicial a partir de uma pasta-raiz (bootstrap)
+
+```bash
+uv run praxisforge folders bootstrap ~/DevOps
+```
+
+- Lista as subpastas de primeiro nível de `~/DevOps` e registra como novas todas as que ainda
+  não existem no registro — nunca sobrescreve uma pasta já registrada (idempotente: rodar de novo
+  só adiciona pastas novas que apareceram desde a última execução).
+- Para cada subpasta nova, tenta extrair `description` do README e `license` do LICENSE
+  (heurística reconhecendo MIT/Apache-2.0/GPL-3.0/BSD-3-Clause); sem reconhecimento confiável, fica
+  `license: unknown` / `status: pending` (mesma regra do passo 1).
+- `content_type` recebe um valor genérico (`unclassified`) — ajuste manualmente depois com
+  `folders update` conforme for curando cada pasta.
+- O resumo final mostra quantas pastas foram registradas, quantas já existiam (puladas), quantas
+  estavam marcadas `ignore` (puladas) e quantas falharam individualmente (ex.: nome de subpasta
+  que não vira um alias válido).
+
+**Exit codes**: `0` ok (mesmo com falhas de item individuais) · `1` a própria pasta-raiz é
+inválida/inacessível.
+
+### 8. Excluir uma pasta permanentemente de bootstrap/varredura (`status: ignore`)
+
+```bash
+uv run praxisforge folders update meu_alias --status ignore
+```
+
+- Marca a pasta como `ignore` — o bootstrap nunca mais a reprocessa, e `folders scan --all` a pula
+  automaticamente (sem exigir a variável de ambiente correspondente).
+- Aceito mesmo com licença `unknown` (não exige que a pasta esteja `pending` antes).
+- **Nunca aplicado automaticamente** — só via `folders update`, sempre decisão manual do curador.
+- Para reverter, use `folders update meu_alias --status <outro status>`.
+
+### 9. Validar o registro inteiro contra o contrato
 
 ```bash
 uv run praxisforge folders validate
@@ -143,7 +182,7 @@ uv run praxisforge folders validate
 Valida cada pasta do YAML contra `schemas/folders-schema-v1.json`; reporta falha por item sem
 interromper a validação das demais.
 
-### 8. Validar arquivos de proveniência de fontes (frontmatter)
+### 10. Validar arquivos de proveniência de fontes (frontmatter)
 
 ```bash
 uv run praxisforge sources validate src/data/sources/
@@ -154,6 +193,8 @@ uv run praxisforge sources validate src/data/sources/papers/exemplo.md
 Valida o frontmatter YAML de arquivos `.md` contra `schemas/source-schema-v1.json`. **Nota**: hoje
 não existe nenhum caso de uso que *crie* esses arquivos automaticamente — eles são escritos à mão
 pelo curador; este comando só valida o que já foi escrito.
+
+**Exit codes**: `0` ok · `1` falha de validação em pelo menos um item.
 
 ## Referência rápida de exit codes (toda a CLI)
 
@@ -166,17 +207,20 @@ pelo curador; este comando só valida o que já foi escrito.
 
 ## O que a CLI **não** faz hoje
 
-- Não descobre pastas sozinha — todo registro é manual (`folders add`).
-- Não olha dentro de uma pasta registrada — `folders scan` só confirma que o caminho existe.
+- Não olha dentro de uma pasta registrada além do primeiro nível — o bootstrap não desce
+  recursivamente em subpastas de subpastas, e `folders scan` só confirma que o caminho existe.
 - Não cria arquivos de fonte em `src/data/sources/` automaticamente — proveniência é sempre
-  escrita manualmente (só a validação de schema existe, passo 8).
-- Não agenda varreduras — toda execução é manual, disparada por você.
+  escrita manualmente (só a validação de schema existe, passo 10).
+- Não agenda bootstrap nem varreduras — toda execução é manual, disparada por você.
+- Não detecta quando o conteúdo de uma pasta já curada mudou (ex.: novos commits) — ver
+  "Limitação conhecida" em [`docs/reference/folders-yaml.md`](../reference/folders-yaml.md).
 
-Essas lacunas são o escopo da feature 003 (`specs/003-descoberta-fontes-pastas/spec.md`, em
-especificação) e de features futuras de curadoria/proveniência.
+Essas lacunas são candidatas a features futuras de curadoria/proveniência (ver `docs/TODO.md`).
 
 ## Referências
 
 - [`docs/architecture/overview.md`](../architecture/overview.md) — camadas e decisões de design
+- [`docs/reference/folders-yaml.md`](../reference/folders-yaml.md) — estrutura de `folders.yaml`
 - [`specs/001-registro-pastas-curadoria/quickstart.md`](../../specs/001-registro-pastas-curadoria/quickstart.md)
 - [`specs/002-varredura-pastas-curadoria/quickstart.md`](../../specs/002-varredura-pastas-curadoria/quickstart.md)
+- [`specs/003-bootstrap-registro-pastas/quickstart.md`](../../specs/003-bootstrap-registro-pastas/quickstart.md)

@@ -20,7 +20,7 @@
       automaticamente para `in_curation`; exige novo campo na entidade (ex.:
       `last_curated_commit_hash`) e nova versão do schema. Ver
       `docs/reference/folders-yaml.md` ("Limitação conhecida"). Ainda sem número/spec formal —
-      candidata a próxima feature depois da 003 (bootstrap).
+      candidata a próxima feature depois da 003 (bootstrap, já concluída).
 - [ ] `scripts/` fora do gate do ruff (`extend-exclude` em `pyproject.toml`) — refatorar e incluir no lint quando houver tempo
 
 ## ✅ Concluído
@@ -31,3 +31,7 @@
 - [x] Feature 002-varredura-pastas-curadoria: `folders scan <alias>`/`--all`, avanço de status
       "não varrida" → "varrida", isolamento de falha por item no lote e detecção de aliases
       duplicados apontando pro mesmo caminho real (22/09/2026)
+- [x] Feature 003-bootstrap-registro-pastas: `folders bootstrap <root>` gera o registro inicial a
+      partir de uma pasta-raiz (heurística de README/LICENSE), idempotente (nunca sobrescreve
+      pasta já registrada), novo status `ignore` (aplicado só manualmente) respeitado por
+      `folders scan --all` (22/09/2026)

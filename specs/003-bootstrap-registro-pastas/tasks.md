@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 17:20 -->
-<!-- Modificado em: 22/09/2026 16:32 -->
+<!-- Modificado em: 22/09/2026 16:43 -->
 
 ---
 
@@ -39,7 +39,7 @@ description: "Tasks — 003-bootstrap-registro-pastas"
 
 **Purpose**: confirmar baseline verde; nenhuma dependência nova é necessária
 
-- [ ] T001 Rodar `uv sync && make lint && make test` a partir da branch `003-bootstrap-registro-pastas` e confirmar baseline 100% verde antes de iniciar qualquer tarefa nova
+- [X] T001 Rodar `uv sync && make lint && make test` a partir da branch `003-bootstrap-registro-pastas` e confirmar baseline 100% verde antes de iniciar qualquer tarefa nova
 
 **Checkpoint**: ambiente confirmado.
 
@@ -55,32 +55,32 @@ inválida. Nenhuma user story usa `status: ignore` ou a nova exceção sem essas
 
 ### Testes primeiro (vermelho)
 
-- [ ] T002 [P] Adicionar a `tests/unit/domain/test_curation_status.py` o caso: `CurationStatus.IGNORE`
+- [X] T002 [P] Adicionar a `tests/unit/domain/test_curation_status.py` o caso: `CurationStatus.IGNORE`
       existe, `CurationStatus.from_str("ignore")` funciona, `label_pt_br()` retorna `"ignorada"`
-- [ ] T003 [P] Adicionar a `tests/unit/domain/test_folder.py` o caso: `license="unknown"` com
+- [X] T003 [P] Adicionar a `tests/unit/domain/test_folder.py` o caso: `license="unknown"` com
       `status=CurationStatus.IGNORE` é aceito sem levantar (invariante relaxada, FR-011); manter o
       caso de regressão já existente (`unknown` + `scanned` continua levantando
       `UnknownLicenseRequiresPendingError`)
-- [ ] T004 [P] Adicionar a `tests/contract/test_folders_schema.py` os casos: documento com
+- [X] T004 [P] Adicionar a `tests/contract/test_folders_schema.py` os casos: documento com
       `status: "ignore"` é válido; documento com `license: "unknown"` + `status: "ignore"` é
       válido; regressão — `license: "unknown"` + `status: "scanned"` continua inválido
-- [ ] T005 [P] Adicionar a `tests/unit/domain/test_errors.py` o caso: `InvalidRootPathError(root,
+- [X] T005 [P] Adicionar a `tests/unit/domain/test_errors.py` o caso: `InvalidRootPathError(root,
       reason)` existe, é subclasse de `PraxisForgeError`, mensagem cita `root` e `reason` sem
       vazar informação além do esperado
-- [ ] T006 Rodar `uv run pytest tests/unit/domain/test_curation_status.py tests/unit/domain/test_folder.py tests/contract/test_folders_schema.py tests/unit/domain/test_errors.py -p no:cacheprovider` e **confirmar que T002–T005 falham**
+- [X] T006 Rodar `uv run pytest tests/unit/domain/test_curation_status.py tests/unit/domain/test_folder.py tests/contract/test_folders_schema.py tests/unit/domain/test_errors.py -p no:cacheprovider` e **confirmar que T002–T005 falham**
 
 ### Implementação (verde)
 
-- [ ] T007 [P] Adicionar `IGNORE = "ignore"` a `src/praxisforge/domain/curation_status.py`
+- [X] T007 [P] Adicionar `IGNORE = "ignore"` a `src/praxisforge/domain/curation_status.py`
       (`_ROTULOS_PT_BR["ignore"] = "ignorada"`) — faz T002 passar
-- [ ] T008 [P] Relaxar a invariante em `src/praxisforge/domain/folder.py`: `license == "unknown"`
+- [X] T008 [P] Relaxar a invariante em `src/praxisforge/domain/folder.py`: `license == "unknown"`
       exige `status in (CurationStatus.PENDING, CurationStatus.IGNORE)` — faz T003 passar
-- [ ] T009 [P] Adicionar `InvalidRootPathError(root: str, reason: str)` a
+- [X] T009 [P] Adicionar `InvalidRootPathError(root: str, reason: str)` a
       `src/praxisforge/domain/errors.py` (subclasse de `PraxisForgeError`) — faz T005 passar
-- [ ] T010 Atualizar `schemas/folders-schema-v1.json`: `status.enum` +`"ignore"`; o `if/then` de
+- [X] T010 Atualizar `schemas/folders-schema-v1.json`: `status.enum` +`"ignore"`; o `if/then` de
       `license == "unknown"` passa a exigir `status.enum: ["pending", "ignore"]` (atualizar também
       `_meta.modificado_em`) — faz T004 passar
-- [ ] T011 Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+- [X] T011 Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: Domain e contrato prontos; US1, US2 e US3 podem começar (US2 depende de US1 estar
 pronto; US3 é independente das duas).
@@ -100,7 +100,7 @@ registro vazio, rodar e confirmar que as 3 aparecem em `folders.yaml` com os cam
 
 ### Testes primeiro (vermelho)
 
-- [ ] T012 [P] [US1] Escrever `tests/integration/test_filesystem_folder_probe.py`:
+- [X] T012 [P] [US1] Escrever `tests/integration/test_filesystem_folder_probe.py`:
       `list_subfolders()` retorna só diretórios de primeiro nível, ordenados alfabeticamente,
       segue link simbólico, ignora link quebrado silenciosamente; `root` inexistente/não-diretório/
       sem permissão de leitura → `InvalidRootPathError`; `read_description()` extrai o primeiro
@@ -110,7 +110,7 @@ registro vazio, rodar e confirmar que as 3 aparecem em `folders.yaml` com os cam
       GPL-3.0/BSD-3-Clause pelas frases-chave de `research.md` Decisão 2, retorna `None` se não
       reconhecer, retorna `None` se o texto corresponder a mais de uma licença simultaneamente
       (ambiguidade)
-- [ ] T013 [P] [US1] Escrever `tests/unit/application/test_bootstrap_folders.py` com os casos
+- [X] T013 [P] [US1] Escrever `tests/unit/application/test_bootstrap_folders.py` com os casos
       (registro vazio no início de cada teste): subpasta com README+LICENSE MIT reconhecível →
       registrada com `license: MIT`, `status: not_scanned`, `description` extraída; subpasta com
       README sem LICENSE (ou LICENSE não reconhecido) → registrada com `license: unknown`,
@@ -126,23 +126,23 @@ registro vazio, rodar e confirmar que as 3 aparecem em `folders.yaml` com os cam
       recebe `status: CurationStatus.IGNORE` (`assert all(f.status is not CurationStatus.IGNORE
       for f in <pastas registradas>)`), documentando por nome a garantia de que o bootstrap nunca
       atribui `ignore` sozinho
-- [ ] T014 [US1] Escrever `tests/integration/test_cli_bootstrap.py`: `folders bootstrap <root>`
+- [X] T014 [US1] Escrever `tests/integration/test_cli_bootstrap.py`: `folders bootstrap <root>`
       com subpastas válidas → exit code 0, resumo lista as registradas; `root` inexistente → exit
       code 1, mensagem cita o caminho de `root` (exceção explícita de FR-014); nenhuma saída
       contém caminho absoluto de nenhuma subpasta (só o de `root`, quando ele próprio é o erro)
-- [ ] T015 [US1] Rodar `uv run pytest tests/integration/test_filesystem_folder_probe.py tests/unit/application/test_bootstrap_folders.py tests/integration/test_cli_bootstrap.py -p no:cacheprovider` e **confirmar que T012–T014 falham**
+- [X] T015 [US1] Rodar `uv run pytest tests/integration/test_filesystem_folder_probe.py tests/unit/application/test_bootstrap_folders.py tests/integration/test_cli_bootstrap.py -p no:cacheprovider` e **confirmar que T012–T014 falham**
 
 ### Implementação (verde)
 
-- [ ] T016 [US1] Definir a porta `RootFolderProbe` em `src/praxisforge/application/ports.py`:
+- [X] T016 [US1] Definir a porta `RootFolderProbe` em `src/praxisforge/application/ports.py`:
       `list_subfolders(root: Path) -> list[Path]`, `read_description(path: Path) -> str | None`,
       `detect_license(path: Path) -> str | None`
-- [ ] T017 [US1] Implementar `src/praxisforge/infrastructure/filesystem_folder_probe.py`
+- [X] T017 [US1] Implementar `src/praxisforge/infrastructure/filesystem_folder_probe.py`
       (`FilesystemFolderProbe`): `list_subfolders` via `Path.iterdir()`/`is_dir()`, ordenado,
       ignorando link quebrado, levantando `InvalidRootPathError` conforme T012;
       `read_description`/`detect_license` conforme as heurísticas de `research.md` Decisões 2–3 —
       faz T012 passar
-- [ ] T018 [US1] Implementar `src/praxisforge/application/bootstrap_folders.py`: dataclass frozen
+- [X] T018 [US1] Implementar `src/praxisforge/application/bootstrap_folders.py`: dataclass frozen
       `BootstrapReport` (`registered: list[str]`, `skipped_existing: list[str]`,
       `skipped_ignored: list[str]`, `failures: list[ItemFailure]`, todos default `[]`); função
       privada de slugificação de nome→candidato a alias (`research.md` Decisão 4); função
@@ -152,14 +152,14 @@ registro vazio, rodar e confirmar que as 3 aparecem em `folders.yaml` com os cam
       registro atualizado uma única vez ao final (escrita atômica) — faz T013 passar. **Nesta
       tarefa ainda não verificar `existing_at_start`** (isso é US2); com um registro vazio no
       início, todo alias candidato é necessariamente novo
-- [ ] T019 [US1] Adicionar o subcomando `folders bootstrap <root>` em
+- [X] T019 [US1] Adicionar o subcomando `folders bootstrap <root>` em
       `src/praxisforge/presentation/cli.py` (parser + handler; composição de
       `FilesystemFolderProbe()` em `main()`); handler converte `BootstrapReport` em resumo amigável
       (exit 0) e `InvalidRootPathError`/demais `PraxisForgeError` em mensagem + exit code 1, citando
       o caminho de `root` quando for o próprio erro — faz T014 passar. **Nota**: nesta fase
       `skipped_existing`/`skipped_ignored` sempre vêm vazios no resumo impresso (a lógica que os
       popula só chega em T024, US2) — comportamento esperado, não é bug desta tarefa
-- [ ] T020 [US1] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+- [X] T020 [US1] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: MVP entregável — bootstrap registra pastas novas a partir de uma raiz
 (quickstart.md Cenário 1).
@@ -178,30 +178,34 @@ como `ignore` e confirmar que ela é pulada e contada separadamente (quickstart.
 
 ### Testes primeiro (vermelho)
 
-- [ ] T021 [P] [US2] Adicionar a `tests/unit/application/test_bootstrap_folders.py` os casos: uma
+- [X] T021 [P] [US2] Adicionar a `tests/unit/application/test_bootstrap_folders.py` os casos: uma
       subpasta cujo alias já existe no registro **antes** da execução (com `status: curated`,
       por exemplo) → nenhum campo (`description`/`license`/`content_type`/`status`/
       `last_scanned`) é alterado pelo rerun, alias entra em `skipped_existing`; uma subpasta cujo
       alias já existe com `status: ignore` → pulada, entra em `skipped_ignored`, nenhum campo
       alterado; uma execução com 1 subpasta nova + 1 existente + 1 ignore → `BootstrapReport`
       reflete a contagem correta nos 3 grupos simultaneamente
-- [ ] T022 [US2] Adicionar a `tests/integration/test_cli_bootstrap.py`: rodar `folders bootstrap
+- [X] T022 [US2] Adicionar a `tests/integration/test_cli_bootstrap.py`: rodar `folders bootstrap
       <root>` duas vezes seguidas sem mudança no filesystem → `folders.yaml` idêntico byte a byte
       entre as duas execuções; resumo da segunda execução mostra a contagem de "já existentes" e
       "ignoradas" corretamente
-- [ ] T023 [US2] Rodar `uv run pytest tests/unit/application/test_bootstrap_folders.py tests/integration/test_cli_bootstrap.py -p no:cacheprovider` e **confirmar que T021–T022 falham**
+- [X] T023 [US2] Rodar `uv run pytest tests/unit/application/test_bootstrap_folders.py tests/integration/test_cli_bootstrap.py -p no:cacheprovider` e **confirmar que T021–T022 falham**
 
 ### Implementação (verde)
 
-- [ ] T024 [US2] Em `bootstrap_folders()` (`application/bootstrap_folders.py`), capturar
+- [X] T024 [US2] Em `bootstrap_folders()` (`application/bootstrap_folders.py`), capturar
       `existing_at_start = set(registry.folders)` **antes** do loop sobre as subpastas; para cada
       alias candidato já presente em `existing_at_start`: se `registry.get(alias).status is
       CurationStatus.IGNORE` → adicionar a `skipped_ignored`, senão → adicionar a
       `skipped_existing`; em ambos os casos, **não** chamar `Folder()`/`registry.add()` para esse
-      alias — faz T021 passar
-- [ ] T025 [US2] Ajustar o handler de `folders bootstrap` em `cli.py` para imprimir a contagem
-      completa do resumo (registradas / já existentes / ignoradas / falhas) — faz T022 passar
-- [ ] T026 [US2] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+      alias — faz T021 passar. **Nota de execução**: essa lógica já havia sido implementada em
+      T018 (US1), por ser necessária para a corretude da função desde o início (evitar que
+      `registry.add()` mascarasse colisões como no-op idempotente — ver bug corrigido durante
+      T018). T021 confirma o comportamento correto sem exigir código novo nesta tarefa.
+- [X] T025 [US2] Ajustar o handler de `folders bootstrap` em `cli.py` para imprimir a contagem
+      completa do resumo (registradas / já existentes / ignoradas / falhas) — faz T022 passar.
+      **Nota de execução**: já implementado em T019 (US1); T022 confirma sem código novo.
+- [X] T026 [US2] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: idempotência garantida (quickstart.md Cenário 2, SC-002).
 
@@ -218,32 +222,32 @@ para ela (quickstart.md Cenário 3).
 
 ### Testes primeiro (vermelho)
 
-- [ ] T027 [P] [US3] Adicionar a `tests/unit/application/test_update_folder.py` o caso: `folders
+- [X] T027 [P] [US3] Adicionar a `tests/unit/application/test_update_folder.py` o caso: `folders
       update` aceita `status="ignore"` mesmo quando a `license` atual é `unknown`, sem exigir que
       ela já seja `pending`
-- [ ] T028 [P] [US3] Adicionar a `tests/unit/application/test_scan_folders.py` o caso:
+- [X] T028 [P] [US3] Adicionar a `tests/unit/application/test_scan_folders.py` o caso:
       `scan_all_folders()` pula uma pasta com `status: ignore` — não chama `resolver.resolve()`
       para ela, não entra em `ok` nem `failures`, entra em um novo campo `ScanBatchReport.ignored:
       list[str]` (default `[]`); demais pastas continuam processadas normalmente
-- [ ] T029 [P] [US3] Adicionar a `tests/integration/test_cli_folders.py` o caso: `folders update
+- [X] T029 [P] [US3] Adicionar a `tests/integration/test_cli_folders.py` o caso: `folders update
       <alias> --status ignore` aceito com exit code 0, mesmo com licença `unknown`
-- [ ] T030 [US3] Adicionar a `tests/integration/test_cli_scan.py` os casos: `folders scan --all`
+- [X] T030 [US3] Adicionar a `tests/integration/test_cli_scan.py` os casos: `folders scan --all`
       com uma pasta `ignore` no meio do lote → resumo mostra a contagem de "ignoradas"
       separadamente, sem tentar resolver caminho para ela (não exige
       `PRAXISFORGE_FOLDER_<ALIAS>` daquela pasta); `folders scan <alias>` individual e explícito
       sobre um alias `ignore` continua funcionando normalmente (não é pulado — FR-013 só se aplica
       ao modo `--all`)
-- [ ] T031 [US3] Rodar `uv run pytest tests/unit/application/test_update_folder.py tests/unit/application/test_scan_folders.py tests/integration/test_cli_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T028 e T030 falham** (T027/T029 já devem passar assim que a Fase 2 estiver pronta — `folders update` já aceita qualquer valor válido do enum sem checagem adicional; mantidos como regressão explícita)
+- [X] T031 [US3] Rodar `uv run pytest tests/unit/application/test_update_folder.py tests/unit/application/test_scan_folders.py tests/integration/test_cli_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T028 e T030 falham** (T027/T029 já devem passar assim que a Fase 2 estiver pronta — `folders update` já aceita qualquer valor válido do enum sem checagem adicional; mantidos como regressão explícita)
 
 ### Implementação (verde)
 
-- [ ] T032 [US3] Em `src/praxisforge/application/scan_folders.py`, `scan_all_folders()`: antes de
+- [X] T032 [US3] Em `src/praxisforge/application/scan_folders.py`, `scan_all_folders()`: antes de
       chamar `resolver.resolve(alias)`, checar `folder.status is CurationStatus.IGNORE`; se for,
       adicionar o alias a um novo campo `ScanBatchReport.ignored: list[str] = field(default_factory=list)`
       e continuar para a próxima pasta, sem contar em `ok` nem `failures` — faz T028 passar
-- [ ] T033 [US3] Ajustar o handler de `folders scan --all` em `cli.py` para imprimir a contagem de
+- [X] T033 [US3] Ajustar o handler de `folders scan --all` em `cli.py` para imprimir a contagem de
       "ignoradas" no resumo final — faz T030 passar
-- [ ] T034 [US3] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+- [X] T034 [US3] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: as três user stories entregues (quickstart.md Cenário 3, SC-004).
 
@@ -253,18 +257,18 @@ para ela (quickstart.md Cenário 3).
 
 **Purpose**: documentação e validação final, sem lógica nova
 
-- [ ] T035 [P] Atualizar `docs/architecture/overview.md` (mapa de módulos) com
+- [X] T035 [P] Atualizar `docs/architecture/overview.md` (mapa de módulos) com
       `application/bootstrap_folders.py` e `infrastructure/filesystem_folder_probe.py`
-- [ ] T036 [P] Atualizar `docs/reference/folders-yaml.md`: tabela de status +`ignore`; invariante
+- [X] T036 [P] Atualizar `docs/reference/folders-yaml.md`: tabela de status +`ignore`; invariante
       relaxada; remover/atualizar a seção "Mudança planejada (feature 003, ainda não
       implementada)" já que agora está implementada
-- [ ] T037 [P] Atualizar `docs/guides/operar-cli-praxisforge.md`: novo passo `folders bootstrap`;
+- [X] T037 [P] Atualizar `docs/guides/operar-cli-praxisforge.md`: novo passo `folders bootstrap`;
       status `ignore` na lista de status; nota sobre `folders scan --all` pular pastas `ignore`
-- [ ] T038 Rodar manualmente os 3 cenários de `quickstart.md` (incluindo a verificação de
+- [X] T038 Rodar manualmente os 3 cenários de `quickstart.md` (incluindo a verificação de
       segurança) e confirmar aderência
-- [ ] T039 Atualizar `docs/INDEX.md` e `docs/TODO.md` (acrescentar, nunca sobrescrever): feature
+- [X] T039 Atualizar `docs/INDEX.md` e `docs/TODO.md` (acrescentar, nunca sobrescrever): feature
       003 concluída
-- [ ] T040 Marcar T001–T039 como concluídas neste arquivo à medida que forem fechadas
+- [X] T040 Marcar T001–T039 como concluídas neste arquivo à medida que forem fechadas
 
 **Checkpoint final**: `make lint && make test` verdes, `make validate-data` verde, cobertura
 ≥ 90%, checklist `checklists/contract-migration-idempotencia.md` (21/21 já revisada) sem

@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 22/09/2026 14:42 -->
+<!-- Modificado em: 22/09/2026 16:46 -->
 
 # Referência — `src/data/folders.yaml`
 
@@ -14,7 +14,7 @@ passando por `folders validate` antes de commitar).
   qualquer subcomando da CLI).
 - **Contrato**: `schemas/folders-schema-v1.json` (JSON Schema Draft 2020-12), validado com
   `jsonschema[format]` — dois pontos de validação: ao carregar (`folders show`/`list`/`scan`/
-  `resolve`/`update`) e via `folders validate` (varre o arquivo inteiro item a item).
+  `resolve`/`update`/`bootstrap`) e via `folders validate` (varre o arquivo inteiro item a item).
 - **O que ele NÃO contém**: nenhum caminho absoluto do sistema de arquivos. O caminho real de cada
   pasta vem de uma variável de ambiente (`PRAXISFORGE_FOLDER_<ALIAS>`), nunca do YAML — é assim
   que o arquivo pode ser versionado no git sem vazar detalhes da máquina de quem o edita.
@@ -55,7 +55,7 @@ schema_version: "1"
 | `content_type` | string, padrão `^[a-z][a-z0-9_-]{1,62}$` | sim | Slug do tipo de conteúdo (ex.: `repository_forks`, `documents`). Livre, sem lista fechada de valores no schema atual. |
 | `license` | string, mínimo 1 caractere | sim | Identificador de licença (ex.: `MIT`, `Apache-2.0`) ou o valor especial `unknown` quando ainda não determinada. |
 | `last_scanned` | string ISO 8601 *com* timezone, ou `null` | sim (pode ser `null`) | Data/hora da última varredura bem-sucedida (`folders scan`). `null` até a primeira varredura. |
-| `status` | enum: `not_scanned`, `scanned`, `in_curation`, `curated`, `pending` | sim | Estado de curadoria — ver seção "Status" abaixo. |
+| `status` | enum: `not_scanned`, `scanned`, `in_curation`, `curated`, `pending`, `ignore` | sim | Estado de curadoria — ver seção "Status" abaixo. |
 
 `additionalProperties: false` em ambos os níveis (raiz e por pasta) — nenhum campo fora dessa
 lista é aceito; o schema rejeita tanto campos desconhecidos quanto campos faltando.
@@ -69,14 +69,16 @@ lista é aceito; o schema rejeita tanto campos desconhecidos quanto campos falta
 | `in_curation` | em curadoria | Alguém está ativamente avaliando o conteúdo (transição manual, via `folders update --status in_curation`). |
 | `curated` | curada | Conteúdo já avaliado e processado. |
 | `pending` | pendente | Aguardando decisão — hoje, sempre porque `license` é `unknown` (ver invariante abaixo). |
+| `ignore` | ignorada | Curador decidiu excluir permanentemente esta pasta de bootstrap/varredura futuros. Só aplicado manualmente via `folders update --status ignore` (feature 003) — nunca atribuído automaticamente. |
 
 ## Invariantes validadas pelo contrato
 
 O schema aplica duas regras condicionais (`allOf`/`if`/`then`) além dos tipos de campo:
 
 1. **Licença desconhecida trava o status**: se `license == "unknown"`, então `status` **deve** ser
-   `pending`. Não é possível, por exemplo, ter `license: unknown` com `status: scanned` — o
-   sistema recusa (`UnknownLicenseRequiresPendingError` na camada de aplicação, antes mesmo de
+   `pending` **ou** `ignore` (feature 003 — relaxamento aditivo da invariante original, que só
+   admitia `pending`). Não é possível, por exemplo, ter `license: unknown` com `status: scanned`
+   — o sistema recusa (`UnknownLicenseRequiresPendingError` na camada de aplicação, antes mesmo de
    chegar à validação de schema).
 2. **Pasta nunca varrida não tem data**: se `status == "not_scanned"`, então `last_scanned` deve
    ser `null`. Uma pasta só ganha uma data real depois de passar por `folders scan` pelo menos
@@ -131,14 +133,6 @@ que são repositórios git — outras pastas ficam fora desse mecanismo até uma
 exigirá um campo novo na entidade (ex.: `last_curated_commit_hash`) e portanto uma nova versão do
 schema (`schemas/folders-schema-v2.json` ou aditiva, a depender da decisão de `/speckit-plan`
 quando essa feature for especificada).
-
-## Mudança planejada (feature 003, ainda não implementada)
-
-A spec `specs/003-bootstrap-registro-pastas/spec.md` prevê adicionar um **sexto valor de
-`status`**, `ignore` (pasta que o curador decidiu excluir permanentemente de varreduras/bootstrap
-futuros), e relaxar a invariante 1 acima para "licença `unknown` ⇒ status `pending` **ou**
-`ignore`". Até essa feature ser implementada, `ignore` **não é** um valor aceito pelo schema atual
-— tentar usá-lo hoje é rejeitado.
 
 ## Referências
 
