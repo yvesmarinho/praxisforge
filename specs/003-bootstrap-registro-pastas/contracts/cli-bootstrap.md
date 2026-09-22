@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:58 -->
-<!-- Modificado em: 22/09/2026 14:57 -->
+<!-- Modificado em: 22/09/2026 16:23 -->
 
 # Contrato de Interface: `praxisforge folders bootstrap`
 
@@ -19,8 +19,10 @@ Varre a pasta-raiz `<root>` e registra as subpastas de primeiro nível ainda nã
   saída contém caminho absoluto, exceto quando citando o caminho de uma subpasta especificamente
   na mensagem de erro daquela subpasta (FR-014).
 - **Saída (falha, exit code 1)**: `root` não existe, não é diretório, ou sem permissão de leitura
-  → operação inteira recusada citando o motivo (falha de item individual não se aplica aqui —
-  é a pré-condição da execução inteira).
+  → operação inteira recusada citando o motivo **e o caminho de `root`** (exceção explícita de
+  FR-014 — a pasta-raiz é o "próprio item com erro" neste contexto, igual a uma subpasta citada em
+  sua própria mensagem de erro); falha de item individual não se aplica aqui — é a pré-condição da
+  execução inteira.
 - **Garantia de idempotência**: rodar o mesmo comando duas vezes seguidas sem mudança no
   filesystem produz o mesmo `folders.yaml` na segunda vez — nenhuma pasta já registrada
   (`skipped_existing`/`skipped_ignored`) é modificada (FR-004, SC-002).

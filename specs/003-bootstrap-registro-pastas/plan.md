@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:50 -->
-<!-- Modificado em: 22/09/2026 14:56 -->
+<!-- Modificado em: 22/09/2026 16:23 -->
 
 # Implementation Plan: Bootstrap do Registro de Pastas
 
@@ -59,10 +59,13 @@ execução
   `infrastructure/filesystem_folder_probe.py`. Presentation ganha só um subcomando fino
   (`folders bootstrap <root>`).
 - **II. Contratos Validados e Versionados**: PASS, com atenção redobrada (já sinalizado na
-  checklist). A mudança no enum `status` (+`ignore`) e no `if/then` de licença `unknown` é
-  estritamente aditiva: todo documento que validava antes continua validando; a única mudança é
-  passar a aceitar um valor novo. Não há remoção nem redefinição de campo existente → permanece
-  `folders-schema-v1.json`, sem novo major.
+  checklist). **Critério objetivo de "mudança aditiva"** usado nesta e em futuras avaliações do
+  mesmo tipo: (a) nenhum campo obrigatório novo é introduzido; (b) nenhum campo existente muda de
+  tipo, formato ou é removido; (c) todo documento que validava contra a versão anterior do schema
+  continua validando contra a nova, sem exceção. A mudança no enum `status` (+`ignore`) e no
+  `if/then` de licença `unknown` satisfaz as três condições: só amplia o conjunto de valores
+  aceitos para `status`, sem tocar em nenhum outro campo. Não há remoção nem redefinição de campo
+  existente → permanece `folders-schema-v1.json`, sem novo major.
 - **III. Test-First (NON-NEGOTIABLE)**: PASS (a cumprir em `/speckit-tasks` +
   `/speckit-implement`).
 - **IV. Erros Semânticos nas Fronteiras**: PASS. Reaproveita `InvalidAliasError` (formato de alias

@@ -19,40 +19,40 @@ quality. It does not mean implementation work is complete.
 
 ## Requirement Completeness
 
-- [ ] CHK001 Está definido o que acontece quando o bootstrap roda sobre uma pasta-raiz cujo
+- [x] CHK001 Está definido o que acontece quando o bootstrap roda sobre uma pasta-raiz cujo
       registro (`folders.yaml`) já contém pastas com aliases que **não** correspondem a nenhuma
       subpasta descoberta nesta execução (aliases "órfãos")? [Gap, Spec §FR-004]
-- [ ] CHK002 Está definido o comportamento quando o próprio arquivo `folders.yaml` está
+- [x] CHK002 Está definido o comportamento quando o próprio arquivo `folders.yaml` está
       corrompido/ilegível no momento em que o bootstrap tenta carregá-lo, antes de sequer
       começar a listar subpastas? [Gap]
-- [ ] CHK003 Está documentado o que acontece se `status: ignore` for aplicado a uma pasta cujo
+- [x] CHK003 Está documentado o que acontece se `status: ignore` for aplicado a uma pasta cujo
       `last_scanned` já existe (não-nulo) — o campo é preservado, zerado, ou irrelevante para essa
       transição? [Gap, Data-Model §Transições]
-- [ ] CHK004 Está definido se uma pasta com `status: ignore` pode ter sua `license`/`description`
+- [x] CHK004 Está definido se uma pasta com `status: ignore` pode ter sua `license`/`description`
       atualizada via `folders update` normalmente, ou se `ignore` também restringe quais outros
       campos podem mudar enquanto nesse estado? [Gap, Spec §FR-011]
 
 ## Requirement Clarity
 
-- [ ] CHK005 O termo "mudança aditiva" usado para justificar manter `folders-schema-v1.json` sem
+- [x] CHK005 O termo "mudança aditiva" usado para justificar manter `folders-schema-v1.json` sem
       incrementar a major version está definido com um critério objetivo (ex.: "nenhum documento
       previamente válido deixa de validar"), ou depende de interpretação do revisor a cada
       mudança futura de schema? [Clarity, Plan §Constitution Check]
-- [ ] CHK006 "Nunca sobrescreve uma pasta já registrada" (FR-004) está claro quanto ao que conta
+- [x] CHK006 "Nunca sobrescreve uma pasta já registrada" (FR-004) está claro quanto ao que conta
       como "já registrada" — no momento em que o bootstrap **começa** a rodar, ou dinamicamente
       conforme cada subpasta é processada (afeta o cenário de colisão dentro da mesma execução,
       Decisão 6 do research.md)? [Clarity, Spec §FR-004, Research §Decisão 5]
-- [ ] CHK007 "Reconhecimento confiável" de licença (FR-007) está quantificado (ex.: quais frases
+- [x] CHK007 "Reconhecimento confiável" de licença (FR-007) está quantificado (ex.: quais frases
       exatas contam como match) ou fica a critério da implementação sem nenhum limite declarado
       no requisito em si? [Ambiguity, Spec §FR-007]
 
 ## Requirement Consistency
 
-- [ ] CHK008 A invariante relaxada ("licença unknown ⇒ status pending OU ignore") está
+- [x] CHK008 A invariante relaxada ("licença unknown ⇒ status pending OU ignore") está
       consistente entre `spec.md` (FR-011), `data-model.md` (diff do schema) e o comportamento
       esperado de `folders update` documentado no guia de operação da CLI — sem nenhuma das três
       fontes implicar algo diferente? [Consistency, Spec §FR-011, Data-Model]
-- [ ] CHK009 O comportamento de `folders scan --all` pular pastas `ignore` (FR-013) está
+- [x] CHK009 O comportamento de `folders scan --all` pular pastas `ignore` (FR-013) está
       consistente com o comportamento de `folders scan <alias>` individual continuar processando
       normalmente mesmo alias `ignore` (Research §Decisão 7) — ambos os requisitos, lidos juntos,
       deixam claro que a exceção é só para o modo lote, sem contradição implícita? [Consistency,
@@ -60,62 +60,62 @@ quality. It does not mean implementation work is complete.
 
 ## Acceptance Criteria Quality
 
-- [ ] CHK010 SC-002 ("mesmo `folders.yaml` na segunda execução") define um critério objetivamente
+- [x] CHK010 SC-002 ("mesmo `folders.yaml` na segunda execução") define um critério objetivamente
       verificável de "mesmo" — comparação byte-a-byte do arquivo, ou só dos campos das pastas já
       existentes (permitindo que novas pastas sejam adicionadas sem violar o critério)? [Clarity,
       Spec §SC-002]
-- [ ] CHK011 SC-004 ("pasta ignore nunca é reprocessada... até o curador mudar o status
+- [x] CHK011 SC-004 ("pasta ignore nunca é reprocessada... até o curador mudar o status
       manualmente") é verificável sem ambiguidade — existe um cenário de aceitação correspondente
       que exercite explicitamente essa persistência entre múltiplas execuções? [Measurability,
       Spec §SC-004, §US3]
 
 ## Scenario Coverage
 
-- [ ] CHK012 Existe um requisito para o cenário em que a pasta-raiz passada ao bootstrap é, ela
+- [x] CHK012 Existe um requisito para o cenário em que a pasta-raiz passada ao bootstrap é, ela
       mesma, uma subpasta já registrada como alias em outra execução (aninhamento de raízes)?
       [Gap, Exception Flow]
-- [ ] CHK013 Está coberto o cenário de rodar o bootstrap **antes** de qualquer pasta ter sido
+- [x] CHK013 Está coberto o cenário de rodar o bootstrap **antes** de qualquer pasta ter sido
       registrada manualmente (registro totalmente vazio) — mesmo cenário do "caso feliz" mínimo,
       mas vale confirmar que não há suposição implícita de que já existe pelo menos uma pasta?
       [Coverage, Spec §US1 cenário 4]
 
 ## Edge Case Coverage
 
-- [ ] CHK014 Está definido o que acontece quando o LICENSE de uma subpasta contém texto de
+- [x] CHK014 Está definido o que acontece quando o LICENSE de uma subpasta contém texto de
       **mais de uma** licença reconhecível simultaneamente (ex.: um README que cita MIT e também
       inclui um trecho de licença Apache em outro arquivo)? [Gap, Research §Decisão 2]
-- [ ] CHK015 Está definido o que acontece quando o README existe mas está vazio (0 bytes) ou só
+- [x] CHK015 Está definido o que acontece quando o README existe mas está vazio (0 bytes) ou só
       contém badges/cabeçalhos, sem nenhum parágrafo de texto útil — cai no mesmo caminho de
       "sem README" (descrição padrão) ou é tratado como falha? [Edge Case, Research §Decisão 3]
-- [ ] CHK016 O edge case de nomes de subpasta duplicados entre pastas-raiz diferentes (rodar o
+- [x] CHK016 O edge case de nomes de subpasta duplicados entre pastas-raiz diferentes (rodar o
       bootstrap duas vezes com raízes distintas que têm uma subpasta de mesmo nome) está coberto
       — a segunda execução trata isso como alias já existente (pulado) ou como colisão (falha)?
       [Gap]
 
 ## Non-Functional Requirements
 
-- [ ] CHK017 FR-014 (nenhuma saída com caminho absoluto) está definido para o caso específico de
+- [x] CHK017 FR-014 (nenhuma saída com caminho absoluto) está definido para o caso específico de
       uma mensagem de erro sobre a **pasta-raiz** em si (ex.: raiz inacessível) — essa é a
       exceção explicitamente permitida, ou o requisito é ambíguo sobre esse caso em particular?
       [Clarity, Spec §FR-014, Contracts §cli-bootstrap]
-- [ ] CHK018 Existe algum requisito de determinismo da ordem em que subpastas são processadas
+- [x] CHK018 Existe algum requisito de determinismo da ordem em que subpastas são processadas
       (relevante para reprodutibilidade de testes e para qual subpasta "vence" em uma colisão de
       alias dentro da mesma execução, Research §Decisão 6)? [Gap]
 
 ## Dependencies & Assumptions
 
-- [ ] CHK019 A suposição de que `content_type` recebe um valor padrão genérico (Assumptions,
+- [x] CHK019 A suposição de que `content_type` recebe um valor padrão genérico (Assumptions,
       spec.md) está validada quanto ao impacto em `folders list`/`folders show`, que hoje exibem
       esse campo — um valor genérico repetido em dezenas de pastas não degrada a utilidade desses
       comandos? [Assumption, Spec §Assumptions]
-- [ ] CHK020 A dependência da classe `Alias` existente para validar o resultado da slugificação
+- [x] CHK020 A dependência da classe `Alias` existente para validar o resultado da slugificação
       (Research §Decisão 4) está documentada com granularidade suficiente para confirmar que
       nenhuma mudança retroativa em `domain/alias.py` é necessária? [Traceability, Research
       §Decisão 4]
 
 ## Ambiguities & Conflicts
 
-- [ ] CHK021 Há alguma tensão entre FR-004 ("nunca sobrescreve pasta já registrada") e uma futura
+- [x] CHK021 Há alguma tensão entre FR-004 ("nunca sobrescreve pasta já registrada") e uma futura
       feature de detecção de deriva de curadoria (já registrada em `docs/TODO.md`, fora do escopo
       desta spec) que reverteria `status: curated` automaticamente — os dois requisitos, lidos
       juntos, deixam claro que são operações diferentes (bootstrap nunca sobrescreve; a feature

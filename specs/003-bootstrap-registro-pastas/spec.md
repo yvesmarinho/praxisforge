@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:30 -->
-<!-- Modificado em: 22/09/2026 14:30 -->
+<!-- Modificado em: 22/09/2026 16:22 -->
 
 # Feature Specification: Bootstrap do Registro de Pastas
 
@@ -53,6 +53,10 @@ disponível (cenários 1-4).
    `pending`.
 4. **Given** uma pasta-raiz sem nenhuma subpasta de primeiro nível, **When** o bootstrap roda,
    **Then** a operação conclui sem erro, relatando 0 pastas registradas.
+5. **Given** um registro (`folders.yaml`) totalmente vazio (nenhuma pasta registrada ainda, nem
+   por `folders add` manual), **When** o bootstrap roda pela primeira vez sobre uma pasta-raiz com
+   subpastas, **Then** todas as subpastas válidas são registradas normalmente — o bootstrap não
+   pressupõe que já exista nenhuma pasta registrada previamente.
 
 ---
 
@@ -120,9 +124,32 @@ resolução de caminho) e aparece separadamente no resumo como ignorada (cenári
 - O que acontece se o README for muito grande? → só as primeiras linhas (até um limite razoável de
   caracteres) são usadas como `description`, nunca o arquivo inteiro — a descrição do contrato já
   limita a 500 caracteres (schema desde a feature 001).
+- O que acontece se o README existir mas estiver vazio, ou só contiver cabeçalhos/badges sem
+  nenhum parágrafo de texto útil? → tratado exatamente como "sem README": `description` padrão
+  indicando ausência de conteúdo extraível.
 - O que acontece com um link simbólico como subpasta de primeiro nível? → tratado como as demais
   pastas resolvidas por caminho real (mesma regra da feature 002); se o link estiver quebrado, é
   reportado como falha individual.
+- O que acontece se o registro (`folders.yaml`) já contiver aliases que não correspondem a
+  nenhuma subpasta descoberta na execução atual (ex.: pasta removida do filesystem, mas ainda
+  registrada)? → o bootstrap não remove nem altera esses aliases "órfãos"; ele só adiciona,
+  nunca remove (mesmo princípio de FR-004). Limpeza de registros órfãos, se necessária, é ação
+  manual do curador, fora de escopo desta feature.
+- O que acontece se o próprio `folders.yaml` estiver corrompido/ilegível no momento em que o
+  bootstrap tenta carregá-lo? → a operação inteira é recusada citando o motivo (reaproveita os
+  mesmos erros semânticos de registro ilegível já existentes desde a feature 001), sem tentar
+  listar ou registrar nenhuma subpasta.
+- O que acontece se o LICENSE de uma subpasta contiver texto reconhecível de **mais de uma**
+  licença suportada ao mesmo tempo? → tratado como reconhecimento não confiável (ambíguo);
+  `license` fica `unknown`/`status: pending`, nunca escolhe uma das licenças arbitrariamente.
+- O que acontece se a pasta-raiz passada ao bootstrap for, ela mesma, uma subpasta já registrada
+  por outra execução (raízes aninhadas)? → tratada normalmente, sem detecção especial de
+  aninhamento; como o bootstrap só lista o primeiro nível (sem recursão, FR-002), não há risco de
+  ciclo.
+- O que acontece se a mesma subpasta (mesmo nome) já estiver registrada por causa de uma execução
+  anterior do bootstrap sobre uma pasta-raiz **diferente**? → tratada como alias já existente
+  (pulada, FR-004) — a origem original (qual raiz a registrou primeiro) não é rastreada nem
+  diferenciada.
 
 ## Requirements *(mandatory)*
 
@@ -132,25 +159,33 @@ resolução de caminho) e aparece separadamente no resumo como ignorada (cenári
   (nenhuma raiz fixa em configuração).
 - **FR-002**: O sistema DEVE identificar as subpastas de primeiro nível dentro da pasta-raiz como
   candidatas a registro (mesma regra de "só diretórios, sem recursão" já usada em decisões
-  anteriores do projeto).
+  anteriores do projeto), processadas em ordem alfabética pelo nome da subpasta (determinismo de
+  execução, inclusive para decidir qual subpasta "vence" em caso de colisão de alias, FR-008).
 - **FR-003**: Para cada subpasta candidata que **ainda não existe** no registro, o sistema DEVE
   criar uma nova entrada com um alias derivado do nome da subpasta.
-- **FR-004**: O sistema NÃO DEVE alterar nenhum campo de uma pasta **já registrada** (por execução
-  anterior do bootstrap ou por `folders add` manual) — o bootstrap só adiciona pastas novas.
+- **FR-004**: O sistema NÃO DEVE alterar nem remover nenhum campo de uma pasta cujo alias **já
+  existia no registro no início da execução** (por execução anterior do bootstrap ou por
+  `folders add` manual) — o bootstrap só adiciona pastas cujo alias ainda não existia quando a
+  execução começou; aliases registrados sem subpasta correspondente ("órfãos") também não são
+  tocados.
 - **FR-005**: O sistema DEVE pular (não processar, não registrar, não reportar como falha)
   qualquer pasta cujo alias correspondente já exista no registro com `status: ignore`.
 - **FR-006**: Ao registrar uma nova pasta, o sistema DEVE tentar extrair a `description` a partir
   do início do arquivo README da subpasta, se ele existir; se não existir, DEVE usar uma
   descrição padrão indicando a ausência de README.
 - **FR-007**: Ao registrar uma nova pasta, o sistema DEVE tentar identificar a `license` a partir
-  do texto do arquivo LICENSE da subpasta, reconhecendo pelo menos MIT, Apache-2.0, GPL-3.0 e
-  BSD-3-Clause; quando o arquivo não existir ou o texto não for reconhecido com confiança, a
-  `license` DEVE ficar `unknown` (e o `status` correspondente `pending`, conforme a invariante já
-  validada pelo contrato desde a feature 001).
+  do texto do arquivo LICENSE da subpasta, reconhecendo com confiança apenas texto que contenha as
+  frases-chave documentadas para cada licença suportada (MIT, Apache-2.0, GPL-3.0, BSD-3-Clause —
+  critério exato em `research.md`, Decisão 2); quando o arquivo não existir, o texto não
+  corresponder a nenhuma frase-chave conhecida, ou corresponder a **mais de uma** licença
+  suportada simultaneamente (reconhecimento ambíguo), a `license` DEVE ficar `unknown` (e o
+  `status` correspondente `pending`, conforme a invariante já validada pelo contrato desde a
+  feature 001) — o sistema nunca escolhe uma licença arbitrariamente entre candidatas ambíguas.
 - **FR-008**: Um alias cuja derivação do nome da subpasta resultar em conflito com um alias já
-  existente, ou em um alias que não atende ao formato válido, DEVE ser reportado como falha
-  individual, sem interromper o registro das demais subpastas (isolamento de falha por item,
-  mesmo padrão da feature 002).
+  existente no início da execução (FR-004), com outro alias já registrado **durante esta mesma
+  execução** (duas subpastas novas que slugificam para o mesmo nome), ou em um alias que não
+  atende ao formato válido, DEVE ser reportado como falha individual, sem interromper o registro
+  das demais subpastas (isolamento de falha por item, mesmo padrão da feature 002).
 - **FR-009**: O sistema DEVE reportar, ao final da execução, um resumo com a contagem de pastas
   novas registradas, pastas já existentes puladas (inalteradas), pastas ignoradas (`status:
   ignore`) e falhas individuais.
@@ -159,16 +194,23 @@ resolução de caminho) e aparece separadamente no resumo como ignorada (cenári
   `pending`).
 - **FR-011**: O status `ignore` DEVE poder ser aplicado a uma pasta com licença `unknown` sem
   exigir que ela seja `pending` — ou seja, a invariante "licença `unknown` ⇒ status `pending`" da
-  feature 001 passa a admitir `pending` OU `ignore`.
+  feature 001 passa a admitir `pending` OU `ignore`. Uma pasta `ignore` continua podendo ter sua
+  `license` atualizada normalmente via `folders update` (a restrição de `ignore` é só sobre
+  bootstrap/varredura pularem a pasta — FR-005/FR-013 — não sobre quais campos são editáveis).
+  `last_scanned`, se já preenchido antes da pasta virar `ignore`, é preservado sem alteração.
 - **FR-012**: O bootstrap NÃO DEVE, em nenhuma circunstância, atribuir `status: ignore`
   automaticamente a nenhuma pasta — esse status só é aplicado manualmente pelo curador, via
   `folders update`.
-- **FR-013**: A varredura (feature 002, `folders scan --all`) DEVE pular pastas com `status:
-  ignore` — não tentar resolver o caminho nem contá-las como "ok" ou "falha"; DEVE contá-las
-  separadamente como "ignoradas" no resumo.
+- **FR-013**: A varredura em **lote** (feature 002, `folders scan --all`) DEVE pular pastas com
+  `status: ignore` — não tentar resolver o caminho nem contá-las como "ok" ou "falha"; DEVE
+  contá-las separadamente como "ignoradas" no resumo. A varredura **individual** de um alias
+  específico (`folders scan <alias>`) NÃO é afetada por esta regra — continua processando
+  normalmente mesmo um alias `ignore`, se o curador pedir explicitamente por ele.
 - **FR-014**: Nenhuma saída do bootstrap (mensagens, logs, relatório) DEVE conter caminho absoluto
   do sistema de arquivos, exceto quando explicitamente citando o caminho de uma subpasta em uma
-  mensagem de erro sobre aquela própria subpasta (mesma regra das features 001/002).
+  mensagem de erro sobre aquela própria subpasta, **ou** o caminho da própria pasta-raiz em uma
+  mensagem de erro sobre a pasta-raiz ser inválida/inacessível (mesma regra das features 001/002,
+  estendida à pasta-raiz por ser o equivalente do "próprio item com erro" neste contexto).
 
 ### Key Entities *(include if feature involves data)*
 
@@ -185,13 +227,16 @@ resolução de caminho) e aparece separadamente no resumo como ignorada (cenári
 - **SC-001**: Um curador consegue popular o registro inicial de dezenas de pastas em uma única
   execução, sem rodar `folders add` manualmente para cada uma.
 - **SC-002**: Rodar o bootstrap duas vezes seguidas sobre a mesma pasta-raiz sem mudanças no
-  filesystem produz o mesmo `folders.yaml` (idempotência) — nenhuma pasta já registrada é
-  modificada na segunda execução.
+  filesystem produz um `folders.yaml` idêntico byte a byte entre as duas execuções (idempotência)
+  — nenhum campo de nenhuma pasta já registrada na primeira execução é alterado na segunda.
 - **SC-003**: Em uma pasta-raiz com 50 subpastas onde 40 têm README+LICENSE reconhecíveis e 10
   não têm nenhum dos dois, as 50 são registradas com sucesso (as 10 como `unknown`/`pending`),
   sem interromper a execução.
 - **SC-004**: Uma pasta marcada `ignore` nunca é reprocessada pelo bootstrap nem pela varredura em
-  execuções subsequentes, até que o curador mude o status manualmente.
+  lote em execuções subsequentes, até que o curador mude o status manualmente — verificável
+  rodando o bootstrap (ou a varredura em lote) pelo menos duas vezes seguidas após a marcação e
+  confirmando que a pasta continua `ignore`, sem `last_scanned`/demais campos alterados por essas
+  execuções (cobertura: US2 cenário 2, US3 cenário 1).
 - **SC-005**: Nenhuma execução do bootstrap expõe caminho absoluto do sistema de arquivos fora do
   contexto de uma mensagem de erro sobre a própria subpasta.
 
@@ -208,10 +253,24 @@ resolução de caminho) e aparece separadamente no resumo como ignorada (cenári
   `unclassified`) — inferir automaticamente o tipo de conteúdo está fora de escopo desta feature;
   o curador ajusta manualmente depois com `folders update` (quando esse campo aceitar edição via
   update — hoje só `status`/`last_scanned`/`license` são editáveis por `update`; se `content_type`
-  também precisar virar editável, isso é uma decisão técnica de `/speckit-plan`).
+  também precisar virar editável, isso é uma decisão técnica de `/speckit-plan`). Um valor
+  repetido em dezenas de pastas não degrada `folders list`/`folders show` — ambos já exibem o
+  campo tal como está registrado, e o curador o refina manualmente conforme cura cada pasta.
 - A derivação de alias a partir do nome da subpasta segue o mesmo padrão de validação já existente
-  (`^[a-z][a-z0-9_]{1,62}$`); a slugificação exata (minúsculas, hifens/espaços viram `_`, etc.) é
-  decisão técnica de `/speckit-plan`.
+  (`^[a-z][a-z0-9_]{1,62}$`, `domain/alias.py`, sem nenhuma mudança retroativa necessária nessa
+  classe); a slugificação exata (minúsculas, hifens/espaços viram `_`, etc.) é decisão técnica de
+  `/speckit-plan`.
 - O bootstrap é sempre disparado manualmente pelo curador (mesma filosofia das features 001/002);
   não há agendamento automático.
+- A invariante relaxada (licença `unknown` ⇒ `pending` OU `ignore`) precisa ficar consistente
+  entre `spec.md`, `data-model.md` e a documentação de referência já publicada em
+  `docs/reference/folders-yaml.md` — atualizar esse guia faz parte do trabalho de implementação
+  desta feature (tarefa de Polish em `/speckit-tasks`), não é uma decisão em aberto aqui.
+- Esta feature nunca sobrescreve ou remove uma pasta já registrada (FR-004) — isso é
+  intencionalmente diferente da feature futura de detecção de deriva de curadoria (registrada em
+  `docs/TODO.md`, fora de escopo aqui), que reverteria só o campo `status` de pastas `curated`
+  automaticamente ao detectar mudança de conteúdo. As duas features não conflitam: o bootstrap
+  nunca toca pastas existentes; a futura feature de deriva, quando existir, tocaria apenas
+  `status`, nunca `description`/`license`/`content_type` — o mesmo princípio de "curadoria manual
+  nunca é sobrescrita silenciosamente sem sinalização" vale para as duas.
 - Requer que as features 001 (registro) e 002 (varredura) já estejam implementadas e mergeadas.

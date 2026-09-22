@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:52 -->
-<!-- Modificado em: 22/09/2026 14:57 -->
+<!-- Modificado em: 22/09/2026 16:23 -->
 
 # Research: Bootstrap do Registro de Pastas
 
@@ -27,10 +27,13 @@
   - BSD-3-Clause: contém `"redistribution and use in source and binary forms"` e
     `"neither the name of"`
   Nenhuma correspondência confiável → retorna `None` (a Application trata como `license: "unknown"`
-  + `status: PENDING`, conforme FR-007).
+  + `status: PENDING`, conforme FR-007). **Ambiguidade**: se o texto corresponder às assinaturas
+  de **mais de uma** licença simultaneamente, `detect_license()` também retorna `None` (tratado
+  como não confiável) — nunca escolhe uma candidata arbitrariamente entre matches concorrentes.
 - **Rationale**: mantém a filosofia de dependências mínimas do projeto (nenhuma lib de
-  identificação SPDX adicionada); um falso negativo (licença real não reconhecida) é seguro — cai
-  em `unknown`/`pending` para revisão manual, nunca é adivinhado errado.
+  identificação SPDX adicionada); um falso negativo (licença real não reconhecida, ou reconhecida
+  em duplicidade) é seguro — cai em `unknown`/`pending` para revisão manual, nunca é adivinhado
+  errado.
 - **Alternatives considered**: biblioteca de identificação de licença via SPDX (rejeitado
   explicitamente pelo usuário — adiciona dependência nova fora do padrão do projeto).
 
@@ -61,6 +64,31 @@
 - **Alternatives considered**: gerar um alias sintético (ex.: hash) quando a slugificação falhar
   (rejeitado — esconderia o problema do curador; melhor falhar explicitamente e deixar o registro
   manual resolver o nome).
+- **Confirmação**: nenhuma mudança retroativa em `domain/alias.py` é necessária — a classe `Alias`
+  já valida exatamente o formato que o bootstrap precisa (`^[a-z][a-z0-9_]{1,62}$`); a
+  slugificação é só uma transformação de texto na Application antes de instanciar `Alias`.
+
+## Decisão 4a — Ordem de processamento determinística
+
+- **Decision**: `bootstrap_folders()` processa as subpastas descobertas em ordem alfabética pelo
+  nome (`sorted()` sobre o resultado de `list_subfolders()`), mesma convenção já usada por
+  `FolderRegistry.list()`.
+- **Rationale**: reprodutibilidade de testes e um critério objetivo e documentado de qual subpasta
+  "vence" quando duas colidem no mesmo alias dentro da mesma execução (FR-002/FR-008) — a primeira
+  em ordem alfabética é registrada, a segunda é reportada como falha de colisão.
+- **Alternatives considered**: ordem de retorno do filesystem (não determinística entre sistemas
+  operacionais/filesystems — rejeitada por quebrar reprodutibilidade de testes).
+
+## Decisão 2a — Registro ilegível/corrompido antes de listar subpastas
+
+- **Decision**: `bootstrap_folders()` chama `repository.load()` (não `load_raw()`) antes de
+  qualquer chamada a `RootFolderProbe` — se o registro estiver ausente/corrompido, as mesmas
+  exceções semânticas já existentes desde a feature 001
+  (`RegistryFileNotFoundError`/`RegistryUnavailableError`) são propagadas, e a execução inteira é
+  recusada sem listar nenhuma subpasta.
+- **Rationale**: reaproveita 100% o tratamento de erro já testado da feature 001; nenhuma exceção
+  nova é necessária. Carregar o registro primeiro também é o que torna possível calcular
+  `existing_at_start` (Decisão 5) antes de tocar o filesystem da pasta-raiz.
 
 ## Decisão 5 — Idempotência: registry.add() já garante não sobrescrever
 
