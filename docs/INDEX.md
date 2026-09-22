@@ -34,6 +34,7 @@ Nota (21/09/2026): o log diário de sessão foi migrado para o vault Obsidian
 | Feature | Descrição | Docs |
 |---------|-----------|------|
 | 001-registro-pastas-curadoria | Registro versionado de pastas a curar (`src/data/folders.yaml`), resolução de caminho por variável de ambiente, contratos JSON Schema versionados (`schemas/`) e arquitetura em 4 camadas com guarda de dependências automatizado | [spec](../specs/001-registro-pastas-curadoria/spec.md) · [plan](../specs/001-registro-pastas-curadoria/plan.md) · [arquitetura](architecture/overview.md) · [ADRs](decisions/) |
+| 002-varredura-pastas-curadoria | Varredura (`folders scan <alias>`/`--all`) que atualiza `status`/`last_scanned` das pastas registradas, isola falha por item no lote e detecta aliases duplicados apontando pro mesmo caminho real — sem nenhuma camada/porta nova (reaproveita 100% a feature 001) | [spec](../specs/002-varredura-pastas-curadoria/spec.md) · [plan](../specs/002-varredura-pastas-curadoria/plan.md) · [arquitetura](architecture/overview.md) |
 
 ---
 

@@ -1,7 +1,13 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 22/09/2026 10:12 -->
+<!-- Modificado em: 22/09/2026 12:05 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
+
+> **Feature 002 (Varredura das Pastas Registradas)**: reaproveita 100% as camadas e portas
+> abaixo, sem nenhuma mudança estrutural. Adiciona só `application/scan_folders.py` (casos de
+> uso `scan_folder`/`scan_all_folders`, com detecção de aliases duplicados no lote) e o
+> subcomando `folders scan` em `presentation/cli.py`. Ver `specs/002-varredura-pastas-curadoria/
+> plan.md` e `research.md` para as decisões de design.
 
 ## Camadas
 
@@ -102,6 +108,7 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `application/query_folders.py` | Casos de uso: listar/consultar |
 | `application/update_folder.py` | Caso de uso: atualizar |
 | `application/resolve_folder_path.py` | Casos de uso: resolver caminho (individual/lote) |
+| `application/scan_folders.py` | Casos de uso: varrer pasta (individual/lote) + detectar aliases duplicados (feature 002) |
 | `application/validate_registry.py` | Caso de uso: validar registro em lote |
 | `application/logging_events.py` | Log estruturado (versão Application) |
 | `application/errors.py` | Reexportação de erros para Presentation |

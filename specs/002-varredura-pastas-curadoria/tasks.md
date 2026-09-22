@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 12:20 -->
-<!-- Modificado em: 22/09/2026 11:56 -->
+<!-- Modificado em: 22/09/2026 12:02 -->
 
 ---
 
@@ -39,7 +39,7 @@ description: "Tasks — 002-varredura-pastas-curadoria"
 
 **Purpose**: confirmar baseline verde; nenhuma dependência nova é necessária (reaproveita 100% o ambiente da feature 001)
 
-- [ ] T001 Rodar `uv sync && make lint && make test` a partir da branch `002-varredura-pastas-curadoria` e confirmar baseline 100% verde antes de iniciar qualquer tarefa nova
+- [X] T001 Rodar `uv sync && make lint && make test` a partir da branch `002-varredura-pastas-curadoria` e confirmar baseline 100% verde antes de iniciar qualquer tarefa nova
 
 **Checkpoint**: ambiente confirmado; nenhuma tarefa de infraestrutura adicional necessária.
 
@@ -67,7 +67,7 @@ real, rodar `folders scan <alias>` e confirmar `last_scanned` atualizado e statu
 
 ### Testes primeiro (vermelho)
 
-- [ ] T002 [P] [US1] Escrever `tests/unit/application/test_scan_folders.py` com os casos de
+- [X] T002 [P] [US1] Escrever `tests/unit/application/test_scan_folders.py` com os casos de
       `scan_folder()`: pasta `not_scanned` → status vira `scanned` e `last_scanned` recebe o
       timestamp; pasta `scanned`/`in_curation`/`curated`/`pending` → status inalterado, só
       `last_scanned` avança (cobre o edge case de pasta "pendente" da spec e resolve a checklist
@@ -76,27 +76,27 @@ real, rodar `folders scan <alias>` e confirmar `last_scanned` atualizado e statu
       falha de caminho (`FolderPathNotConfiguredError`/`FolderPathInvalidError`/
       `FolderPathUnreadableError`) → propaga a exceção e não altera o registro; log estruturado do
       evento sem caminho absoluto
-- [ ] T003 [P] [US1] Escrever `tests/integration/test_cli_scan.py` com os casos de
+- [X] T003 [P] [US1] Escrever `tests/integration/test_cli_scan.py` com os casos de
       `folders scan <alias>`: sucesso → exit code 0, mensagem confirma alias/status/last_scanned;
       alias inexistente → exit code 1, mensagem cita o alias; caminho quebrado (variável ausente)
       → exit code 1, mensagem cita o motivo; nenhuma saída contém caminho absoluto do sistema de
       arquivos
-- [ ] T004 [US1] Rodar `uv run pytest tests/unit/application/test_scan_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T002–T003 falham** (ImportError/AssertionError, `scan_folders.py` e o subcomando `scan` ainda não existem)
+- [X] T004 [US1] Rodar `uv run pytest tests/unit/application/test_scan_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T002–T003 falham** (ImportError/AssertionError, `scan_folders.py` e o subcomando `scan` ainda não existem)
 
 ### Implementação (verde)
 
-- [ ] T005 [US1] Implementar `src/praxisforge/application/scan_folders.py`: dataclass frozen
+- [X] T005 [US1] Implementar `src/praxisforge/application/scan_folders.py`: dataclass frozen
       `ScanResult` (alias, status, last_scanned) e a função `scan_folder(repository, resolver, alias)`
       — carrega o registro, confirma o alias existe, resolve o caminho via `PathResolver`, monta
       `last_scanned=datetime.now(timezone.utc)`, chama `FolderRegistry.update()` só com
       `status=CurationStatus.SCANNED` quando o status atual é `NOT_SCANNED` (senão sem `status`),
       persiste via `repository.save()`, loga via `log_event` — faz T002 passar
-- [ ] T006 [US1] Adicionar o subcomando `folders scan <alias>` em `src/praxisforge/presentation/cli.py`
+- [X] T006 [US1] Adicionar o subcomando `folders scan <alias>` em `src/praxisforge/presentation/cli.py`
       (novo `scan_parser = folders_sub.add_parser("scan")`, grupo mutuamente exclusivo com `alias`
       posicional opcional, igual ao padrão já usado por `folders resolve`); handler converte
       `ScanResult` em mensagem amigável (exit 0) e cada exceção semântica em mensagem + exit code 1,
       sem vazar caminho absoluto — faz T003 passar
-- [ ] T007 [US1] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+- [X] T007 [US1] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: MVP entregável — varredura individual funciona de ponta a ponta (quickstart.md
 Cenários 1–2).
@@ -114,32 +114,32 @@ falha, sem interromper as demais (quickstart.md, Cenário 3).
 
 ### Testes primeiro (vermelho)
 
-- [ ] T008 [P] [US2] Adicionar a `tests/unit/application/test_scan_folders.py` os casos de
+- [X] T008 [P] [US2] Adicionar a `tests/unit/application/test_scan_folders.py` os casos de
       `scan_all_folders()`: lote com pastas válidas e inválidas → `ok` contém as válidas,
       `failures` contém as inválidas com `alias`/`error_type`/`message`, sem levantar; registro
       vazio (`folders: {}`) → `ok == []` e `failures == []` (resolve checklist CHK001); todas as
       pastas falham → `ok == []` e `failures` com todos os itens, sem levantar (resolve checklist
       CHK002); `ok` e `failures` ordenados por alias (checklist CHK020)
-- [ ] T009 [P] [US2] Adicionar a `tests/integration/test_cli_scan.py` os casos de
+- [X] T009 [P] [US2] Adicionar a `tests/integration/test_cli_scan.py` os casos de
       `folders scan --all`: resumo final cita quantas pastas foram atualizadas e quantas falharam,
       com o motivo de cada falha, exit code 0 mesmo havendo falhas de item; chamar `folders scan`
       com `<alias>` e `--all` ao mesmo tempo → exit code 2 (uso incorreto, grupo mutuamente
       exclusivo)
-- [ ] T010 [US2] Rodar `uv run pytest tests/unit/application/test_scan_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T008–T009 falham**
+- [X] T010 [US2] Rodar `uv run pytest tests/unit/application/test_scan_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T008–T009 falham**
 
 ### Implementação (verde)
 
-- [ ] T011 [US2] Implementar `scan_all_folders(repository, resolver)` em
+- [X] T011 [US2] Implementar `scan_all_folders(repository, resolver)` em
       `src/praxisforge/application/scan_folders.py`: dataclass frozen `ScanBatchReport` (`ok:
       list[ScanResult]`, `failures: list[ItemFailure]`, `duplicates: list[DuplicateAliasGroup]` —
       campo `duplicates` inicializado vazio nesta tarefa, populado só na US3); itera
       `registry.list()`, chama `scan_folder()` por alias dentro de `try/except Exception` (mesmo
       padrão `# noqa: BLE001` de `resolve_all_folder_paths`), agrega `ItemFailure` por item sem
       interromper o lote, ordena `ok`/`failures` por alias — faz T008 passar
-- [ ] T012 [US2] Adicionar `--all` (mutuamente exclusivo com o `alias` posicional) ao parser
+- [X] T012 [US2] Adicionar `--all` (mutuamente exclusivo com o `alias` posicional) ao parser
       `folders scan` em `cli.py`; handler chama `scan_all_folders()` e imprime o resumo
       (contagem de ok/falhas + motivo de cada falha), sem caminho absoluto — faz T009 passar
-- [ ] T013 [US2] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+- [X] T013 [US2] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: varredura em lote funciona com isolamento de falha por item confirmado
 (quickstart.md Cenário 3, SC-002).
@@ -157,7 +157,7 @@ idêntico, sem impedir a varredura de nenhum deles.
 
 ### Testes primeiro (vermelho)
 
-- [ ] T014 [P] [US3] Adicionar a `tests/unit/application/test_scan_folders.py` os casos de
+- [X] T014 [P] [US3] Adicionar a `tests/unit/application/test_scan_folders.py` os casos de
       detecção de duplicidade dentro de `scan_all_folders()`: dois aliases resolvendo para o mesmo
       caminho real → um `DuplicateAliasGroup` com os dois aliases (ordenados), ambos continuam em
       `ok`; três aliases resolvendo para o mesmo caminho real → um único grupo com os três aliases,
@@ -165,21 +165,21 @@ idêntico, sem impedir a varredura de nenhum deles.
       o `Path`/caminho absoluto, nem em `repr()` (resolve checklist CHK019); um alias que falha ao
       resolver o caminho não entra na comparação de duplicidade daquela execução (resolve checklist
       CHK015); nenhum agrupamento é criado quando todos os caminhos resolvidos são distintos
-- [ ] T015 [P] [US3] Adicionar a `tests/integration/test_cli_scan.py` o caso de `folders scan --all`
+- [X] T015 [P] [US3] Adicionar a `tests/integration/test_cli_scan.py` o caso de `folders scan --all`
       listando os grupos de aliases duplicados no resumo final, sem interromper a varredura de
       nenhum alias envolvido, sem caminho absoluto na saída
-- [ ] T016 [US3] Rodar `uv run pytest tests/unit/application/test_scan_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T014–T015 falham**
+- [X] T016 [US3] Rodar `uv run pytest tests/unit/application/test_scan_folders.py tests/integration/test_cli_scan.py -p no:cacheprovider` e **confirmar que T014–T015 falham**
 
 ### Implementação (verde)
 
-- [ ] T017 [US3] Implementar a dataclass frozen `DuplicateAliasGroup` (`aliases: tuple[str, ...]`,
+- [X] T017 [US3] Implementar a dataclass frozen `DuplicateAliasGroup` (`aliases: tuple[str, ...]`,
       ≥ 2 elementos) e a detecção dentro de `scan_all_folders()`: após resolver com sucesso cada
       alias, agrupar por `Path` resolvido (`dict[Path, list[str]]`), gerar um `DuplicateAliasGroup`
       ordenado por alias para cada grupo com ≥ 2 aliases, popular `ScanBatchReport.duplicates`
       (ordenado por primeiro alias do grupo) — faz T014 passar
-- [ ] T018 [US3] Exibir os grupos duplicados no resumo de `folders scan --all` em `cli.py` (lista de
+- [X] T018 [US3] Exibir os grupos duplicados no resumo de `folders scan --all` em `cli.py` (lista de
       aliases por grupo, sem caminho) — faz T015 passar
-- [ ] T019 [US3] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
+- [X] T019 [US3] Rodar `make lint && make test` e confirmar verde, cobertura ≥ 90%
 
 **Checkpoint**: as três user stories entregues; `folders scan --all` cobre varredura, isolamento de
 falha e detecção de duplicidade (quickstart.md Cenário 4, SC-003).
@@ -190,13 +190,13 @@ falha e detecção de duplicidade (quickstart.md Cenário 4, SC-003).
 
 **Purpose**: documentação e validação final, sem lógica nova
 
-- [ ] T020 [P] Atualizar `docs/architecture/overview.md` (mapa de módulos) com
+- [X] T020 [P] Atualizar `docs/architecture/overview.md` (mapa de módulos) com
       `application/scan_folders.py` e o subcomando `folders scan`
-- [ ] T021 [P] Rodar manualmente os 4 cenários de `quickstart.md` (incluindo a verificação de
+- [X] T021 [P] Rodar manualmente os 4 cenários de `quickstart.md` (incluindo a verificação de
       segurança — nenhum caminho absoluto na saída de `folders scan --all`) e confirmar aderência
-- [ ] T022 Atualizar `docs/INDEX.md` e `docs/TODO.md` (acrescentar, nunca sobrescrever): feature 002
+- [X] T022 Atualizar `docs/INDEX.md` e `docs/TODO.md` (acrescentar, nunca sobrescrever): feature 002
       concluída, próximos pendentes
-- [ ] T023 Marcar T001–T022 como concluídas neste arquivo à medida que forem fechadas
+- [X] T023 Marcar T001–T022 como concluídas neste arquivo à medida que forem fechadas
 
 **Checkpoint final**: `make lint && make test` verdes, `make validate-data` verde, cobertura ≥ 90%,
 nenhum item pendente na checklist `checklists/batch-robustness.md` sem justificativa registrada.
