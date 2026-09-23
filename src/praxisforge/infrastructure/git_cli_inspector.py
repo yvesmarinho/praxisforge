@@ -3,7 +3,7 @@
 NOME: git_cli_inspector.py
 TITULO: Adapter GitContentInspector — consulta o executável git (sem dependência nova)
 DATA: 23/09/2026 12:05
-MODIFICADO: 23/09/2026 12:06
+MODIFICADO: 23/09/2026 12:09
 VERSÃO: 0.1.0
 DEPEND: git (executável ≥ 2.x), praxisforge.application.ports, praxisforge.domain.errors
 HISTÓRICO:
@@ -15,13 +15,15 @@ STATUS: DEV
 import logging
 import os
 import re
-import subprocess  # nosec B404 - chamadas com argumentos fixos, sem shell (research §R1)
+import subprocess  # nosec B404
 from pathlib import Path
 
 from praxisforge.application.ports import GitContentInspector
 from praxisforge.domain.errors import ContentInspectionError
 
 logger = logging.getLogger(__name__)
+
+# subprocess: chamadas ao git com argumentos fixos e sem shell (research §R1).
 
 _COMMIT_HASH_PATTERN = re.compile(r"^[0-9a-f]{40}(?:[0-9a-f]{24})?\Z")
 _NOT_A_REPOSITORY = "not a git repository"
@@ -81,8 +83,9 @@ class GitCliInspector(GitContentInspector):
     def _run(self, path: Path, *args: str) -> subprocess.CompletedProcess[str]:
         env = {**os.environ, "LC_ALL": "C", "GIT_TERMINAL_PROMPT": "0"}
         try:
-            return subprocess.run(  # noqa: S603 # nosec B603 - argumentos fixos, hash validado
-                ["git", "-C", str(path), *args],  # noqa: S607 - git resolvido pelo PATH
+            # git resolvido pelo PATH de propósito (research §R1); argumentos fixos, hash validado
+            return subprocess.run(  # noqa: S603 # nosec B603 B607
+                ["git", "-C", str(path), *args],  # noqa: S607
                 capture_output=True,
                 text=True,
                 timeout=self._timeout,

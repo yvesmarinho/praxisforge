@@ -59,15 +59,15 @@ rodar e **confirmar vermelho**, só então implementar.
 
 ### Testes (vermelho primeiro)
 
-- [ ] T018 [P] [US1] Testes em tests/unit/application/test_update_folder.py com fakes de `PathResolver` e `GitContentInspector`: status→curated em pasta git grava hash; pasta não-git não grava e mantém hash anterior se existir (FR-002, FR-016); remarcar curada atualiza hash (US1 cenário 3); status ≠ curated nunca consulta resolver/inspector e preserva hash (FR-010); resolver levanta `FolderPathInvalidError`/`FolderPathNotConfiguredError` → exceção propagada e registro não salvo (FR-003); inspector levanta `ContentInspectionError` → registro não salvo
-- [ ] T019 [P] [US1] Testes em tests/integration/test_cli_folders.py: `folders update --status curated` imprime `versão curada: <12 chars>` ou `versão curada: (pasta não é repositório git)`; caminho não configurado → exit 3 com YAML inalterado; `folders show` imprime `versão curada: <12 chars>` ou `versão curada: -`; nenhuma saída com caminho absoluto (contrato cli-content-check, FR-011, FR-013)
-- [ ] T020 [US1] Rodar T018–T019 e confirmar vermelho
+- [X] T018 [P] [US1] Testes em tests/unit/application/test_update_folder.py com fakes de `PathResolver` e `GitContentInspector`: status→curated em pasta git grava hash; pasta não-git não grava e mantém hash anterior se existir (FR-002, FR-016); remarcar curada atualiza hash (US1 cenário 3); status ≠ curated nunca consulta resolver/inspector e preserva hash (FR-010); resolver levanta `FolderPathInvalidError`/`FolderPathNotConfiguredError` → exceção propagada e registro não salvo (FR-003); inspector levanta `ContentInspectionError` → registro não salvo
+- [X] T019 [P] [US1] Testes em tests/integration/test_cli_folders.py: `folders update --status curated` imprime `versão curada: <12 chars>` ou `versão curada: (pasta não é repositório git)`; caminho não configurado → exit 3 com YAML inalterado; `folders show` imprime `versão curada: <12 chars>` ou `versão curada: -`; nenhuma saída com caminho absoluto (contrato cli-content-check, FR-011, FR-013)
+- [X] T020 [US1] Rodar T018–T019 e confirmar vermelho
 
 ### Implementação
 
-- [ ] T021 [US1] Estender `update_folder()` em src/praxisforge/application/update_folder.py para receber `resolver: PathResolver` e `inspector: GitContentInspector` e gravar `head_commit()` só quando o status resultante é `curated` (research §R6); log_event com `content_check` sem caminho
-- [ ] T022 [US1] Injetar `EnvPathResolver` + `GitCliInspector` no subcomando `folders update` e exibir `versão curada` em `update` e `show` em src/praxisforge/presentation/cli.py; mapear `ContentInspectionError` para exit 3
-- [ ] T023 [US1] Ajustar chamadas existentes de `update_folder()` nos testes da feature 001 (tests/unit/application/test_update_folder.py, tests/integration/test_cli_folders.py) e rodar T018–T019 → verde
+- [X] T021 [US1] Estender `update_folder()` em src/praxisforge/application/update_folder.py para receber `resolver: PathResolver` e `inspector: GitContentInspector` e gravar `head_commit()` só quando o status resultante é `curated` (research §R6); log_event com `content_check` sem caminho
+- [X] T022 [US1] Injetar `EnvPathResolver` + `GitCliInspector` no subcomando `folders update` e exibir `versão curada` em `update` e `show` em src/praxisforge/presentation/cli.py; mapear `ContentInspectionError` para exit 3
+- [X] T023 [US1] Ajustar chamadas existentes de `update_folder()` nos testes da feature 001 (tests/unit/application/test_update_folder.py, tests/integration/test_cli_folders.py) e rodar T018–T019 → verde
 
 **Checkpoint**: US1 entregue e testável isoladamente.
 
