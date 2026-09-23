@@ -23,7 +23,11 @@ import yaml
 from praxisforge.application.ports import ContractValidator, FolderRegistryRepository
 from praxisforge.domain.alias import Alias
 from praxisforge.domain.curation_status import CurationStatus
-from praxisforge.domain.errors import RegistryFileNotFoundError, RegistryUnavailableError
+from praxisforge.domain.errors import (
+    RegistryFileNotFoundError,
+    RegistryMigrationRequiredError,
+    RegistryUnavailableError,
+)
 from praxisforge.domain.folder import Folder
 from praxisforge.domain.folder_registry import FolderRegistry
 from praxisforge.infrastructure.yaml_loader import NoTimestampSafeLoader
@@ -35,7 +39,7 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
 
     :param path: caminho do arquivo do registro.
     :type path: Path
-    :param validator: validador de contrato usado ao carregar (schema `folders-schema-v1`).
+    :param validator: validador de contrato usado ao carregar (schema `folders-schema-v2`).
     :type validator: ContractValidator
     """
 
@@ -69,7 +73,9 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
     def load(self) -> FolderRegistry:
         """Ver FolderRegistryRepository.load."""
         documento = self.load_raw()
-        self._validator.validate(documento, schema_name="folders-schema-v1")
+        if documento.get("schema_version") == "1":
+            raise RegistryMigrationRequiredError
+        self._validator.validate(documento, schema_name="folders-schema-v2")
         folders_raw = cast(dict[str, dict[str, object]], documento.get("folders") or {})
         folders: dict[str, Folder] = {}
         for alias_str, entry in folders_raw.items():
@@ -84,6 +90,7 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
                 license=str(entry["license"]),
                 last_scanned=last_scanned,
                 status=CurationStatus.from_str(str(entry["status"])),
+                path=str(entry["path"]),
                 last_curated_commit=(
                     str(entry["last_curated_commit"]) if "last_curated_commit" in entry else None
                 ),
@@ -132,6 +139,7 @@ def _serializar(folder: Folder) -> dict[str, object]:
         "license": folder.license,
         "last_scanned": folder.last_scanned.isoformat() if folder.last_scanned else None,
         "status": folder.status.value,
+        "path": folder.path,
     }
     if folder.last_curated_commit is not None:
         entry["last_curated_commit"] = folder.last_curated_commit

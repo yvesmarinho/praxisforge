@@ -3,13 +3,14 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:04
+MODIFICADO: 23/09/2026 16:47
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T005) — hierarquia de data-model.md
     - 22/09/2026 17:36: +InvalidRootPathError (T005, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:04: +ContentInspectionError/InvalidCommitHashError (T003, feature 004)
+    - 23/09/2026 16:47: exceções de caminho/migração (T003, feature 005)
 STATUS: DEV
 """
 
@@ -21,15 +22,18 @@ from praxisforge.domain.errors import (
     ContractValidationError,
     FolderNotFoundError,
     FolderPathInvalidError,
-    FolderPathNotConfiguredError,
     FolderPathUnreadableError,
     FutureScanDateError,
     InvalidAliasError,
     InvalidCommitHashError,
     InvalidFolderError,
+    InvalidFolderPathError,
     InvalidRootPathError,
+    NestedFolderPathError,
+    PathAlreadyRegisteredError,
     PraxisForgeError,
     RegistryFileNotFoundError,
+    RegistryMigrationRequiredError,
     RegistryUnavailableError,
     UnknownLicenseRequiresPendingError,
     UnsupportedSchemaVersionError,
@@ -50,7 +54,6 @@ from praxisforge.domain.errors import (
         FolderNotFoundError,
         RegistryUnavailableError,
         RegistryFileNotFoundError,
-        FolderPathNotConfiguredError,
         FolderPathInvalidError,
         FolderPathUnreadableError,
         InvalidRootPathError,
@@ -110,7 +113,6 @@ def test_unsupported_schema_version_informa_encontrada_e_suportadas() -> None:
         lambda: AliasAlreadyRegisteredError("exemplo"),
         lambda: FolderNotFoundError("exemplo"),
         lambda: RegistryFileNotFoundError(),
-        lambda: FolderPathNotConfiguredError("github_forks"),
         lambda: FolderPathInvalidError("github_forks", reason="caminho relativo"),
         lambda: FolderPathUnreadableError("github_forks"),
     ],
@@ -147,3 +149,17 @@ def test_invalid_commit_hash_error_eh_invalid_folder_error() -> None:
     error = InvalidCommitHashError("repo")
     assert isinstance(error, InvalidFolderError)
     assert "repo" in str(error)
+
+
+def test_excecoes_de_caminho_da_feature_005() -> None:
+    """Hierarquia e atributo owner (T003, feature 005)."""
+    assert issubclass(InvalidFolderPathError, InvalidFolderError)
+    duplicado = PathAlreadyRegisteredError("repo_a")
+    aninhado = NestedFolderPathError("repo_a")
+    for erro in (duplicado, aninhado):
+        assert isinstance(erro, PraxisForgeError)
+        assert erro.owner == "repo_a"
+        assert "repo_a" in str(erro)
+    migracao = RegistryMigrationRequiredError()
+    assert isinstance(migracao, RegistryUnavailableError)
+    assert "folders migrate" in str(migracao)

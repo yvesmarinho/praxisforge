@@ -144,16 +144,6 @@ class RegistryFileNotFoundError(RegistryUnavailableError):
         super().__init__("registro ausente")
 
 
-class FolderPathNotConfiguredError(PraxisForgeError):
-    """Variável de ambiente `PRAXISFORGE_FOLDER_<ALIAS>` ausente ou vazia."""
-
-    def __init__(self, alias: str) -> None:
-        self.alias = alias
-        super().__init__(
-            f"variável PRAXISFORGE_FOLDER_{alias.upper()} não configurada para '{alias}'"
-        )
-
-
 class FolderPathInvalidError(PraxisForgeError):
     """Caminho configurado é relativo, contém `..`, não existe ou não é diretório."""
 
@@ -191,17 +181,22 @@ class InvalidRootPathError(PraxisForgeError):
 
 __all__ = [
     "AliasAlreadyRegisteredError",
+    "ContentInspectionError",
     "ContractValidationError",
     "FolderNotFoundError",
     "FolderPathInvalidError",
-    "FolderPathNotConfiguredError",
     "FolderPathUnreadableError",
     "FutureScanDateError",
     "InvalidAliasError",
+    "InvalidCommitHashError",
     "InvalidFolderError",
+    "InvalidFolderPathError",
     "InvalidRootPathError",
+    "NestedFolderPathError",
+    "PathAlreadyRegisteredError",
     "PraxisForgeError",
     "RegistryFileNotFoundError",
+    "RegistryMigrationRequiredError",
     "RegistryUnavailableError",
     "UnknownLicenseRequiresPendingError",
     "UnsupportedSchemaVersionError",
@@ -229,4 +224,46 @@ class ContentInspectionError(PraxisForgeError):
             f"pasta '{alias}': falha ao inspecionar conteúdo: {reason}"
             if alias
             else f"falha ao inspecionar conteúdo: {reason}"
+        )
+
+
+class InvalidFolderPathError(InvalidFolderError):
+    """`path` fora da forma absoluta canônica (feature 005)."""
+
+    def __init__(self, alias: str = "", reason: str = "caminho fora da forma absoluta") -> None:
+        super().__init__(f"pasta '{alias}': {reason}" if alias else reason)
+
+
+class PathAlreadyRegisteredError(PraxisForgeError):
+    """
+    Caminho já registrado por outra pasta (comparação sem diferenciar maiúsculas).
+
+    :param owner: alias da pasta que já ocupa o caminho.
+    :type owner: str
+    """
+
+    def __init__(self, owner: str) -> None:
+        self.owner = owner
+        super().__init__(f"caminho já registrado pela pasta '{owner}'")
+
+
+class NestedFolderPathError(PraxisForgeError):
+    """
+    Caminho dentro de (ou contendo) outra pasta registrada — aninhamento proibido.
+
+    :param owner: alias da pasta registrada com a qual há aninhamento.
+    :type owner: str
+    """
+
+    def __init__(self, owner: str) -> None:
+        self.owner = owner
+        super().__init__(f"caminho aninhado com a pasta registrada '{owner}'")
+
+
+class RegistryMigrationRequiredError(RegistryUnavailableError):
+    """Registro em formato antigo (v1) — exige `praxisforge folders migrate`."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "registro no formato v1 — execute: praxisforge folders migrate [--root <pasta-raiz>]"
         )

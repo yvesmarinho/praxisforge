@@ -1,0 +1,53 @@
+{
+  "_meta": {
+    "criado_em": "23/09/2026 14:10",
+    "modificado_em": "2026-09-23T14:10:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/folders-schema-v2.json",
+  "title": "Registro de pastas a curar (v2 — caminho absoluto obrigatório)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "folders"],
+  "properties": {
+    "schema_version": { "const": "2" },
+    "folders": {
+      "type": "object",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]{1,62}$" },
+      "additionalProperties": { "$ref": "#/$defs/folder" }
+    }
+  },
+  "$defs": {
+    "folder": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["description", "content_type", "license", "last_scanned", "status", "path"],
+      "properties": {
+        "description": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "content_type": { "type": "string", "pattern": "^[a-z][a-z0-9_-]{1,62}$" },
+        "license": { "type": "string", "minLength": 1 },
+        "last_scanned": {
+          "oneOf": [{ "type": "null" }, { "type": "string", "format": "date-time" }]
+        },
+        "status": {
+          "enum": ["not_scanned", "scanned", "in_curation", "curated", "pending", "ignore"]
+        },
+        "path": { "type": "string", "minLength": 1, "pattern": "^/" },
+        "last_curated_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "license": { "const": "unknown" } }, "required": ["license"] },
+          "then": { "properties": { "status": { "enum": ["pending", "ignore"] } } }
+        },
+        {
+          "if": { "properties": { "status": { "const": "not_scanned" } }, "required": ["status"] },
+          "then": { "properties": { "last_scanned": { "type": "null" } } }
+        }
+      ]
+    }
+  }
+}

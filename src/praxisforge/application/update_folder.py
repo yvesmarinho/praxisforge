@@ -3,25 +3,27 @@
 NOME: update_folder.py
 TITULO: Caso de uso — atualizar status, última varredura e/ou licença (atômico)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:08
+MODIFICADO: 23/09/2026 16:55
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain, praxisforge.application.dto, praxisforge.application.ports
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T037) — faz tests/unit/application/test_update_folder.py passar
     - 23/09/2026 12:08: grava last_curated_commit ao marcar curated (T021, feature 004)
+    - 23/09/2026 16:55: FolderLocator; --path (T024, feature 005)
 STATUS: DEV
 """
 
 import logging
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
 from praxisforge.application.dto import UpdateFolderInput
 from praxisforge.application.logging_events import log_event
 from praxisforge.application.ports import (
+    FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
-    PathResolver,
 )
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import ContentInspectionError
@@ -51,13 +53,13 @@ def update_folder(
     repository: FolderRegistryRepository,
     data: UpdateFolderInput,
     *,
-    resolver: PathResolver,
+    locator: FolderLocator,
     inspector: GitContentInspector,
 ) -> UpdateFolderResult:
     """
     Atualiza os campos informados de uma pasta, atomicamente.
 
-    Quando o status resultante é `curated`, resolve o caminho real da pasta e grava o
+    Quando o curador marca `--status curated`, resolve o caminho real da pasta e grava o
     HEAD atual em `last_curated_commit` (FR-001); pasta não-git mantém o valor anterior
     (FR-002, FR-016). Qualquer outro status não consulta o git e preserva a versão
     gravada como histórico (FR-010).
@@ -66,8 +68,8 @@ def update_folder(
     :type repository: FolderRegistryRepository
     :param data: entrada validada (só os campos informados são aplicados).
     :type data: UpdateFolderInput
-    :param resolver: porta de resolução alias → caminho real.
-    :type resolver: PathResolver
+    :param locator: porta que canoniza (`--path`) e confere o caminho registrado.
+    :type locator: FolderLocator
     :param inspector: porta de inspeção do conteúdo versionado.
     :type inspector: GitContentInspector
     :return: a pasta atualizada e se o HEAD foi gravado.
@@ -75,8 +77,7 @@ def update_folder(
     :raises FolderNotFoundError: alias não registrado.
     :raises FutureScanDateError: `last_scanned` no futuro.
     :raises UnknownLicenseRequiresPendingError: licença `unknown` com status != pending.
-    :raises FolderPathNotConfiguredError: marcar curated sem caminho configurado (FR-003).
-    :raises FolderPathInvalidError: marcar curated com caminho inválido (FR-003).
+    :raises FolderPathInvalidError: `--path` inexistente, ou curated com pasta movida (FR-003).
     :raises FolderPathUnreadableError: marcar curated com caminho ilegível (FR-003).
     :raises ContentInspectionError: falha do git ao ler o HEAD (FR-009).
     """
@@ -85,11 +86,19 @@ def update_folder(
     last_scanned = datetime.fromisoformat(data.last_scanned) if data.last_scanned else None
     head_recorded: bool | None = None
     try:
-        updated_registry = registry.update(
-            data.alias, status=status, last_scanned=last_scanned, license=data.license
+        novo_path = (
+            str(locator.canonicalize(data.alias, data.path)) if data.path is not None else None
         )
-        if updated_registry.get(data.alias).status is CurationStatus.CURATED:
-            head = _head_commit(data.alias, resolver, inspector)
+        updated_registry = registry.update(
+            data.alias,
+            status=status,
+            last_scanned=last_scanned,
+            license=data.license,
+            path=novo_path,
+        )
+        # só o ato explícito de marcar curated grava a versão (editar outro campo não)
+        if status is CurationStatus.CURATED:
+            head = _head_commit(updated_registry.get(data.alias), locator, inspector)
             head_recorded = head is not None
             if head is not None:
                 updated_registry = updated_registry.update(data.alias, last_curated_commit=head)
@@ -107,21 +116,24 @@ def update_folder(
     return UpdateFolderResult(folder=updated_registry.get(data.alias), head_recorded=head_recorded)
 
 
-def _head_commit(alias: str, resolver: PathResolver, inspector: GitContentInspector) -> str | None:
+def _head_commit(
+    folder: Folder, locator: FolderLocator, inspector: GitContentInspector
+) -> str | None:
     """
-    Resolve o caminho da pasta e lê o HEAD, anexando o alias a falhas do inspector.
+    Confere o caminho da pasta e lê o HEAD, anexando o alias a falhas do inspector.
 
-    :param alias: alias da pasta.
-    :type alias: str
-    :param resolver: porta de resolução alias → caminho real.
-    :type resolver: PathResolver
+    :param folder: pasta já atualizada (caminho do registro).
+    :type folder: Folder
+    :param locator: porta que confere o caminho registrado.
+    :type locator: FolderLocator
     :param inspector: porta de inspeção do conteúdo versionado.
     :type inspector: GitContentInspector
     :return: hash do HEAD ou None (não-git / sem commits).
     :rtype: str | None
     :raises ContentInspectionError: falha do git, com o alias preenchido.
     """
-    path = resolver.resolve(alias)
+    alias = folder.alias.value
+    path = locator.check(alias, Path(folder.path))
     try:
         return inspector.head_commit(path)
     except ContentInspectionError as error:

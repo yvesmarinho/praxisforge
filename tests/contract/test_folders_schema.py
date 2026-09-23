@@ -3,13 +3,14 @@
 NOME: test_folders_schema.py
 TITULO: Testes de contrato — schemas/folders-schema-v1.json
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:04
+MODIFICADO: 23/09/2026 16:47
 VERSÃO: 0.1.0
 DEPEND: pytest, jsonschema
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T010)
     - 22/09/2026 17:34: +casos status "ignore" (T004, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:04: +last_curated_commit (T002, feature 004-deteccao-mudanca-conteudo)
+    - 23/09/2026 16:47: checagem do registro versionado movida para a v2 (T002, feature 005)
 STATUS: DEV
 """
 
@@ -246,14 +247,3 @@ def test_last_curated_commit_invalido_eh_rejeitado(
 ) -> None:
     """Hash fora do formato é rejeitado pelo contrato (FR-011)."""
     assert _validar(schema, _doc_com_commit(valor)) != []
-
-
-def test_registro_versionado_atual_continua_valido(schema: dict[str, object]) -> None:
-    """src/data/folders.yaml, sem o campo novo, continua válido (FR-012, SC-004)."""
-    import yaml
-
-    from praxisforge.infrastructure.yaml_loader import NoTimestampSafeLoader
-
-    texto = (Path(__file__).parents[2] / "src" / "data" / "folders.yaml").read_text("utf-8")
-    documento = yaml.load(texto, Loader=NoTimestampSafeLoader)  # noqa: S506 # nosec B506
-    assert _validar(schema, documento) == []

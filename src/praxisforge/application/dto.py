@@ -3,11 +3,12 @@
 NOME: dto.py
 TITULO: DTOs pydantic de entrada dos casos de uso (fronteira Application/CLI)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:50
+MODIFICADO: 23/09/2026 16:54
 VERSÃO: 0.1.0
 DEPEND: pydantic
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T025) — faz tests/unit/application/test_dto.py passar
+    - 23/09/2026 16:54: path em RegisterFolderInput/UpdateFolderInput (T024, feature 005)
 STATUS: DEV
 """
 
@@ -30,6 +31,8 @@ class RegisterFolderInput(BaseModel):
     :type license: str
     :param status: status inicial (opcional; padrão decidido pelo caso de uso).
     :type status: str | None
+    :param path: caminho da pasta como informado (canonizado pelo caso de uso).
+    :type path: str
     """
 
     model_config = ConfigDict(strict=True)
@@ -39,6 +42,7 @@ class RegisterFolderInput(BaseModel):
     content_type: str = Field(min_length=1)
     license: str = Field(min_length=1)  # noqa: A003
     status: str | None = None
+    path: str = Field(min_length=1)
 
 
 class UpdateFolderInput(BaseModel):
@@ -53,6 +57,8 @@ class UpdateFolderInput(BaseModel):
     :type last_scanned: str | None
     :param license: nova licença, se informada.
     :type license: str | None
+    :param path: novo caminho da pasta, se informado (pasta movida — FR-016).
+    :type path: str | None
     """
 
     model_config = ConfigDict(strict=True)
@@ -61,3 +67,4 @@ class UpdateFolderInput(BaseModel):
     status: str | None = None
     last_scanned: str | None = None
     license: str | None = None  # noqa: A003
+    path: str | None = Field(default=None, min_length=1)

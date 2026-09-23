@@ -3,11 +3,12 @@
 NOME: test_scan_content_scale.py
 TITULO: Teste de escala — varredura em lote com verificação de conteúdo git
 DATA: 23/09/2026 12:18
-MODIFICADO: 23/09/2026 12:19
+MODIFICADO: 23/09/2026 16:57
 VERSÃO: 0.1.0
 DEPEND: pytest, git (executável), praxisforge.application.scan_folders
 HISTÓRICO:
     - 23/09/2026 12:18: criação (T041, feature 004-deteccao-mudanca-conteudo)
+    - 23/09/2026 16:57: caminho no registro (T027, feature 005)
 STATUS: DEV
 """
 
@@ -24,7 +25,7 @@ from praxisforge.domain.alias import Alias
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.folder import Folder
 from praxisforge.domain.folder_registry import FolderRegistry
-from praxisforge.infrastructure.env_path_resolver import EnvPathResolver
+from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.yaml_folder_registry import YamlFolderRegistryRepository
@@ -64,7 +65,7 @@ def test_lote_de_100_pastas_curadas_em_menos_de_30s(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """100 curadas, metade alteradas: só as alteradas são revertidas (SC-001, SC-003)."""
-    registry = FolderRegistry(schema_version="1", folders={})
+    registry = FolderRegistry(schema_version="2", folders={})
     alteradas: set[str] = set()
     for indice in range(_TOTAL):
         alias = f"fonte_{indice:03d}"
@@ -75,7 +76,6 @@ def test_lote_de_100_pastas_curadas_em_menos_de_30s(
         if indice % 2 == 0:
             _commit(repo, "v2")
             alteradas.add(alias)
-        monkeypatch.setenv(f"PRAXISFORGE_FOLDER_{alias.upper()}", str(repo))
         registry = registry.add(
             Folder(
                 alias=Alias(alias),
@@ -84,6 +84,7 @@ def test_lote_de_100_pastas_curadas_em_menos_de_30s(
                 license="MIT",
                 last_scanned=datetime(2026, 9, 1, tzinfo=UTC),
                 status=CurationStatus.CURATED,
+                path=str(repo.resolve()),
                 last_curated_commit=gravado,
             )
         )
@@ -93,7 +94,7 @@ def test_lote_de_100_pastas_curadas_em_menos_de_30s(
     repository.save(registry)
 
     inicio = time.perf_counter()
-    report = scan_all_folders(repository, EnvPathResolver(), inspector=GitCliInspector())
+    report = scan_all_folders(repository, FilesystemFolderLocator(), inspector=GitCliInspector())
     duracao = time.perf_counter() - inicio
 
     assert duracao < _LIMITE_SEGUNDOS

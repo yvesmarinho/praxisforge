@@ -23,6 +23,7 @@ from praxisforge.domain.errors import (
     FutureScanDateError,
     InvalidCommitHashError,
     InvalidFolderError,
+    InvalidFolderPathError,
     UnknownLicenseRequiresPendingError,
 )
 
@@ -47,11 +48,15 @@ class Folder:
     :type last_scanned: datetime | None
     :param status: status de curadoria.
     :type status: CurationStatus
+    :param path: caminho absoluto canônico da pasta (feature 005): começa com "/", sem "~",
+        sem segmentos "." / ".." e sem barra final.
+    :type path: str
     :param last_curated_commit: hash do commit revisado na última curadoria (histórico) ou None.
     :type last_curated_commit: str | None
     :raises InvalidFolderError: quando uma invariante é violada.
     :raises UnknownLicenseRequiresPendingError: licença `unknown` com status != pending.
     :raises FutureScanDateError: `last_scanned` no futuro.
+    :raises InvalidFolderPathError: `path` fora da forma absoluta canônica.
     :raises InvalidCommitHashError: `last_curated_commit` fora do formato SHA-1/SHA-256.
     """
 
@@ -61,6 +66,7 @@ class Folder:
     license: str  # noqa: A003 - nome do domínio, não da builtin
     last_scanned: datetime | None
     status: CurationStatus
+    path: str
     last_curated_commit: str | None = None
 
     def __post_init__(self) -> None:
@@ -88,7 +94,32 @@ class Folder:
                 )
             if self.last_scanned > datetime.now(UTC):
                 raise FutureScanDateError(str(self.alias))
+        _validar_forma_do_path(str(self.alias), self.path)
         if self.last_curated_commit is not None and not _COMMIT_HASH_PATTERN.match(
             self.last_curated_commit
         ):
             raise InvalidCommitHashError(str(self.alias))
+
+
+def _validar_forma_do_path(alias: str, path: str) -> None:
+    """
+    Valida só a forma do caminho (sem acessar o disco — constituição I).
+
+    :param alias: alias da pasta (para a mensagem).
+    :type alias: str
+    :param path: caminho a validar.
+    :type path: str
+    :raises InvalidFolderPathError: vazio, relativo, com "~", "." / ".." ou barra final.
+
+    :Example:
+
+    >>> _validar_forma_do_path("repo", "/srv/pastas/repo")
+    >>> _validar_forma_do_path("repo", "/")
+    """
+    if not isinstance(path, str) or not path.startswith("/"):
+        raise InvalidFolderPathError(alias, "caminho precisa ser absoluto")
+    if path == "/":
+        return
+    segmentos = path.split("/")[1:]
+    if any(segmento in ("", ".", "..") for segmento in segmentos) or "~" in segmentos[0]:
+        raise InvalidFolderPathError(alias, "caminho fora da forma canônica")

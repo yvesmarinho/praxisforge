@@ -3,11 +3,12 @@
 NOME: test_cli_validate.py
 TITULO: Testes de falha — CLI praxisforge folders validate / sources validate
 DATA: 22/09/2026 10:30
-MODIFICADO: 22/09/2026 10:05
+MODIFICADO: 23/09/2026 16:54
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 10:30: criação (T053)
+    - 23/09/2026 16:54: registro v2 com path (T022, feature 005)
 STATUS: DEV
 """
 
@@ -29,14 +30,15 @@ def test_folders_validate_registro_valido_codigo_0(
 ) -> None:
     """folders validate com registro válido retorna código 0."""
     tmp_registry_path.write_text(
-        "schema_version: '1'\n"
+        "schema_version: '2'\n"
         "folders:\n"
         "  github_forks:\n"
         "    description: d\n"
         "    content_type: docs\n"
         "    license: unknown\n"
         "    last_scanned: null\n"
-        "    status: pending\n",
+        "    status: pending\n"
+        "    path: /srv/pastas/github_forks\n",
         encoding="utf-8",
     )
     code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "validate"], capsys)
@@ -49,14 +51,15 @@ def test_folders_validate_lista_violacoes_e_resumo_codigo_1(
 ) -> None:
     """folders validate com pasta inválida lista violações e retorna código 1."""
     tmp_registry_path.write_text(
-        "schema_version: '1'\n"
+        "schema_version: '2'\n"
         "folders:\n"
         "  invalida:\n"
         "    description: d\n"
         "    content_type: docs\n"
         "    license: unknown\n"
         "    last_scanned: null\n"
-        "    status: scanned\n",  # unknown exige pending
+        "    status: scanned\n"  # unknown exige pending
+        "    path: /srv/pastas/invalida\n",
         encoding="utf-8",
     )
     code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "validate"], capsys)

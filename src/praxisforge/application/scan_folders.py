@@ -4,7 +4,7 @@ NOME: scan_folders.py
 TITULO: Casos de uso — varrer uma pasta registrada e varrer todas em lote (com detecção de
         aliases duplicados)
 DATA: 22/09/2026 12:45
-MODIFICADO: 23/09/2026 12:15
+MODIFICADO: 23/09/2026 16:55
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain, praxisforge.application.ports,
         praxisforge.application.resolve_folder_path, praxisforge.application.logging_events
@@ -12,6 +12,7 @@ HISTÓRICO:
     - 22/09/2026 12:45: criação (T005/T011/T017) — faz test_scan_folders.py passar
     - 22/09/2026 19:15: pular pastas ignore no lote (T032, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:15: verificação de conteúdo, ContentCheck (T028-T029, T035, feature 004)
+    - 23/09/2026 16:55: caminho do registro via FolderLocator (T025, feature 005)
 STATUS: DEV
 """
 
@@ -23,9 +24,9 @@ from pathlib import Path
 
 from praxisforge.application.logging_events import log_event
 from praxisforge.application.ports import (
+    FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
-    PathResolver,
 )
 from praxisforge.application.resolve_folder_path import ItemFailure
 from praxisforge.domain.curation_status import CurationStatus
@@ -181,7 +182,7 @@ def _aplicar_varredura(
 
 def scan_folder(
     repository: FolderRegistryRepository,
-    resolver: PathResolver,
+    locator: FolderLocator,
     alias: str,
     *,
     inspector: GitContentInspector,
@@ -191,8 +192,8 @@ def scan_folder(
 
     :param repository: porta de persistência do registro.
     :type repository: FolderRegistryRepository
-    :param resolver: porta de resolução de caminho (ambiente).
-    :type resolver: PathResolver
+    :param locator: porta que confere o caminho registrado no disco.
+    :type locator: FolderLocator
     :param alias: alias a varrer.
     :type alias: str
     :param inspector: porta de inspeção do conteúdo versionado (feature 004).
@@ -200,15 +201,14 @@ def scan_folder(
     :return: resultado da varredura (status resultante, timestamp e verificação de conteúdo).
     :rtype: ScanResult
     :raises FolderNotFoundError: alias não registrado (ambiente não é consultado).
-    :raises FolderPathNotConfiguredError: variável ausente/vazia.
     :raises FolderPathInvalidError: caminho relativo, com `..`, inexistente ou não é diretório.
     :raises FolderPathUnreadableError: sem permissão de leitura.
     :raises ContentInspectionError: falha do git em pasta curada; nada é persistido.
     """
-    # garante que o alias existe antes de consultar o ambiente
+    # garante que o alias existe antes de consultar o disco
     folder = repository.load().get(alias)
     try:
-        caminho = resolver.resolve(alias)
+        caminho = locator.check(alias, Path(folder.path))
         resultado = _aplicar_varredura(repository, folder, caminho, inspector)
     except Exception as error:
         log_event(
@@ -225,7 +225,7 @@ def scan_folder(
 
 def scan_all_folders(
     repository: FolderRegistryRepository,
-    resolver: PathResolver,
+    locator: FolderLocator,
     *,
     inspector: GitContentInspector,
 ) -> ScanBatchReport:
@@ -237,8 +237,8 @@ def scan_all_folders(
 
     :param repository: porta de persistência do registro.
     :type repository: FolderRegistryRepository
-    :param resolver: porta de resolução de caminho (ambiente).
-    :type resolver: PathResolver
+    :param locator: porta que confere o caminho registrado no disco.
+    :type locator: FolderLocator
     :param inspector: porta de inspeção do conteúdo versionado (feature 004).
     :type inspector: GitContentInspector
     :return: relatório com pastas atualizadas, falhas por item e grupos duplicados.
@@ -255,7 +255,7 @@ def scan_all_folders(
             ignored.append(alias)
             continue
         try:
-            caminho = resolver.resolve(alias)
+            caminho = locator.check(alias, Path(folder.path))
             resultado = _aplicar_varredura(repository, folder, caminho, inspector)
         except Exception as error:  # noqa: BLE001 - agrega falha por item, não interrompe o lote
             failures.append(

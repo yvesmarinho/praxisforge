@@ -35,7 +35,12 @@ def test_register_folder_input_rejeita_dados_invalidos(campos: dict[str, object]
 def test_register_folder_input_aceita_dados_validos() -> None:
     """RegisterFolderInput aceita um conjunto de dados válido."""
     dto = RegisterFolderInput(
-        alias="exemplo", description="d", content_type="docs", license="MIT", status=None
+        alias="exemplo",
+        description="d",
+        content_type="docs",
+        license="MIT",
+        status=None,
+        path="/srv/pastas/exemplo",
     )
     assert dto.alias == "exemplo"
 

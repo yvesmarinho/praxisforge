@@ -3,13 +3,14 @@
 NOME: test_cli_folders.py
 TITULO: Testes de falha — CLI praxisforge folders add|list|show|update
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:08
+MODIFICADO: 23/09/2026 16:53
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T032)
     - 22/09/2026 19:08: +caso update --status ignore (T029, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:08: versão curada em update/show (T019, feature 004)
+    - 23/09/2026 16:53: --path obrigatório, caminho em list/show (T022, feature 005)
 STATUS: DEV
 """
 
@@ -20,6 +21,13 @@ from pathlib import Path
 import pytest
 
 from praxisforge.presentation.cli import main
+
+
+def _pasta(registry_path: Path, nome: str = "exemplo") -> Path:
+    """Cria (se preciso) uma pasta real ao lado do registro para os testes de add."""
+    pasta = registry_path.parent / "pastas" / nome
+    pasta.mkdir(parents=True, exist_ok=True)
+    return pasta
 
 
 def _run(argv: list[str], capsys: pytest.CaptureFixture[str]) -> tuple[int, str, str]:
@@ -46,6 +54,8 @@ def test_add_list_show_update_fluxo_completo(
             "documents",
             "--license",
             "MIT",
+            "--path",
+            str(_pasta(tmp_registry_path)),
             "--status",
             "not_scanned",
         ],
@@ -56,11 +66,12 @@ def test_add_list_show_update_fluxo_completo(
     code, out, _ = _run([*registry_arg, "folders", "list"], capsys)
     assert code == 0
     assert "exemplo" in out
-    assert str(tmp_registry_path.parent) not in out
+    assert out.rstrip().endswith(str(_pasta(tmp_registry_path)))  # caminho na última coluna
 
     code, out, _ = _run([*registry_arg, "folders", "show", "exemplo"], capsys)
     assert code == 0
     assert "exemplo" in out
+    assert f"caminho: {_pasta(tmp_registry_path)}" in out
 
     code, out, _ = _run(
         [*registry_arg, "folders", "update", "exemplo", "--status", "scanned"], capsys
@@ -85,6 +96,8 @@ def test_add_duas_vezes_identico_imprime_inalterado_codigo_0(
         "documents",
         "--license",
         "MIT",
+        "--path",
+        str(_pasta(tmp_registry_path)),
         "--status",
         "not_scanned",
     ]
@@ -111,6 +124,8 @@ def test_add_duplicado_com_dados_diferentes_codigo_1(
         "documents",
         "--license",
         "MIT",
+        "--path",
+        str(_pasta(tmp_registry_path)),
         "--status",
         "not_scanned",
     ]
@@ -126,7 +141,7 @@ def test_show_alias_inexistente_codigo_1(
     tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """show de alias inexistente retorna código 1."""
-    tmp_registry_path.write_text("schema_version: '1'\nfolders: {}\n", encoding="utf-8")
+    tmp_registry_path.write_text("schema_version: '2'\nfolders: {}\n", encoding="utf-8")
     code, _, err = _run(
         ["--registry", str(tmp_registry_path), "folders", "show", "inexistente"], capsys
     )
@@ -138,17 +153,17 @@ def test_mensagens_pt_br_no_stderr(
     tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Mensagens de erro estão em pt-BR e vão para stderr."""
-    tmp_registry_path.write_text("schema_version: '1'\nfolders: {}\n", encoding="utf-8")
+    tmp_registry_path.write_text("schema_version: '2'\nfolders: {}\n", encoding="utf-8")
     _, _, err = _run(
         ["--registry", str(tmp_registry_path), "folders", "show", "inexistente"], capsys
     )
     assert "não encontrada" in err
 
 
-def test_nenhuma_saida_contem_caminho_absoluto(
+def test_list_so_expoe_o_caminho_da_propria_pasta(
     tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Nenhuma saída da CLI (exceto resolve) contém caminho absoluto."""
+    """list mostra o caminho de cada pasta (FR-013) e nenhum outro caminho (ex.: do registro)."""
     registry_arg = ["--registry", str(tmp_registry_path)]
     _run(
         [
@@ -163,6 +178,8 @@ def test_nenhuma_saida_contem_caminho_absoluto(
             "documents",
             "--license",
             "MIT",
+            "--path",
+            str(_pasta(tmp_registry_path)),
             "--status",
             "not_scanned",
         ],
@@ -170,6 +187,7 @@ def test_nenhuma_saida_contem_caminho_absoluto(
     )
     code, out, _ = _run([*registry_arg, "folders", "list"], capsys)
     assert str(tmp_registry_path) not in out
+    assert str(_pasta(tmp_registry_path)) in out
 
 
 def test_update_status_ignore_aceito_codigo_0(
@@ -190,6 +208,8 @@ def test_update_status_ignore_aceito_codigo_0(
             "unclassified",
             "--license",
             "unknown",
+            "--path",
+            str(_pasta(tmp_registry_path)),
             "--status",
             "pending",
         ],
@@ -234,7 +254,7 @@ def _repo_git(base: Path) -> tuple[Path, str]:
     return repo, _git(repo, "rev-parse", "HEAD")
 
 
-def _registrar(registry: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def _registrar(registry: Path, capsys: pytest.CaptureFixture[str], caminho: Path) -> None:
     code, _, _ = _run(
         [
             "--registry",
@@ -249,6 +269,8 @@ def _registrar(registry: Path, capsys: pytest.CaptureFixture[str]) -> None:
             "documents",
             "--license",
             "MIT",
+            "--path",
+            str(caminho),
             "--status",
             "in_curation",
         ],
@@ -258,12 +280,11 @@ def _registrar(registry: Path, capsys: pytest.CaptureFixture[str]) -> None:
 
 
 def test_update_curated_em_pasta_git_grava_e_exibe_versao(
-    tmp_path: Path, tmp_registry_path: Path, env_folder: object, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """folders update --status curated grava o HEAD e show exibe 12 caracteres (FR-001, FR-011)."""
     repo, head = _repo_git(tmp_path)
-    env_folder.set("fonte", str(repo))  # type: ignore[attr-defined]
-    _registrar(tmp_registry_path, capsys)
+    _registrar(tmp_registry_path, capsys, repo)
     registry_arg = ["--registry", str(tmp_registry_path)]
 
     code, out, _ = _run(
@@ -280,13 +301,12 @@ def test_update_curated_em_pasta_git_grava_e_exibe_versao(
 
 
 def test_update_curated_em_pasta_nao_git_informa(
-    tmp_path: Path, tmp_registry_path: Path, env_folder: object, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """Pasta não-git: status muda e a saída explica que não há versão (FR-002)."""
     pasta = tmp_path / "solta"
     pasta.mkdir()
-    env_folder.set("fonte", str(pasta))  # type: ignore[attr-defined]
-    _registrar(tmp_registry_path, capsys)
+    _registrar(tmp_registry_path, capsys, pasta)
     registry_arg = ["--registry", str(tmp_registry_path)]
 
     code, out, _ = _run(
@@ -299,12 +319,14 @@ def test_update_curated_em_pasta_nao_git_informa(
     assert "versão curada: -" in out
 
 
-def test_update_curated_sem_caminho_configurado_sai_com_3_sem_alterar(
-    tmp_registry_path: Path, env_folder: object, capsys: pytest.CaptureFixture[str]
+def test_update_curated_com_pasta_movida_sai_com_3_sem_alterar(
+    tmp_path: Path, tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """Caminho não configurado → exit 3 e YAML inalterado (FR-003)."""
-    env_folder.unset("fonte")  # type: ignore[attr-defined]
-    _registrar(tmp_registry_path, capsys)
+    """Pasta que sumiu do caminho registrado → exit 3 e YAML inalterado (FR-003 da 004)."""
+    pasta = tmp_path / "fonte"
+    pasta.mkdir()
+    _registrar(tmp_registry_path, capsys, pasta)
+    pasta.rmdir()
     antes = tmp_registry_path.read_bytes()
     code, _, err = _run(
         ["--registry", str(tmp_registry_path), "folders", "update", "fonte", "--status", "curated"],
@@ -313,3 +335,96 @@ def test_update_curated_sem_caminho_configurado_sai_com_3_sem_alterar(
     assert code == 3
     assert "fonte" in err
     assert tmp_registry_path.read_bytes() == antes
+
+
+# --- feature 005: caminho no registro (US1) ---------------------------------------------
+
+
+def _add(
+    registry: Path, alias: str, caminho: str, capsys: pytest.CaptureFixture[str]
+) -> tuple[int, str, str]:
+    return _run(
+        [
+            "--registry",
+            str(registry),
+            "folders",
+            "add",
+            "--alias",
+            alias,
+            "--description",
+            "d",
+            "--content-type",
+            "documents",
+            "--license",
+            "MIT",
+            "--path",
+            caminho,
+        ],
+        capsys,
+    )
+
+
+def test_add_sem_path_eh_uso_incorreto(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--path é obrigatório em add (FR-004)."""
+    with pytest.raises(SystemExit) as info:
+        _run(
+            [
+                "--registry",
+                str(tmp_registry_path),
+                "folders",
+                "add",
+                "--alias",
+                "exemplo",
+                "--description",
+                "d",
+                "--content-type",
+                "documents",
+                "--license",
+                "MIT",
+            ],
+            capsys,
+        )
+    assert info.value.code == 2
+
+
+def test_add_caminho_inexistente_sai_com_3(
+    tmp_path: Path, tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Caminho inexistente → exit 3, nada gravado."""
+    code, _, err = _add(tmp_registry_path, "exemplo", str(tmp_path / "nao_existe"), capsys)
+    assert code == 3
+    assert "exemplo" in err
+    assert not tmp_registry_path.exists()
+
+
+def test_add_caminho_duplicado_sai_com_1_citando_dono(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Mesmo caminho sob outro alias → exit 1 citando o alias existente (FR-003)."""
+    pasta = _pasta(tmp_registry_path)
+    assert _add(tmp_registry_path, "exemplo", str(pasta), capsys)[0] == 0
+    code, _, err = _add(tmp_registry_path, "outro", str(pasta).upper(), capsys)
+    assert code in (1, 3)  # maiúsculas podem não existir no disco: nunca grava
+    code, _, err = _add(tmp_registry_path, "outro", f"{pasta}/", capsys)
+    assert code == 1
+    assert "exemplo" in err
+
+
+def test_update_path_move_a_pasta_preservando_dados(
+    tmp_path: Path, tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """update --path corrige pasta movida mantendo status (FR-016)."""
+    pasta = _pasta(tmp_registry_path)
+    _add(tmp_registry_path, "exemplo", str(pasta), capsys)
+    nova = tmp_path / "movida"
+    pasta.rename(nova)
+    registry_arg = ["--registry", str(tmp_registry_path)]
+    code, _, err = _run(
+        [*registry_arg, "folders", "update", "exemplo", "--path", str(nova)], capsys
+    )
+    assert code == 0, err
+    _, out, _ = _run([*registry_arg, "folders", "show", "exemplo"], capsys)
+    assert f"caminho: {nova}" in out
+    assert "status: não varrida" in out

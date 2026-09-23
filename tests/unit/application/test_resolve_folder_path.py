@@ -3,11 +3,12 @@
 NOME: test_resolve_folder_path.py
 TITULO: Testes de falha — casos de uso resolve_folder_path e resolve_all_folder_paths
 DATA: 22/09/2026 10:10
-MODIFICADO: 22/09/2026 10:03
+MODIFICADO: 23/09/2026 16:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.resolve_folder_path
 HISTÓRICO:
     - 22/09/2026 10:10: criação (T042)
+    - 23/09/2026 16:52: FolderLocator no lugar de PathResolver (T021, feature 005)
 STATUS: DEV
 """
 
@@ -16,7 +17,7 @@ from pathlib import Path
 
 import pytest
 
-from praxisforge.application.ports import FolderRegistryRepository, PathResolver
+from praxisforge.application.ports import FolderLocator, FolderRegistryRepository
 from praxisforge.application.resolve_folder_path import (
     resolve_all_folder_paths,
     resolve_folder_path,
@@ -25,7 +26,7 @@ from praxisforge.domain.alias import Alias
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import (
     FolderNotFoundError,
-    FolderPathNotConfiguredError,
+    FolderPathInvalidError,
 )
 from praxisforge.domain.folder import Folder
 from praxisforge.domain.folder_registry import FolderRegistry
@@ -48,19 +49,22 @@ class _FakeRepository(FolderRegistryRepository):
         return True
 
 
-class _FakeResolver(PathResolver):
+class _FakeResolver(FolderLocator):
     def __init__(self, paths: dict[str, Path], fail: dict[str, Exception] | None = None) -> None:
         self._paths = paths
         self._fail = fail or {}
 
-    def resolve(self, alias: str) -> Path:
+    def check(self, alias: str, path: Path) -> Path:
         if alias in self._fail:
             raise self._fail[alias]
         return self._paths[alias]
 
+    def canonicalize(self, alias: str, raw: str) -> Path:  # pragma: no cover - não usado aqui
+        return Path(raw)
+
 
 def _registry(*aliases: str) -> FolderRegistry:
-    reg = FolderRegistry(schema_version="1", folders={})
+    reg = FolderRegistry(schema_version="2", folders={})
     for alias in aliases:
         reg = reg.add(
             Folder(
@@ -70,12 +74,13 @@ def _registry(*aliases: str) -> FolderRegistry:
                 license="MIT",
                 last_scanned=None,
                 status=CurationStatus.NOT_SCANNED,
+                path=f"/srv/pastas/{alias}",
             )
         )
     return reg
 
 
-def test_alias_nao_registrado_levanta_folder_not_found_sem_consultar_ambiente() -> None:
+def test_alias_nao_registrado_levanta_folder_not_found_sem_consultar_disco() -> None:
     """Alias não registrado levanta FolderNotFoundError sem consultar o resolvedor."""
     repo = _FakeRepository(_registry())
     resolver = _FakeResolver({})
@@ -88,7 +93,7 @@ def test_resolve_all_devolve_batch_report_falha_de_um_nao_afeta_outros(tmp_path:
     repo = _FakeRepository(_registry("aa", "bb"))
     resolver = _FakeResolver(
         {"aa": tmp_path},
-        fail={"bb": FolderPathNotConfiguredError("bb")},
+        fail={"bb": FolderPathInvalidError("bb", "pasta não encontrada no caminho registrado")},
     )
     report = resolve_all_folder_paths(repo, resolver)
     assert report.ok == {"aa": tmp_path}

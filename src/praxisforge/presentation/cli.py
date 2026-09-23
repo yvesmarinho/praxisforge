@@ -3,12 +3,13 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:08
+MODIFICADO: 23/09/2026 16:56
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T038) — subcomandos folders add|list|show|update
     - 23/09/2026 12:08: versão curada e linha 'conteúdo' (T022, T030, feature 004)
+    - 23/09/2026 16:56: caminho no registro (--path, list/show), FolderLocator (T026, feature 005)
 STATUS: DEV
 """
 
@@ -27,16 +28,16 @@ from praxisforge.application.errors import (
     ContractValidationError,
     FolderNotFoundError,
     FolderPathInvalidError,
-    FolderPathNotConfiguredError,
     FolderPathUnreadableError,
     InvalidRootPathError,
     PraxisForgeError,
     RegistryUnavailableError,
 )
+from praxisforge.application.migrate_registry import migrate_registry
 from praxisforge.application.ports import (
+    FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
-    PathResolver,
     RootFolderProbe,
 )
 from praxisforge.application.query_folders import list_folders, show_folder
@@ -48,7 +49,8 @@ from praxisforge.application.resolve_folder_path import (
 from praxisforge.application.scan_folders import scan_all_folders, scan_folder
 from praxisforge.application.update_folder import update_folder
 from praxisforge.application.validate_registry import validate_registry
-from praxisforge.infrastructure.env_path_resolver import EnvPathResolver
+from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSource
+from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
@@ -57,7 +59,6 @@ from praxisforge.infrastructure.source_frontmatter import read_frontmatter
 from praxisforge.infrastructure.yaml_folder_registry import YamlFolderRegistryRepository
 
 _EXIT_AMBIENTE_ERRORS = (
-    FolderPathNotConfiguredError,
     FolderPathInvalidError,
     FolderPathUnreadableError,
     ContentInspectionError,
@@ -93,6 +94,7 @@ def _build_parser() -> argparse.ArgumentParser:
     add_parser.add_argument("--content-type", required=True)
     add_parser.add_argument("--license", required=True)
     add_parser.add_argument("--status", default="not_scanned")
+    add_parser.add_argument("--path", required=True)
 
     list_parser = folders_sub.add_parser("list")
     list_parser.add_argument("--status", default=None)
@@ -105,6 +107,7 @@ def _build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--status", default=None)
     update_parser.add_argument("--last-scanned", default=None)
     update_parser.add_argument("--license", default=None)
+    update_parser.add_argument("--path", default=None)
 
     resolve_parser = folders_sub.add_parser("resolve")
     resolve_group = resolve_parser.add_mutually_exclusive_group(required=True)
@@ -121,6 +124,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     folders_sub.add_parser("validate")
 
+    migrate_parser = folders_sub.add_parser("migrate")
+    migrate_parser.add_argument("--root", type=Path, default=None)
+
     sources = subparsers.add_parser("sources")
     sources_sub = sources.add_subparsers(dest="subcomando", required=True)
     sources_validate_parser = sources_sub.add_parser("validate")
@@ -129,7 +135,9 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _cmd_folders_add(args: argparse.Namespace, repository: FolderRegistryRepository) -> int:
+def _cmd_folders_add(
+    args: argparse.Namespace, repository: FolderRegistryRepository, locator: FolderLocator
+) -> int:
     try:
         data = RegisterFolderInput(
             alias=args.alias,
@@ -137,12 +145,16 @@ def _cmd_folders_add(args: argparse.Namespace, repository: FolderRegistryReposit
             content_type=args.content_type,
             license=args.license,
             status=args.status,
+            path=args.path,
         )
     except ValidationError as error:
         sys.stderr.write(f"argumentos inválidos: {error}\n")
         return _EXIT_USO
     try:
-        result = register_folder(repository, data)
+        result = register_folder(repository, data, locator=locator)
+    except _EXIT_AMBIENTE_ERRORS as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
     except PraxisForgeError as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_VALIDACAO
@@ -162,7 +174,8 @@ def _cmd_folders_list(args: argparse.Namespace, repository: FolderRegistryReposi
     for folder in folders:
         sys.stdout.write(
             f"{folder.alias.value}\t{folder.content_type}\t{folder.license}\t"
-            f"{folder.status.label_pt_br()}\t{_formatar_data(folder.last_scanned)}\n"
+            f"{folder.status.label_pt_br()}\t{_formatar_data(folder.last_scanned)}\t"
+            f"{folder.path}\n"
         )
     return _EXIT_OK
 
@@ -179,6 +192,7 @@ def _cmd_folders_show(args: argparse.Namespace, repository: FolderRegistryReposi
     sys.stdout.write(f"licença: {folder.license}\n")
     sys.stdout.write(f"status: {folder.status.label_pt_br()}\n")
     sys.stdout.write(f"última varredura: {_formatar_data(folder.last_scanned)}\n")
+    sys.stdout.write(f"caminho: {folder.path}\n")
     versao = folder.last_curated_commit[:12] if folder.last_curated_commit else "-"
     sys.stdout.write(f"versão curada: {versao}\n")
     return _EXIT_OK
@@ -187,7 +201,7 @@ def _cmd_folders_show(args: argparse.Namespace, repository: FolderRegistryReposi
 def _cmd_folders_update(
     args: argparse.Namespace,
     repository: FolderRegistryRepository,
-    resolver: PathResolver,
+    locator: FolderLocator,
     inspector: GitContentInspector,
 ) -> int:
     try:
@@ -196,12 +210,13 @@ def _cmd_folders_update(
             status=args.status,
             last_scanned=args.last_scanned,
             license=args.license,
+            path=args.path,
         )
     except ValidationError as error:
         sys.stderr.write(f"argumentos inválidos: {error}\n")
         return _EXIT_USO
     try:
-        result = update_folder(repository, data, resolver=resolver, inspector=inspector)
+        result = update_folder(repository, data, locator=locator, inspector=inspector)
     except _EXIT_AMBIENTE_ERRORS as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_AMBIENTE
@@ -217,10 +232,10 @@ def _cmd_folders_update(
 
 
 def _cmd_folders_resolve(
-    args: argparse.Namespace, repository: FolderRegistryRepository, resolver: PathResolver
+    args: argparse.Namespace, repository: FolderRegistryRepository, locator: FolderLocator
 ) -> int:
     if args.all_aliases:
-        report = resolve_all_folder_paths(repository, resolver)
+        report = resolve_all_folder_paths(repository, locator)
         for alias, path in sorted(report.ok.items()):
             sys.stdout.write(f"{alias} → ok ({path})\n")
         for failure in sorted(report.failures, key=lambda f: f.alias):
@@ -228,7 +243,7 @@ def _cmd_folders_resolve(
         sys.stdout.write(f"{len(report.ok)} ok, {len(report.failures)} com falha\n")
         return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
     try:
-        path = resolve_folder_path(repository, resolver, alias=args.alias)
+        path = resolve_folder_path(repository, locator, alias=args.alias)
     except FolderNotFoundError as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_VALIDACAO
@@ -242,11 +257,11 @@ def _cmd_folders_resolve(
 def _cmd_folders_scan(
     args: argparse.Namespace,
     repository: FolderRegistryRepository,
-    resolver: PathResolver,
+    locator: FolderLocator,
     inspector: GitContentInspector,
 ) -> int:
     if args.all_aliases:
-        report = scan_all_folders(repository, resolver, inspector=inspector)
+        report = scan_all_folders(repository, locator, inspector=inspector)
         for resultado in report.ok:
             sys.stdout.write(
                 f"{resultado.alias} → varrida ({resultado.status.label_pt_br()}) — "
@@ -265,7 +280,7 @@ def _cmd_folders_scan(
         sys.stdout.write(f"revertidas: {len(revertidas)}{detalhe}\n")
         return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
     try:
-        resultado = scan_folder(repository, resolver, args.alias, inspector=inspector)
+        resultado = scan_folder(repository, locator, args.alias, inspector=inspector)
     except FolderNotFoundError as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_VALIDACAO
@@ -281,10 +296,13 @@ def _cmd_folders_scan(
 
 
 def _cmd_folders_bootstrap(
-    args: argparse.Namespace, repository: FolderRegistryRepository, probe: RootFolderProbe
+    args: argparse.Namespace,
+    repository: FolderRegistryRepository,
+    probe: RootFolderProbe,
+    locator: FolderLocator,
 ) -> int:
     try:
-        report = bootstrap_folders(repository, probe, args.root)
+        report = bootstrap_folders(repository, probe, args.root, locator=locator)
     except InvalidRootPathError as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_VALIDACAO
@@ -296,6 +314,40 @@ def _cmd_folders_bootstrap(
         f"{len(report.registered)} registradas, {len(report.skipped_existing)} já existentes, "
         f"{len(report.skipped_ignored)} ignoradas, {len(report.failures)} com falha\n"
     )
+    return _EXIT_OK
+
+
+def _cmd_folders_migrate(
+    args: argparse.Namespace, repository: FolderRegistryRepository, locator: FolderLocator
+) -> int:
+    try:
+        report = migrate_registry(
+            repository,
+            EnvLegacyPathSource(),
+            locator,
+            probe=FilesystemFolderProbe(),
+            root=args.root,
+        )
+    except PraxisForgeError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    if report.already_current:
+        sys.stdout.write("registro já no formato atual (v2) — nada a migrar\n")
+        return _EXIT_OK
+    for alias in report.migrated:
+        sys.stdout.write(f"{alias} → migrada\n")
+    for alias in report.removed_roots:
+        sys.stdout.write(f"{alias} → removida (pasta-raiz)\n")
+    for falha in report.pending:
+        sys.stdout.write(f"{falha.alias} → pendente ({falha.message})\n")
+    sys.stdout.write(
+        f"{len(report.migrated)} migradas, {len(report.pending)} pendentes, "
+        f"{len(report.removed_roots)} removidas (pasta-raiz)\n"
+    )
+    if not report.written:
+        sys.stdout.write("nada gravado — resolva as pendências e execute de novo\n")
+        return _EXIT_VALIDACAO
+    sys.stdout.write("registro gravado no formato v2\n")
     return _EXIT_OK
 
 
@@ -352,24 +404,27 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     validator = JsonSchemaContractValidator(schemas_dir=_SCHEMAS_DIR)
     repository: FolderRegistryRepository = YamlFolderRegistryRepository(args.registry, validator)
+    locator = FilesystemFolderLocator()
 
     if args.comando == "folders":
         if args.subcomando == "add":
-            return _cmd_folders_add(args, repository)
+            return _cmd_folders_add(args, repository, locator)
         if args.subcomando == "list":
             return _cmd_folders_list(args, repository)
         if args.subcomando == "show":
             return _cmd_folders_show(args, repository)
         if args.subcomando == "update":
-            return _cmd_folders_update(args, repository, EnvPathResolver(), GitCliInspector())
+            return _cmd_folders_update(args, repository, locator, GitCliInspector())
         if args.subcomando == "resolve":
-            return _cmd_folders_resolve(args, repository, EnvPathResolver())
+            return _cmd_folders_resolve(args, repository, locator)
         if args.subcomando == "scan":
-            return _cmd_folders_scan(args, repository, EnvPathResolver(), GitCliInspector())
+            return _cmd_folders_scan(args, repository, locator, GitCliInspector())
         if args.subcomando == "bootstrap":
-            return _cmd_folders_bootstrap(args, repository, FilesystemFolderProbe())
+            return _cmd_folders_bootstrap(args, repository, FilesystemFolderProbe(), locator)
         if args.subcomando == "validate":
             return _cmd_folders_validate(args, repository, validator)
+        if args.subcomando == "migrate":
+            return _cmd_folders_migrate(args, repository, locator)
 
     if args.comando == "sources" and args.subcomando == "validate":
         return _cmd_sources_validate(args, validator)
