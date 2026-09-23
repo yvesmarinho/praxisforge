@@ -8,7 +8,7 @@ VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T038) — subcomandos folders add|list|show|update
-    - 23/09/2026 12:08: versão curada em update/show; GitCliInspector injetado (T022, feature 004)
+    - 23/09/2026 12:08: versão curada e linha 'conteúdo' (T022, T030, feature 004)
 STATUS: DEV
 """
 
@@ -240,12 +240,18 @@ def _cmd_folders_resolve(
 
 
 def _cmd_folders_scan(
-    args: argparse.Namespace, repository: FolderRegistryRepository, resolver: PathResolver
+    args: argparse.Namespace,
+    repository: FolderRegistryRepository,
+    resolver: PathResolver,
+    inspector: GitContentInspector,
 ) -> int:
     if args.all_aliases:
-        report = scan_all_folders(repository, resolver)
+        report = scan_all_folders(repository, resolver, inspector=inspector)
         for resultado in report.ok:
-            sys.stdout.write(f"{resultado.alias} → varrida ({resultado.status.label_pt_br()})\n")
+            sys.stdout.write(
+                f"{resultado.alias} → varrida ({resultado.status.label_pt_br()}) — "
+                f"conteúdo: {resultado.content_check.label_pt_br()}\n"
+            )
         for failure in report.failures:
             sys.stdout.write(f"{failure.alias} → falha ({failure.message})\n")
         for grupo in report.duplicates:
@@ -254,9 +260,12 @@ def _cmd_folders_scan(
             f"{len(report.ok)} ok, {len(report.failures)} com falha, "
             f"{len(report.ignored)} ignoradas\n"
         )
+        revertidas = report.reverted
+        detalhe = f" ({', '.join(revertidas)})" if revertidas else ""
+        sys.stdout.write(f"revertidas: {len(revertidas)}{detalhe}\n")
         return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
     try:
-        resultado = scan_folder(repository, resolver, args.alias)
+        resultado = scan_folder(repository, resolver, args.alias, inspector=inspector)
     except FolderNotFoundError as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_VALIDACAO
@@ -267,6 +276,7 @@ def _cmd_folders_scan(
         f"pasta '{resultado.alias}' varrida — status: {resultado.status.label_pt_br()}, "
         f"última varredura: {_formatar_data(resultado.last_scanned)}\n"
     )
+    sys.stdout.write(f"conteúdo: {resultado.content_check.label_pt_br()}\n")
     return _EXIT_OK
 
 
@@ -355,7 +365,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.subcomando == "resolve":
             return _cmd_folders_resolve(args, repository, EnvPathResolver())
         if args.subcomando == "scan":
-            return _cmd_folders_scan(args, repository, EnvPathResolver())
+            return _cmd_folders_scan(args, repository, EnvPathResolver(), GitCliInspector())
         if args.subcomando == "bootstrap":
             return _cmd_folders_bootstrap(args, repository, FilesystemFolderProbe())
         if args.subcomando == "validate":

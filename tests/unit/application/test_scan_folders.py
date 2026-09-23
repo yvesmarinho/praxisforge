@@ -3,12 +3,13 @@
 NOME: test_scan_folders.py
 TITULO: Testes de falha — casos de uso scan_folder e scan_all_folders (fakes)
 DATA: 22/09/2026 12:35
-MODIFICADO: 22/09/2026 16:45
+MODIFICADO: 23/09/2026 12:14
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.scan_folders
 HISTÓRICO:
     - 22/09/2026 12:35: criação (T002/T008/T014)
     - 22/09/2026 19:05: +caso pular status ignore no lote (T028, feature 003-bootstrap)
+    - 23/09/2026 12:14: verificação de conteúdo e reversão (T024, T025, T031, feature 004)
 STATUS: DEV
 """
 
@@ -18,11 +19,22 @@ from pathlib import Path
 
 import pytest
 
-from praxisforge.application.ports import FolderRegistryRepository, PathResolver
-from praxisforge.application.scan_folders import scan_all_folders, scan_folder
+from praxisforge.application.ports import (
+    FolderRegistryRepository,
+    GitContentInspector,
+    PathResolver,
+)
+from praxisforge.application.scan_folders import (
+    ContentCheck,
+    ScanBatchReport,
+    ScanResult,
+)
+from praxisforge.application.scan_folders import scan_all_folders as _scan_all_folders
+from praxisforge.application.scan_folders import scan_folder as _scan_folder
 from praxisforge.domain.alias import Alias
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import (
+    ContentInspectionError,
     FolderNotFoundError,
     FolderPathInvalidError,
     FolderPathNotConfiguredError,
@@ -65,7 +77,53 @@ class _FakeResolver(PathResolver):
         return self._paths[alias]
 
 
-def _folder(alias: str, status: CurationStatus, license: str = "MIT") -> Folder:  # noqa: A002
+class _FakeInspector(GitContentInspector):
+    """Inspector programável: HEAD por caminho, mudança por (caminho, hash), erros por caminho."""
+
+    def __init__(
+        self,
+        heads: Mapping[Path, str | None] | None = None,
+        changed: Mapping[tuple[Path, str], bool] | None = None,
+        errors: Mapping[Path, Exception] | None = None,
+    ) -> None:
+        self._heads = heads or {}
+        self._changed = changed or {}
+        self._errors = errors or {}
+        self.calls: list[tuple[str, Path]] = []
+
+    def head_commit(self, path: Path) -> str | None:
+        self.calls.append(("head_commit", path))
+        if path in self._errors:
+            raise self._errors[path]
+        return self._heads.get(path)
+
+    def changed_since(self, path: Path, commit: str) -> bool:
+        self.calls.append(("changed_since", path))
+        if path in self._errors:
+            raise self._errors[path]
+        return self._changed.get((path, commit), False)
+
+
+def scan_folder(
+    repository: FolderRegistryRepository, resolver: PathResolver, alias: str
+) -> ScanResult:
+    """Casos das features 002/003: pastas fora de repositório git (inspector devolve None)."""
+    return _scan_folder(repository, resolver, alias, inspector=_FakeInspector())
+
+
+def scan_all_folders(
+    repository: FolderRegistryRepository, resolver: PathResolver
+) -> ScanBatchReport:
+    """Casos das features 002/003: pastas fora de repositório git (inspector devolve None)."""
+    return _scan_all_folders(repository, resolver, inspector=_FakeInspector())
+
+
+def _folder(
+    alias: str,
+    status: CurationStatus,
+    license: str = "MIT",  # noqa: A002
+    commit: str | None = None,
+) -> Folder:
     return Folder(
         alias=Alias(alias),
         description=f"Descrição de {alias}",
@@ -73,6 +131,7 @@ def _folder(alias: str, status: CurationStatus, license: str = "MIT") -> Folder:
         license=license,
         last_scanned=None,
         status=status,
+        last_curated_commit=commit,
     )
 
 
@@ -117,9 +176,7 @@ def test_pasta_em_outro_status_mantem_status_so_atualiza_last_scanned(
 
 def test_pasta_pendente_permanece_pendente_apos_varrer(tmp_path: Path) -> None:
     """Pasta 'pendente' (licença unknown) permanece pendente após a varredura (edge case spec)."""
-    repo = _FakeRepository(
-        _registry(_folder("demo_a", CurationStatus.PENDING, license="unknown"))
-    )
+    repo = _FakeRepository(_registry(_folder("demo_a", CurationStatus.PENDING, license="unknown")))
     resolver = _FakeResolver({"demo_a": tmp_path})
     resultado = scan_folder(repo, resolver, "demo_a")
     assert resultado.status is CurationStatus.PENDING
@@ -331,3 +388,160 @@ def test_lote_ignora_apenas_pasta_ignore_demais_normais(tmp_path: Path) -> None:
     report = scan_all_folders(repo, resolver)
     assert {r.alias for r in report.ok} == {"demo_a", "demo_b"}
     assert report.ignored == ["pasta_ignorada"]
+
+
+# --- feature 004 / US2: verificação de conteúdo --------------------------------------
+
+_GRAVADO = "a" * 40
+_HEAD = "b" * 40
+
+
+def test_curada_alterada_e_revertida(tmp_path: Path) -> None:
+    """Curada com conteúdo alterado → in_curation, REVERTED, hash mantido (FR-005)."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED, commit=_GRAVADO)))
+    inspector = _FakeInspector(heads={tmp_path: _HEAD}, changed={(tmp_path, _GRAVADO): True})
+    resultado = _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    assert resultado.content_check is ContentCheck.REVERTED
+    assert resultado.status is CurationStatus.IN_CURATION
+    folder = repo.load().get("fonte")
+    assert folder.status is CurationStatus.IN_CURATION
+    assert folder.last_curated_commit == _GRAVADO
+    assert folder.last_scanned == resultado.last_scanned
+
+
+def test_curada_inalterada_continua_curada(tmp_path: Path) -> None:
+    """Curada sem mudança na pasta → curated, UNCHANGED, só last_scanned avança (FR-006)."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED, commit=_GRAVADO)))
+    inspector = _FakeInspector(heads={tmp_path: _HEAD}, changed={(tmp_path, _GRAVADO): False})
+    resultado = _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    assert resultado.content_check is ContentCheck.UNCHANGED
+    folder = repo.load().get("fonte")
+    assert folder.status is CurationStatus.CURATED
+    assert folder.last_curated_commit == _GRAVADO
+    assert folder.last_scanned is not None
+
+
+def test_curada_que_deixou_de_ser_git_nao_reverte(tmp_path: Path) -> None:
+    """Curada com hash, mas pasta não é mais git → NOT_GIT, status mantido."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED, commit=_GRAVADO)))
+    inspector = _FakeInspector(heads={tmp_path: None})
+    resultado = _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    assert resultado.content_check is ContentCheck.NOT_GIT
+    assert repo.load().get("fonte").status is CurationStatus.CURATED
+    assert ("changed_since", tmp_path) not in inspector.calls
+
+
+@pytest.mark.parametrize(
+    "status",
+    [
+        CurationStatus.SCANNED,
+        CurationStatus.IN_CURATION,
+        CurationStatus.PENDING,
+        CurationStatus.IGNORE,
+    ],
+)
+def test_status_diferente_de_curada_nao_consulta_git(
+    tmp_path: Path, status: CurationStatus
+) -> None:
+    """Hash remanescente em outro status não dispara verificação (FR-007, FR-015)."""
+    license = "unknown" if status is CurationStatus.PENDING else "MIT"  # noqa: A001
+    repo = _FakeRepository(_registry(_folder("fonte", status, license=license, commit=_GRAVADO)))
+    inspector = _FakeInspector(heads={tmp_path: _HEAD}, changed={(tmp_path, _GRAVADO): True})
+    resultado = _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    assert resultado.content_check is ContentCheck.NOT_APPLICABLE
+    assert resultado.status is status
+    assert inspector.calls == []
+
+
+def test_falha_do_git_no_individual_nao_persiste_nada(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """ContentInspectionError → propagada com alias; status/hash/last_scanned intactos (FR-009)."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED, commit=_GRAVADO)))
+    inspector = _FakeInspector(errors={tmp_path: ContentInspectionError("", "tempo esgotado")})
+    with pytest.raises(ContentInspectionError) as info:
+        _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    assert info.value.alias == "fonte"
+    assert repo.save_count == 0
+    folder = repo.load().get("fonte")
+    assert folder.last_scanned is None
+    assert folder.status is CurationStatus.CURATED
+
+
+def test_reversao_emite_log_estruturado_sem_caminho(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Evento content_check com outcome=reverted, sem caminho absoluto (C2 do analyze)."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED, commit=_GRAVADO)))
+    inspector = _FakeInspector(heads={tmp_path: _HEAD}, changed={(tmp_path, _GRAVADO): True})
+    with caplog.at_level(logging.INFO):
+        _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    mensagens = [record.getMessage() for record in caplog.records]
+    assert any('"content_check"' in m and '"reverted"' in m for m in mensagens)
+    assert all(str(tmp_path) not in m for m in mensagens)
+
+
+def test_lote_misto_so_reverte_curada_alterada(tmp_path: Path) -> None:
+    """Lote: só a curada alterada reverte; ignore pulada; falha por item isolada (FR-008/009)."""
+    caminhos = {
+        nome: tmp_path / nome
+        for nome in ("alterada", "inalterada", "nao_git", "quebrada", "varrida")
+    }
+    repo = _FakeRepository(
+        _registry(
+            _folder("alterada", CurationStatus.CURATED, commit=_GRAVADO),
+            _folder("inalterada", CurationStatus.CURATED, commit=_GRAVADO),
+            _folder("nao_git", CurationStatus.CURATED, commit=_GRAVADO),
+            _folder("quebrada", CurationStatus.CURATED, commit=_GRAVADO),
+            _folder("varrida", CurationStatus.SCANNED, commit=_GRAVADO),
+            _folder("ignorada", CurationStatus.IGNORE),
+        )
+    )
+    inspector = _FakeInspector(
+        heads={
+            caminhos["alterada"]: _HEAD,
+            caminhos["inalterada"]: _HEAD,
+            caminhos["nao_git"]: None,
+        },
+        changed={(caminhos["alterada"], _GRAVADO): True},
+        errors={caminhos["quebrada"]: ContentInspectionError("", "tempo esgotado")},
+    )
+    report = _scan_all_folders(repo, _FakeResolver(caminhos), inspector=inspector)
+
+    por_alias = {r.alias: r for r in report.ok}
+    assert set(por_alias) == {"alterada", "inalterada", "nao_git", "varrida"}
+    assert por_alias["alterada"].content_check is ContentCheck.REVERTED
+    assert por_alias["inalterada"].content_check is ContentCheck.UNCHANGED
+    assert por_alias["nao_git"].content_check is ContentCheck.NOT_GIT
+    assert por_alias["varrida"].content_check is ContentCheck.NOT_APPLICABLE
+    assert report.ignored == ["ignorada"]
+    assert [(f.alias, f.error_type) for f in report.failures] == [
+        ("quebrada", "ContentInspectionError")
+    ]
+    registro = repo.load()
+    assert registro.get("alterada").status is CurationStatus.IN_CURATION
+    assert registro.get("inalterada").status is CurationStatus.CURATED
+    assert registro.get("quebrada").status is CurationStatus.CURATED
+    assert registro.get("quebrada").last_scanned is None
+    assert registro.get("varrida").status is CurationStatus.SCANNED
+
+
+def test_lote_dois_aliases_no_mesmo_repositorio_com_hashes_diferentes(tmp_path: Path) -> None:
+    """Cada alias compara com o próprio hash: só o de hash antigo reverte (E1 do analyze)."""
+    antigo, atual = "c" * 40, "d" * 40
+    repo = _FakeRepository(
+        _registry(
+            _folder("fonte_a", CurationStatus.CURATED, commit=antigo),
+            _folder("fonte_b", CurationStatus.CURATED, commit=atual),
+        )
+    )
+    inspector = _FakeInspector(
+        heads={tmp_path: atual},
+        changed={(tmp_path, antigo): True, (tmp_path, atual): False},
+    )
+    report = _scan_all_folders(
+        repo, _FakeResolver({"fonte_a": tmp_path, "fonte_b": tmp_path}), inspector=inspector
+    )
+    por_alias = {r.alias: r.content_check for r in report.ok}
+    assert por_alias == {"fonte_a": ContentCheck.REVERTED, "fonte_b": ContentCheck.UNCHANGED}
+    assert report.reverted == ["fonte_a"]

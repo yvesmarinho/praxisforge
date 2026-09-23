@@ -3,15 +3,18 @@
 NOME: test_cli_scan.py
 TITULO: Testes de falha — CLI praxisforge folders scan
 DATA: 22/09/2026 12:40
-MODIFICADO: 22/09/2026 16:44
+MODIFICADO: 23/09/2026 12:15
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 12:40: criação (T003/T009/T015)
     - 22/09/2026 19:10: +casos status ignore (T030, feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:15: linha 'conteúdo' e reversão com repositórios git reais (T026, feature 004)
 STATUS: DEV
 """
 
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -170,8 +173,15 @@ def test_scan_all_pula_pasta_ignore_sem_exigir_variavel(
     _add_folder(tmp_registry_path, "demo_a", capsys)
     _add_folder(tmp_registry_path, "pasta_ignorada", capsys)
     _run(
-        ["--registry", str(tmp_registry_path), "folders", "update", "pasta_ignorada",
-         "--status", "ignore"],
+        [
+            "--registry",
+            str(tmp_registry_path),
+            "folders",
+            "update",
+            "pasta_ignorada",
+            "--status",
+            "ignore",
+        ],
         capsys,
     )
     destino = tmp_path / "real"
@@ -192,8 +202,15 @@ def test_scan_individual_em_alias_ignore_continua_funcionando(
     """folders scan <alias> individual sobre um alias ignore não é pulado (FR-013)."""
     _add_folder(tmp_registry_path, "pasta_ignorada", capsys)
     _run(
-        ["--registry", str(tmp_registry_path), "folders", "update", "pasta_ignorada",
-         "--status", "ignore"],
+        [
+            "--registry",
+            str(tmp_registry_path),
+            "folders",
+            "update",
+            "pasta_ignorada",
+            "--status",
+            "ignore",
+        ],
         capsys,
     )
     destino = tmp_path / "real"
@@ -204,3 +221,123 @@ def test_scan_individual_em_alias_ignore_continua_funcionando(
     )
     assert code == 0
     assert "pasta_ignorada" in out
+
+
+# --- feature 004 / US2: verificação de conteúdo com git real -------------------------
+
+_GIT_ENV = {
+    "GIT_AUTHOR_NAME": "Teste",
+    "GIT_AUTHOR_EMAIL": "teste@example.invalid",
+    "GIT_COMMITTER_NAME": "Teste",
+    "GIT_COMMITTER_EMAIL": "teste@example.invalid",
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_NOSYSTEM": "1",
+}
+
+
+def _git(repo: Path, *args: str) -> str:
+    result = subprocess.run(  # noqa: S603
+        ["git", "-C", str(repo), *args],  # noqa: S607
+        check=True,
+        capture_output=True,
+        text=True,
+        env={**os.environ, **_GIT_ENV},
+    )
+    return result.stdout.strip()
+
+
+def _commit(repo: Path, relpath: str, conteudo: str) -> None:
+    arquivo = repo / relpath
+    arquivo.parent.mkdir(parents=True, exist_ok=True)
+    arquivo.write_text(conteudo, encoding="utf-8")
+    _git(repo, "add", "--all")
+    _git(repo, "commit", "-q", "-m", f"altera {relpath}")
+
+
+def _repo(base: Path, nome: str) -> Path:
+    repo = base / nome
+    repo.mkdir()
+    _git(repo, "init", "-q")
+    _commit(repo, "README.md", "inicial")
+    return repo
+
+
+def _curar(registry: Path, alias: str, capsys: pytest.CaptureFixture[str]) -> None:
+    for status in ("in_curation", "curated"):
+        code, _, err = _run(
+            ["--registry", str(registry), "folders", "update", alias, "--status", status], capsys
+        )
+        assert code == 0, err
+
+
+def test_scan_individual_reverte_e_exibe_conteudo(
+    tmp_registry_path: Path,
+    tmp_path: Path,
+    env_folder: object,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Commit na pasta curada → scan exibe status em curadoria e linha conteúdo (FR-018)."""
+    repo = _repo(tmp_path, "fonte")
+    env_folder.set("fonte", str(repo))  # type: ignore[attr-defined]
+    _add_folder(tmp_registry_path, "fonte", capsys)
+    _curar(tmp_registry_path, "fonte", capsys)
+
+    code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "scan", "fonte"], capsys)
+    assert code == 0
+    assert "conteúdo: sem mudança" in out
+
+    _commit(repo, "docs/novo.md", "novo")
+    code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "scan", "fonte"], capsys)
+    assert code == 0
+    assert "status: em curadoria" in out
+    assert "conteúdo: mudou — revertida para em curadoria" in out
+    assert str(tmp_path) not in out
+
+
+def test_scan_all_exibe_conteudo_por_linha_e_resumo_de_revertidas(
+    tmp_registry_path: Path,
+    tmp_path: Path,
+    env_folder: object,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """--all: alias, status e conteúdo por linha + resumo 'revertidas: N' (FR-018, SC-006)."""
+    alterada = _repo(tmp_path, "alterada")
+    inalterada = _repo(tmp_path, "inalterada")
+    solta = tmp_path / "solta"
+    solta.mkdir()
+    for alias, caminho in (("alterada", alterada), ("inalterada", inalterada), ("solta", solta)):
+        env_folder.set(alias, str(caminho))  # type: ignore[attr-defined]
+        _add_folder(tmp_registry_path, alias, capsys)
+    _curar(tmp_registry_path, "alterada", capsys)
+    _curar(tmp_registry_path, "inalterada", capsys)
+    _commit(alterada, "x.txt", "x")
+
+    code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "scan", "--all"], capsys)
+    assert code == 0
+    linhas = {linha.split(" ")[0]: linha for linha in out.splitlines() if " → " in linha}
+    assert "em curadoria" in linhas["alterada"]
+    assert "mudou — revertida para em curadoria" in linhas["alterada"]
+    assert "curada" in linhas["inalterada"] and "sem mudança" in linhas["inalterada"]
+    assert "conteúdo: -" in linhas["solta"]
+    assert "revertidas: 1 (alterada)" in out
+    assert str(tmp_path) not in out
+
+
+def test_scan_individual_com_git_indisponivel_sai_com_3(
+    tmp_registry_path: Path,
+    tmp_path: Path,
+    env_folder: object,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """git ausente durante o scan de pasta curada → exit 3, registro intocado (FR-009)."""
+    repo = _repo(tmp_path, "fonte")
+    env_folder.set("fonte", str(repo))  # type: ignore[attr-defined]
+    _add_folder(tmp_registry_path, "fonte", capsys)
+    _curar(tmp_registry_path, "fonte", capsys)
+    antes = tmp_registry_path.read_bytes()
+    monkeypatch.setenv("PATH", "")
+    code, _, err = _run(["--registry", str(tmp_registry_path), "folders", "scan", "fonte"], capsys)
+    assert code == 3
+    assert "fonte" in err and "git" in err
+    assert tmp_registry_path.read_bytes() == antes
