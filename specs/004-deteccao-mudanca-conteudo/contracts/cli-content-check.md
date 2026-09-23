@@ -1,5 +1,5 @@
 <!-- Criado em: 23/09/2026 11:35 -->
-<!-- Modificado em: 23/09/2026 11:35 -->
+<!-- Modificado em: 23/09/2026 11:59 -->
 
 # Contrato CLI — verificação de conteúdo
 
@@ -20,6 +20,10 @@ Exit codes inalterados: 0 ok, 1 validação, 3 ambiente (inclui `ContentInspecti
 ## `praxisforge folders scan <alias>` / `--all`
 
 Nova linha/coluna `conteúdo` por pasta, com o rótulo pt-BR do `ContentCheck`:
+
+- Individual: mantém as linhas existentes (`alias`, `status`, `última varredura`) e acrescenta
+  `conteúdo: <rótulo>`; o `status` já reflete a reversão.
+- Lote: cada linha contém alias, status resultante e rótulo de conteúdo (FR-018).
 
 | ContentCheck | Rótulo |
 |---|---|
