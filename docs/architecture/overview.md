@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 22/09/2026 16:45 -->
+<!-- Modificado em: 23/09/2026 12:17 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -38,7 +38,8 @@ Infrastructure (adapters) → depende de Domain + Application
 - **Application** (`application/`): casos de uso (`register_folder`,
   `query_folders`, `update_folder`, `resolve_folder_path`, `validate_registry`),
   DTOs pydantic de entrada (`dto.py`), portas (`ports.py`:
-  `FolderRegistryRepository`, `PathResolver`, `ContractValidator`), reexportação
+  `FolderRegistryRepository`, `PathResolver`, `ContractValidator`, `RootFolderProbe`,
+  `GitContentInspector`), reexportação
   de erros para a Presentation (`errors.py`) e logging estruturado próprio
   (`logging_events.py`, duplicado do de Infrastructure para não depender dela).
 - **Infrastructure** (`infrastructure/`): adapters reais —
@@ -46,7 +47,8 @@ Infrastructure (adapters) → depende de Domain + Application
   (resolve `PRAXISFORGE_FOLDER_<ALIAS>`), `jsonschema_validator.py` (Draft 2020-12
   com `FormatChecker`), `source_frontmatter.py` (leitor de frontmatter),
   `logging_setup.py` (formatter JSON), `yaml_loader.py` (SafeLoader compartilhado
-  sem resolvedor de timestamp).
+  sem resolvedor de timestamp), `git_cli_inspector.py` (consulta o executável `git`
+  para HEAD e diff restrito à pasta — feature 004, [ADR 0005](../decisions/0005-deteccao-mudanca-por-git-cli.md)).
 - **Presentation** (`presentation/cli.py`): CLI `argparse`; único ponto que
   importa Infrastructure (composição das dependências); converte exceções em
   mensagens pt-BR e códigos de saída.
@@ -59,7 +61,8 @@ Infrastructure (adapters) → depende de Domain + Application
 2. **Consultar** (`folders list|show`): CLI → `query_folders.list_folders`/`show_folder`
    → `repository.load()` (valida contrato + reconstrói entidades) → `FolderRegistry.list/get`.
 3. **Atualizar** (`folders update`): CLI → `UpdateFolderInput` → `update_folder` →
-   `FolderRegistry.update` (atômico: tudo ou nada) → `save`.
+   `FolderRegistry.update` (atômico: tudo ou nada) → `save`. Ao marcar `curated`,
+   `PathResolver` + `GitContentInspector.head_commit` gravam `last_curated_commit` (feature 004).
 4. **Resolver caminho** (`folders resolve`): CLI → `resolve_folder_path`/`resolve_all_folder_paths`
    → confere o alias no registro → `EnvPathResolver.resolve` (variável de ambiente,
    segue link simbólico, valida permissão).
@@ -115,9 +118,10 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `application/query_folders.py` | Casos de uso: listar/consultar |
 | `application/update_folder.py` | Caso de uso: atualizar |
 | `application/resolve_folder_path.py` | Casos de uso: resolver caminho (individual/lote) |
-| `application/scan_folders.py` | Casos de uso: varrer pasta (individual/lote) + detectar aliases duplicados (feature 002); pula pastas `ignore` no lote (feature 003) |
+| `application/scan_folders.py` | Casos de uso: varrer pasta (individual/lote) + detectar aliases duplicados (feature 002); pula pastas `ignore` no lote (feature 003); verifica conteúdo de pastas `curated` e reverte para `in_curation` (feature 004) |
 | `application/bootstrap_folders.py` | Caso de uso: gerar registro inicial a partir de uma pasta-raiz (feature 003) |
 | `application/validate_registry.py` | Caso de uso: validar registro em lote |
+| `infrastructure/git_cli_inspector.py` | Adapter `GitContentInspector` via executável `git` (feature 004) |
 | `application/logging_events.py` | Log estruturado (versão Application) |
 | `application/errors.py` | Reexportação de erros para Presentation |
 | `infrastructure/yaml_folder_registry.py` | Adapter do repositório (YAML) |

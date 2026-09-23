@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 22/09/2026 16:46 -->
+<!-- Modificado em: 23/09/2026 12:17 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -94,8 +94,15 @@ uv run praxisforge folders resolve --all
 Só imprime o caminho real (ou o motivo da falha); não toca no registro. Útil para depurar
 variáveis de ambiente antes de rodar uma varredura.
 
+- **Verificação de conteúdo (feature 004)**: para pasta `curated` que é repositório git, a
+  varredura compara os arquivos **da própria pasta** entre o commit gravado na curadoria e o HEAD
+  atual. Mudou → status volta para `in_curation`. Cada pasta mostra a linha/coluna `conteúdo:`
+  (`-`, `não verificado (não é repositório git)`, `referência registrada`, `sem mudança`,
+  `mudou — revertida para em curadoria`) e o `--all` termina com `revertidas: N (aliases)`.
+  Pasta curada antiga sem commit gravado recebe o HEAD como referência na primeira varredura.
+
 **Exit codes**: `0` ok · `1` alias não registrado (individual) ou houve falha em algum item (modo
-`--all`) · `3` variável ausente/caminho inválido/sem permissão (modo individual).
+`--all`) · `3` variável ausente/caminho inválido/sem permissão/falha do `git` (modo individual).
 
 ### 5. Varrer (atualizar status/última varredura)
 
@@ -137,8 +144,14 @@ Todos os campos são opcionais — só os informados são alterados, o resto per
 para: resolver uma licença `unknown` (o que tira a pasta do status `pending`), forçar um status
 manualmente, ou corrigir `last_scanned`.
 
+Ao usar `--status curated`, o caminho da pasta precisa estar configurado
+(`PRAXISFORGE_FOLDER_<ALIAS>`): se for repositório git, o HEAD é gravado e a saída mostra
+`versão curada: <12 caracteres>`; senão, `versão curada: (pasta não é repositório git)`.
+`folders show` exibe a versão curada gravada.
+
 **Exit codes**: `0` ok · `1` regra de negócio violada (ex.: `last_scanned` no futuro, tentar mudar
-status sem resolver licença `unknown`) · `2` argumento inválido.
+status sem resolver licença `unknown`) · `2` argumento inválido · `3` marcar `curated` com caminho
+não configurado/inválido ou falha do `git`.
 
 ### 7. Gerar o registro inicial a partir de uma pasta-raiz (bootstrap)
 
@@ -203,7 +216,7 @@ pelo curador; este comando só valida o que já foi escrito.
 | 0 | sucesso |
 | 1 | falha de validação/regra de negócio (alias inexistente, dado inválido, falha de item em lote) |
 | 2 | uso incorreto da CLI (argumento ausente/inválido) |
-| 3 | falha de ambiente (variável de caminho ausente, caminho inválido ou sem permissão) |
+| 3 | falha de ambiente (variável de caminho ausente, caminho inválido, sem permissão ou falha do `git`) |
 
 ## O que a CLI **não** faz hoje
 
@@ -212,8 +225,8 @@ pelo curador; este comando só valida o que já foi escrito.
 - Não cria arquivos de fonte em `src/data/sources/` automaticamente — proveniência é sempre
   escrita manualmente (só a validação de schema existe, passo 10).
 - Não agenda bootstrap nem varreduras — toda execução é manual, disparada por você.
-- Não detecta quando o conteúdo de uma pasta já curada mudou (ex.: novos commits) — ver
-  "Limitação conhecida" em [`docs/reference/folders-yaml.md`](../reference/folders-yaml.md).
+- ~~Não detecta quando o conteúdo de uma pasta já curada mudou~~ — resolvido na feature 004
+  (ver passo 5); pastas fora de repositório git continuam sem essa verificação.
 
 Essas lacunas são candidatas a features futuras de curadoria/proveniência (ver `docs/TODO.md`).
 

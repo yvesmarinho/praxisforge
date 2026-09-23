@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 22/09/2026 16:46 -->
+<!-- Modificado em: 23/09/2026 12:17 -->
 
 # Referência — `src/data/folders.yaml`
 
@@ -28,7 +28,8 @@ folders:
     content_type: <slug>
     license: <string>
     last_scanned: <data ISO 8601 com timezone, ou null>
-    status: <not_scanned | scanned | in_curation | curated | pending>
+    status: <not_scanned | scanned | in_curation | curated | pending | ignore>
+    last_curated_commit: <hash SHA-1/SHA-256, opcional — feature 004>
 schema_version: "1"
 ```
 
@@ -56,6 +57,7 @@ schema_version: "1"
 | `license` | string, mínimo 1 caractere | sim | Identificador de licença (ex.: `MIT`, `Apache-2.0`) ou o valor especial `unknown` quando ainda não determinada. |
 | `last_scanned` | string ISO 8601 *com* timezone, ou `null` | sim (pode ser `null`) | Data/hora da última varredura bem-sucedida (`folders scan`). `null` até a primeira varredura. |
 | `status` | enum: `not_scanned`, `scanned`, `in_curation`, `curated`, `pending`, `ignore` | sim | Estado de curadoria — ver seção "Status" abaixo. |
+| `last_curated_commit` | string, 40 ou 64 hex minúsculos (`^[0-9a-f]{40}([0-9a-f]{24})?$`) | não | Hash do commit revisado na última curadoria (feature 004). Gravado ao marcar `curated`; mantido como histórico nos demais status; chave omitida quando ausente. |
 
 `additionalProperties: false` em ambos os níveis (raiz e por pasta) — nenhum campo fora dessa
 lista é aceito; o schema rejeita tanto campos desconhecidos quanto campos faltando.
@@ -117,7 +119,18 @@ exige `folders update github_forks --license <licença real>` manualmente.
   domínio (`Folder`/`FolderRegistry`), que reforçam as mesmas invariantes de novo no
   `__post_init__` — nenhum dado inválido sobrevive às duas camadas.
 
-## Limitação conhecida: mudança de conteúdo não é detectada
+## Detecção de mudança de conteúdo (feature 004)
+
+Desde a feature `004-deteccao-mudanca-conteudo`, a limitação descrita abaixo foi resolvida:
+
+- `folders update <alias> --status curated` grava o HEAD da pasta git em `last_curated_commit`.
+- `folders scan` compara, para cada pasta `curated` com hash, o conteúdo **da própria pasta** entre
+  o hash gravado e o HEAD atual; se mudou, o status volta para `in_curation` (hash mantido).
+- Pasta `curated` sem hash (legado) recebe o HEAD atual como referência na primeira varredura.
+- Pastas fora de repositório git continuam fora do mecanismo. Ver
+  [ADR 0005](../decisions/0005-deteccao-mudanca-por-git-cli.md).
+
+## Limitação conhecida (histórico, resolvida na feature 004): mudança de conteúdo não era detectada
 
 Hoje **nenhum campo deste arquivo reflete se o conteúdo da pasta mudou desde a última
 curadoria**. `last_scanned` só confirma que o caminho continua acessível (`folders scan`) — não

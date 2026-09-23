@@ -112,13 +112,13 @@ rodar e **confirmar vermelho**, só então implementar.
 
 ## Phase 6: Polish & Cross-Cutting
 
-- [ ] T036 [P] Criar ADR docs/decisions/0005-deteccao-mudanca-por-git-cli.md (git via executável, diff restrito à pasta, schema v1 aditivo, legado recebe baseline) e listar no docs/decisions/README.md
-- [ ] T037 [P] Atualizar docs/reference/folders-yaml.md: substituir a seção "Limitação conhecida" pela documentação do campo `last_curated_commit` e do comportamento de reversão
-- [ ] T038 [P] Atualizar docs/architecture/overview.md (porta `GitContentInspector`, adapter, fluxo de scan) e docs/guides/operar-cli-praxisforge.md (saídas novas de update/show/scan)
-- [ ] T039 [P] Acrescentar entradas em docs/INDEX.md e docs/TODO.md (append, sem remover conteúdo)
-- [ ] T040 Executar os 5 cenários de specs/004-deteccao-mudanca-conteudo/quickstart.md manualmente, conferindo ausência de caminho absoluto
-- [ ] T041 [P] Teste de escala em tests/integration/test_scan_content_scale.py: 100 pastas curadas (repositórios git reais em `tmp_path`, metade alteradas) varridas com `scan --all` em < 30 s; todas as alteradas revertidas e nenhuma inalterada revertida (Plan §Performance Goals, SC-001, SC-003)
-- [ ] T042 Gates finais: `make lint`, `make test` (cobertura ≥ 90%), `make validate-data`, `make security` (bandit sem achados não justificados), `tests/architecture/` sem violações; `graphify update .`
+- [X] T036 [P] Criar ADR docs/decisions/0005-deteccao-mudanca-por-git-cli.md (git via executável, diff restrito à pasta, schema v1 aditivo, legado recebe baseline) e listar no docs/decisions/README.md
+- [X] T037 [P] Atualizar docs/reference/folders-yaml.md: substituir a seção "Limitação conhecida" pela documentação do campo `last_curated_commit` e do comportamento de reversão
+- [X] T038 [P] Atualizar docs/architecture/overview.md (porta `GitContentInspector`, adapter, fluxo de scan) e docs/guides/operar-cli-praxisforge.md (saídas novas de update/show/scan)
+- [X] T039 [P] Acrescentar entradas em docs/INDEX.md e docs/TODO.md (append, sem remover conteúdo)
+- [X] T040 Executar os 5 cenários de specs/004-deteccao-mudanca-conteudo/quickstart.md manualmente, conferindo ausência de caminho absoluto
+- [X] T041 [P] Teste de escala em tests/integration/test_scan_content_scale.py: 100 pastas curadas (repositórios git reais em `tmp_path`, metade alteradas) varridas com `scan --all` em < 30 s; todas as alteradas revertidas e nenhuma inalterada revertida (Plan §Performance Goals, SC-001, SC-003)
+- [X] T042 Gates finais: `make lint`, `make test` (cobertura ≥ 90%), `make validate-data`, `make security` (bandit sem achados não justificados), `tests/architecture/` sem violações; `graphify update .`
 
 ---
 
