@@ -103,10 +103,10 @@ rodar e **confirmar vermelho**, só então implementar.
 
 **Independent Test**: remover `last_curated_commit` de pasta curada, `folders scan` → `referência registrada`; novo commit + scan → revertida (quickstart Cenário 4).
 
-- [ ] T032 [P] [US3] Testes em tests/unit/application/test_scan_folders.py: curada sem hash + pasta git → grava `head_commit()`, `BASELINE_RECORDED`, status `curated`, `changed_since` não chamado; curada sem hash + não-git → `NOT_GIT`, nada gravado; segunda varredura após mudança → `REVERTED` (FR-014, US3 cenários 1–2)
-- [ ] T033 [P] [US3] Teste em tests/integration/test_cli_scan.py do fluxo legado completo com repositório real (baseline → commit → revertida) e rótulo `referência registrada`
-- [ ] T034 [US3] Rodar T032–T033 e confirmar vermelho
-- [ ] T035 [US3] Implementar o ramo `BASELINE_RECORDED` em src/praxisforge/application/scan_folders.py (persistir hash via `FolderRegistry.update`) e rodar T032–T033 → verde
+- [X] T032 [P] [US3] Testes em tests/unit/application/test_scan_folders.py: curada sem hash + pasta git → grava `head_commit()`, `BASELINE_RECORDED`, status `curated`, `changed_since` não chamado; curada sem hash + não-git → `NOT_GIT`, nada gravado; segunda varredura após mudança → `REVERTED` (FR-014, US3 cenários 1–2)
+- [X] T033 [P] [US3] Teste em tests/integration/test_cli_scan.py do fluxo legado completo com repositório real (baseline → commit → revertida) e rótulo `referência registrada`
+- [X] T034 [US3] Rodar T032–T033 e confirmar vermelho
+- [X] T035 [US3] Implementar o ramo `BASELINE_RECORDED` em src/praxisforge/application/scan_folders.py (persistir hash via `FolderRegistry.update`) e rodar T032–T033 → verde
 
 ---
 

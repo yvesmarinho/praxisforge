@@ -545,3 +545,40 @@ def test_lote_dois_aliases_no_mesmo_repositorio_com_hashes_diferentes(tmp_path: 
     por_alias = {r.alias: r.content_check for r in report.ok}
     assert por_alias == {"fonte_a": ContentCheck.REVERTED, "fonte_b": ContentCheck.UNCHANGED}
     assert report.reverted == ["fonte_a"]
+
+
+# --- feature 004 / US3: legado curado sem versão gravada ------------------------------
+
+
+def test_legado_git_sem_hash_recebe_baseline(tmp_path: Path) -> None:
+    """Curada sem hash + git → grava o HEAD, BASELINE_RECORDED, continua curada (FR-014)."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED)))
+    inspector = _FakeInspector(heads={tmp_path: _HEAD})
+    resultado = _scan_folder(repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=inspector)
+    assert resultado.content_check is ContentCheck.BASELINE_RECORDED
+    folder = repo.load().get("fonte")
+    assert folder.status is CurationStatus.CURATED
+    assert folder.last_curated_commit == _HEAD
+    assert ("changed_since", tmp_path) not in inspector.calls
+    assert repo.save_count == 1
+
+
+def test_legado_nao_git_sem_hash_nada_gravado(tmp_path: Path) -> None:
+    """Curada sem hash + não-git → NOT_GIT e nenhuma versão gravada."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED)))
+    resultado = _scan_folder(
+        repo, _FakeResolver({"fonte": tmp_path}), "fonte", inspector=_FakeInspector()
+    )
+    assert resultado.content_check is ContentCheck.NOT_GIT
+    assert repo.load().get("fonte").last_curated_commit is None
+
+
+def test_legado_segunda_varredura_apos_mudanca_reverte(tmp_path: Path) -> None:
+    """Baseline gravada numa varredura; mudança depois → próxima varredura reverte (US3 c.2)."""
+    repo = _FakeRepository(_registry(_folder("fonte", CurationStatus.CURATED)))
+    resolver = _FakeResolver({"fonte": tmp_path})
+    _scan_folder(repo, resolver, "fonte", inspector=_FakeInspector(heads={tmp_path: _HEAD}))
+    depois = _FakeInspector(heads={tmp_path: "e" * 40}, changed={(tmp_path, _HEAD): True})
+    resultado = _scan_folder(repo, resolver, "fonte", inspector=depois)
+    assert resultado.content_check is ContentCheck.REVERTED
+    assert repo.load().get("fonte").status is CurationStatus.IN_CURATION

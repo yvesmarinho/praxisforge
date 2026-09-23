@@ -341,3 +341,39 @@ def test_scan_individual_com_git_indisponivel_sai_com_3(
     assert code == 3
     assert "fonte" in err and "git" in err
     assert tmp_registry_path.read_bytes() == antes
+
+
+# --- feature 004 / US3: legado curado sem versão gravada ------------------------------
+
+
+def test_legado_recebe_referencia_e_depois_reverte(
+    tmp_registry_path: Path,
+    tmp_path: Path,
+    env_folder: object,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """YAML curado sem hash → 'referência registrada'; novo commit → revertida (quickstart C4)."""
+    repo = _repo(tmp_path, "fonte")
+    env_folder.set("fonte", str(repo))  # type: ignore[attr-defined]
+    tmp_registry_path.write_text(
+        "schema_version: '1'\n"
+        "folders:\n"
+        "  fonte:\n"
+        "    description: Fonte legada\n"
+        "    content_type: documents\n"
+        "    license: MIT\n"
+        "    last_scanned: null\n"
+        "    status: curated\n",
+        encoding="utf-8",
+    )
+    registry_arg = ["--registry", str(tmp_registry_path)]
+
+    code, out, _ = _run([*registry_arg, "folders", "scan", "fonte"], capsys)
+    assert code == 0
+    assert "conteúdo: referência registrada" in out
+    assert "status: curada" in out
+    assert "last_curated_commit:" in tmp_registry_path.read_text(encoding="utf-8")
+
+    _commit(repo, "novo.md", "novo")
+    code, out, _ = _run([*registry_arg, "folders", "scan", "fonte"], capsys)
+    assert "conteúdo: mudou — revertida para em curadoria" in out

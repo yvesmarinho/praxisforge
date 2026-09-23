@@ -11,7 +11,7 @@ DEPEND: praxisforge.domain, praxisforge.application.ports,
 HISTÓRICO:
     - 22/09/2026 12:45: criação (T005/T011/T017) — faz test_scan_folders.py passar
     - 22/09/2026 19:15: pular pastas ignore no lote (T032, feature 003-bootstrap-registro-pastas)
-    - 23/09/2026 12:15: verificação de conteúdo, ContentCheck (T028-T029, feature 004)
+    - 23/09/2026 12:15: verificação de conteúdo, ContentCheck (T028-T029, T035, feature 004)
 STATUS: DEV
 """
 
@@ -129,7 +129,8 @@ def _verificar_conteudo(
         if head is None:
             return ContentCheck.NOT_GIT, None
         if folder.last_curated_commit is None:
-            return ContentCheck.UNCHANGED, None
+            # legado curado antes da feature 004: grava o HEAD como referência (FR-014)
+            return ContentCheck.BASELINE_RECORDED, head
         if inspector.changed_since(caminho, folder.last_curated_commit):
             return ContentCheck.REVERTED, None
     except ContentInspectionError as error:
