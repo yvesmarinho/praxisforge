@@ -1,5 +1,5 @@
 <!-- Criado em: 23/09/2026 13:03 -->
-<!-- Modificado em: 23/09/2026 15:30 -->
+<!-- Modificado em: 23/09/2026 15:39 -->
 
 # Research: Caminho absoluto no registro de pastas
 
@@ -11,7 +11,7 @@
 - **Alternatives**: validar tudo no Domain com `Path.resolve` (I/O no Domain — rejeitado).
 
 ## R2 — Porta substituta de PathResolver
-- **Decision**: `FolderLocator` com `canonicalize(raw: str) -> Path` (registro/update/migração) e
+- **Decision**: `FolderLocator` com `canonicalize(alias: str, raw: str) -> Path` (registro/update/migração) e
   `check(alias: str, path: Path) -> Path` (resolve/scan/curated). `PathResolver` e `EnvPathResolver`
   removidos; leitura de `PRAXISFORGE_FOLDER_<ALIAS>` sobrevive só em `LegacyPathSource.lookup(alias)`
   (migração, Q1).

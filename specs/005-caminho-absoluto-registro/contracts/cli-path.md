@@ -1,5 +1,5 @@
 <!-- Criado em: 23/09/2026 13:03 -->
-<!-- Modificado em: 23/09/2026 13:03 -->
+<!-- Modificado em: 23/09/2026 15:39 -->
 
 # Contrato CLI — caminho no registro
 
@@ -9,7 +9,7 @@ Exit codes: 0 ok · 1 validação/negócio · 2 uso · 3 ambiente (pasta inacess
 |---|---|
 | `folders add --alias A --path P ...` | `--path` obrigatório; canonizado; inexistente/não-pasta → exit 3; já registrado → exit 1 citando o alias ocupante |
 | `folders update A --path P` | novo caminho, mesmas validações; demais dados preservados |
-| `folders list` | nova coluna com o caminho |
+| `folders list` | caminho como última coluna, separada por tab (alias, tipo, licença, status, última varredura, caminho) |
 | `folders show A` | nova linha `caminho: <P>` |
 | `folders resolve A\|--all` | usa o caminho do registro; pasta movida → exit 3 |
 | `folders scan`, `update --status curated` | usam o caminho do registro; nenhuma variável de ambiente |
