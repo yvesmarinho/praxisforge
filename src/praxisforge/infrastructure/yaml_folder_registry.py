@@ -3,11 +3,12 @@
 NOME: yaml_folder_registry.py
 TITULO: Adapter YAML do FolderRegistryRepository — escrita atômica e determinística
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 10:15
+MODIFICADO: 23/09/2026 12:07
 VERSÃO: 0.1.0
 DEPEND: pyyaml, praxisforge.application.ports, praxisforge.domain
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T034) — faz tests/integration/test_yaml_folder_registry.py passar
+    - 23/09/2026 12:07: (de)serializa last_curated_commit, omitido quando None (T014, feature 004)
 STATUS: DEV
 """
 
@@ -83,6 +84,9 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
                 license=str(entry["license"]),
                 last_scanned=last_scanned,
                 status=CurationStatus.from_str(str(entry["status"])),
+                last_curated_commit=(
+                    str(entry["last_curated_commit"]) if "last_curated_commit" in entry else None
+                ),
             )
         return FolderRegistry(
             schema_version=str(documento.get("schema_version", "")), folders=folders
@@ -92,18 +96,7 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
         """Ver FolderRegistryRepository.save."""
         documento: dict[str, object] = {
             "schema_version": registry.schema_version,
-            "folders": {
-                folder.alias.value: {
-                    "description": folder.description,
-                    "content_type": folder.content_type,
-                    "license": folder.license,
-                    "last_scanned": (
-                        folder.last_scanned.isoformat() if folder.last_scanned else None
-                    ),
-                    "status": folder.status.value,
-                }
-                for folder in registry.list()
-            },
+            "folders": {folder.alias.value: _serializar(folder) for folder in registry.list()},
         }
         self._path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp_name = tempfile.mkstemp(
@@ -122,3 +115,24 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
         finally:
             if os.path.exists(tmp_name):
                 os.unlink(tmp_name)
+
+
+def _serializar(folder: Folder) -> dict[str, object]:
+    """
+    Converte uma Folder no mapa YAML; `last_curated_commit` só aparece quando presente.
+
+    :param folder: pasta a serializar.
+    :type folder: Folder
+    :return: mapa pronto para o YAML (chave opcional omitida quando None — FR-012).
+    :rtype: dict[str, object]
+    """
+    entry: dict[str, object] = {
+        "description": folder.description,
+        "content_type": folder.content_type,
+        "license": folder.license,
+        "last_scanned": folder.last_scanned.isoformat() if folder.last_scanned else None,
+        "status": folder.status.value,
+    }
+    if folder.last_curated_commit is not None:
+        entry["last_curated_commit"] = folder.last_curated_commit
+    return entry

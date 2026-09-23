@@ -3,11 +3,12 @@
 NOME: test_yaml_folder_registry.py
 TITULO: Testes de falha — adapter YamlFolderRegistryRepository (Infrastructure)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 10:00
+MODIFICADO: 23/09/2026 12:04
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.infrastructure.yaml_folder_registry
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T028)
+    - 23/09/2026 12:04: +last_curated_commit (T006, feature 004)
 STATUS: DEV
 """
 
@@ -149,3 +150,41 @@ def test_last_scanned_preenchido_sobrevive_ida_e_volta_como_string(
     primeira = tmp_registry_path.read_bytes()
     repo.save(loaded)
     assert tmp_registry_path.read_bytes() == primeira
+
+
+def test_last_curated_commit_sobrevive_ida_e_volta(tmp_registry_path: Path) -> None:
+    """O hash gravado é persistido e relido sem perda."""
+    repo = _repo(tmp_registry_path)
+    registry = _registry_com_github_forks().update(
+        "github_forks", license="MIT", last_curated_commit="d" * 40
+    )
+    repo.save(registry)
+    assert repo.load().get("github_forks").last_curated_commit == "d" * 40
+
+
+def test_chave_omitida_no_yaml_quando_none(tmp_registry_path: Path) -> None:
+    """Sem hash, a chave não aparece no YAML — registros antigos não ganham diff (FR-012)."""
+    repo = _repo(tmp_registry_path)
+    repo.save(_registry_com_github_forks())
+    assert "last_curated_commit" not in tmp_registry_path.read_text(encoding="utf-8")
+    assert repo.load().get("github_forks").last_curated_commit is None
+
+
+def test_yaml_com_hash_invalido_falha_na_validacao(tmp_registry_path: Path) -> None:
+    """Registro com hash malformado é rejeitado pelo contrato ao carregar."""
+    from praxisforge.domain.errors import ContractValidationError
+
+    tmp_registry_path.write_text(
+        "schema_version: '1'\n"
+        "folders:\n"
+        "  github_forks:\n"
+        "    description: Forks\n"
+        "    content_type: repository_forks\n"
+        "    license: MIT\n"
+        "    last_scanned: null\n"
+        "    status: curated\n"
+        "    last_curated_commit: NAO_EH_HASH\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ContractValidationError):
+        _repo(tmp_registry_path).load()

@@ -15,7 +15,7 @@
 - [ ] Adicionar testes unitários
 - [ ] Documentar APIs
 - [ ] Feature futura: catálogo de skills (fora do escopo da 001)
-- [ ] Feature futura: detectar deriva de curadoria — quando o conteúdo de uma pasta `curated`
+- [x] Feature futura: detectar deriva de curadoria (concluída na feature 004 — campo final `last_curated_commit`, schema v1 aditivo) — quando o conteúdo de uma pasta `curated`
       (git) mudar em relação ao commit HEAD registrado na última curadoria, reverter status
       automaticamente para `in_curation`; exige novo campo na entidade (ex.:
       `last_curated_commit_hash`) e nova versão do schema. Ver
@@ -35,3 +35,6 @@
       partir de uma pasta-raiz (heurística de README/LICENSE), idempotente (nunca sobrescreve
       pasta já registrada), novo status `ignore` (aplicado só manualmente) respeitado por
       `folders scan --all` (22/09/2026)
+- [x] Feature 004-deteccao-mudanca-conteudo: `last_curated_commit` gravado ao marcar `curated`,
+      varredura reverte para `in_curation` quando os arquivos da pasta mudam (via `git`), legado
+      recebe referência na primeira varredura (23/09/2026)

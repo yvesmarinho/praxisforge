@@ -3,12 +3,13 @@
 NOME: test_folders_schema.py
 TITULO: Testes de contrato — schemas/folders-schema-v1.json
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 16:35
+MODIFICADO: 23/09/2026 12:04
 VERSÃO: 0.1.0
 DEPEND: pytest, jsonschema
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T010)
     - 22/09/2026 17:34: +casos status "ignore" (T004, feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:04: +last_curated_commit (T002, feature 004-deteccao-mudanca-conteudo)
 STATUS: DEV
 """
 
@@ -209,3 +210,50 @@ def test_licenca_unknown_com_status_scanned_continua_invalido(schema: dict[str, 
         },
     }
     assert _validar(schema, documento) != []
+
+
+def _doc_com_commit(valor: object) -> dict[str, Any]:
+    return {
+        "schema_version": "1",
+        "folders": {
+            "repo": {
+                "description": "Repositório curado",
+                "content_type": "repository_forks",
+                "license": "MIT",
+                "last_scanned": None,
+                "status": "curated",
+                "last_curated_commit": valor,
+            }
+        },
+    }
+
+
+@pytest.mark.parametrize("valor", ["a" * 40, "0123456789abcdef" * 4])
+def test_last_curated_commit_sha1_e_sha256_sao_validos(
+    schema: dict[str, object], valor: str
+) -> None:
+    """Hash de 40 (SHA-1) ou 64 (SHA-256) hex minúsculos é aceito (FR-011)."""
+    assert _validar(schema, _doc_com_commit(valor)) == []
+
+
+@pytest.mark.parametrize(
+    "valor",
+    ["A" * 40, "a" * 39, "a" * 41, "g" * 40, "a" * 63, "", None, 12345],
+    ids=["maiusculo", "39", "41", "nao_hex", "63", "vazio", "null", "numero"],
+)
+def test_last_curated_commit_invalido_eh_rejeitado(
+    schema: dict[str, object], valor: object
+) -> None:
+    """Hash fora do formato é rejeitado pelo contrato (FR-011)."""
+    assert _validar(schema, _doc_com_commit(valor)) != []
+
+
+def test_registro_versionado_atual_continua_valido(schema: dict[str, object]) -> None:
+    """src/data/folders.yaml, sem o campo novo, continua válido (FR-012, SC-004)."""
+    import yaml
+
+    from praxisforge.infrastructure.yaml_loader import NoTimestampSafeLoader
+
+    texto = (Path(__file__).parents[2] / "src" / "data" / "folders.yaml").read_text("utf-8")
+    documento = yaml.load(texto, Loader=NoTimestampSafeLoader)  # noqa: S506 # nosec B506
+    assert _validar(schema, documento) == []

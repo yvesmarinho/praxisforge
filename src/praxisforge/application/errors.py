@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 22/09/2026 16:40
+MODIFICADO: 23/09/2026 12:07
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -15,10 +15,12 @@ HISTÓRICO:
     - 22/09/2026 10:45: adiciona ContractValidationError e RegistryUnavailableError (US3),
       usados por `sources validate` na CLI
     - 22/09/2026 18:20: adiciona InvalidRootPathError (feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:07: reexporta ContentInspectionError (T011, feature 004)
 STATUS: DEV
 """
 
 from praxisforge.domain.errors import (
+    ContentInspectionError,
     ContractValidationError,
     FolderNotFoundError,
     FolderPathInvalidError,
@@ -30,6 +32,7 @@ from praxisforge.domain.errors import (
 )
 
 __all__ = [
+    "ContentInspectionError",
     "ContractValidationError",
     "FolderNotFoundError",
     "FolderPathInvalidError",

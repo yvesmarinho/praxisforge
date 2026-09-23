@@ -3,11 +3,12 @@
 NOME: test_folder_registry.py
 TITULO: Testes de falha — agregado FolderRegistry
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:47
+MODIFICADO: 23/09/2026 12:04
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.folder_registry
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T009)
+    - 23/09/2026 12:04: +update(last_curated_commit) (T005, feature 004)
 STATUS: DEV
 """
 
@@ -21,6 +22,7 @@ from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import (
     AliasAlreadyRegisteredError,
     FolderNotFoundError,
+    InvalidCommitHashError,
     UnsupportedSchemaVersionError,
 )
 from praxisforge.domain.folder import Folder
@@ -114,3 +116,45 @@ def test_list_ordenado_por_alias() -> None:
     registry = registry.add(_folder(alias="abelha"))
     aliases = [folder.alias.value for folder in registry.list()]
     assert aliases == ["abelha", "zebra"]
+
+
+def _registry_curado(commit: str | None = "a" * 40) -> FolderRegistry:
+    agora = datetime(2026, 9, 22, 10, 0, tzinfo=ZoneInfo("America/Sao_Paulo"))
+    folder = _folder(
+        license="MIT",
+        status=CurationStatus.CURATED,
+        last_scanned=agora,
+        last_curated_commit=commit,
+    )
+    return FolderRegistry(schema_version="1", folders={}).add(folder)
+
+
+def test_update_grava_last_curated_commit_quando_informado() -> None:
+    """update aplica o hash informado."""
+    updated = _registry_curado(None).update("github_forks", last_curated_commit="c" * 40)
+    assert updated.get("github_forks").last_curated_commit == "c" * 40
+
+
+def test_update_sem_hash_mantem_valor_atual() -> None:
+    """Omitir o hash preserva o valor anterior."""
+    updated = _registry_curado().update("github_forks", license="Apache-2.0")
+    assert updated.get("github_forks").last_curated_commit == "a" * 40
+
+
+def test_update_de_status_preserva_hash_como_historico() -> None:
+    """Sair de curated sem informar hash mantém a versão gravada (FR-010)."""
+    updated = _registry_curado().update("github_forks", status=CurationStatus.IN_CURATION)
+    folder = updated.get("github_forks")
+    assert folder.status is CurationStatus.IN_CURATION
+    assert folder.last_curated_commit == "a" * 40
+
+
+def test_update_com_hash_invalido_nao_altera_nada() -> None:
+    """Atualização atômica: hash inválido não altera o agregado."""
+    registry = _registry_curado()
+    with pytest.raises(InvalidCommitHashError):
+        registry.update(
+            "github_forks", status=CurationStatus.IN_CURATION, last_curated_commit="xyz"
+        )
+    assert registry.get("github_forks").status is CurationStatus.CURATED
+    assert registry.get("github_forks").last_curated_commit == "a" * 40
