@@ -17,7 +17,7 @@ rodar e **confirmar vermelho**, só então implementar.
 
 ## Phase 1: Setup
 
-- [ ] T001 Confirmar baseline verde na branch `004-deteccao-mudanca-conteudo` (`make lint`, `make test` com 262 testes, `make validate-data`) e `git --version` ≥ 2.x
+- [X] T001 Confirmar baseline verde na branch `004-deteccao-mudanca-conteudo` (`make lint`, `make test` com 262 testes, `make validate-data`) e `git --version` ≥ 2.x
 
 ---
 
@@ -27,25 +27,25 @@ rodar e **confirmar vermelho**, só então implementar.
 
 ### Testes (vermelho primeiro)
 
-- [ ] T002 [P] Testes de contrato em tests/contract/test_folders_schema.py: documento com `last_curated_commit` de 40 e de 64 hex minúsculos valida; maiúsculo, 39/41 caracteres, não-hex, `null` e número são rejeitados; `src/data/folders.yaml` atual e documentos v1 sem o campo continuam válidos (FR-011, FR-012, SC-004)
-- [ ] T003 [P] Testes em tests/unit/domain/test_errors.py: `ContentInspectionError` é `PraxisForgeError`; `InvalidCommitHashError` é `InvalidFolderError`; mensagens incluem o alias e nunca caminho absoluto
-- [ ] T004 [P] Testes em tests/unit/domain/test_folder.py: `Folder` aceita `last_curated_commit=None` (default) e hash válido em qualquer status; hash vazio, maiúsculo, curto/longo ou não-hex levanta `InvalidCommitHashError`
-- [ ] T005 [P] Testes em tests/unit/domain/test_folder_registry.py: `update(alias, last_curated_commit=...)` aplica só quando informado; omitido mantém o valor atual; atualização atômica (hash inválido não altera nada); mudar status sem informar hash preserva o hash (FR-010)
-- [ ] T006 [P] Testes em tests/integration/test_yaml_folder_registry.py: round-trip com o campo; chave omitida no YAML quando `None` (registro antigo sem diff após load/save); YAML com hash inválido falha na validação do contrato
-- [ ] T007 [P] Testes de integração em tests/integration/test_git_cli_inspector.py com repositórios reais em `tmp_path`: `head_commit` → hash (raiz e subpasta), `None` para pasta não-git e repositório sem commits; `changed_since` → `False` sem commits novos, `False` com commit só fora da subpasta, `True` com commit dentro, `True` com commit gravado inexistente, `True` com HEAD retrocedido e conteúdo diferente; arquivos só no working tree/ignorados não contam; mudança do ponteiro de submódulo conta (FR-005, FR-017)
-- [ ] T008 [P] Testes de falha em tests/integration/test_git_cli_inspector.py: executável `git` ausente (`PATH` vazio via monkeypatch), `subprocess.TimeoutExpired` simulado, código de saída inesperado (repositório corrompido: `.git/HEAD` inválido) → todos levantam `ContentInspectionError` sem caminho absoluto na mensagem; hash malformado nunca chega à linha de comando (FR-009)
-- [ ] T009 Rodar T002–T008 e **confirmar que falham** (vermelho)
+- [X] T002 [P] Testes de contrato em tests/contract/test_folders_schema.py: documento com `last_curated_commit` de 40 e de 64 hex minúsculos valida; maiúsculo, 39/41 caracteres, não-hex, `null` e número são rejeitados; `src/data/folders.yaml` atual e documentos v1 sem o campo continuam válidos (FR-011, FR-012, SC-004)
+- [X] T003 [P] Testes em tests/unit/domain/test_errors.py: `ContentInspectionError` é `PraxisForgeError`; `InvalidCommitHashError` é `InvalidFolderError`; mensagens incluem o alias e nunca caminho absoluto
+- [X] T004 [P] Testes em tests/unit/domain/test_folder.py: `Folder` aceita `last_curated_commit=None` (default) e hash válido em qualquer status; hash vazio, maiúsculo, curto/longo ou não-hex levanta `InvalidCommitHashError`
+- [X] T005 [P] Testes em tests/unit/domain/test_folder_registry.py: `update(alias, last_curated_commit=...)` aplica só quando informado; omitido mantém o valor atual; atualização atômica (hash inválido não altera nada); mudar status sem informar hash preserva o hash (FR-010)
+- [X] T006 [P] Testes em tests/integration/test_yaml_folder_registry.py: round-trip com o campo; chave omitida no YAML quando `None` (registro antigo sem diff após load/save); YAML com hash inválido falha na validação do contrato
+- [X] T007 [P] Testes de integração em tests/integration/test_git_cli_inspector.py com repositórios reais em `tmp_path`: `head_commit` → hash (raiz e subpasta), `None` para pasta não-git e repositório sem commits; `changed_since` → `False` sem commits novos, `False` com commit só fora da subpasta, `True` com commit dentro, `True` com commit gravado inexistente, `True` com HEAD retrocedido e conteúdo diferente; arquivos só no working tree/ignorados não contam; mudança do ponteiro de submódulo conta (FR-005, FR-017)
+- [X] T008 [P] Testes de falha em tests/integration/test_git_cli_inspector.py: executável `git` ausente (`PATH` vazio via monkeypatch), `subprocess.TimeoutExpired` simulado, código de saída inesperado (repositório corrompido: `.git/HEAD` inválido) → todos levantam `ContentInspectionError` sem caminho absoluto na mensagem; hash malformado nunca chega à linha de comando (FR-009)
+- [X] T009 Rodar T002–T008 e **confirmar que falham** (vermelho)
 
 ### Implementação (verde)
 
-- [ ] T010 Adicionar propriedade opcional `last_curated_commit` (`string`, `pattern ^[0-9a-f]{40}([0-9a-f]{24})?$`, fora de `required`) em schemas/folders-schema-v1.json e atualizar `_meta.modificado_em`
-- [ ] T011 Adicionar `ContentInspectionError` e `InvalidCommitHashError` em src/praxisforge/domain/errors.py e reexportar em src/praxisforge/application/errors.py
-- [ ] T012 Adicionar campo `last_curated_commit: str | None = None` com validação de formato em src/praxisforge/domain/folder.py
-- [ ] T013 Aceitar `last_curated_commit` em `FolderRegistry.update()` em src/praxisforge/domain/folder_registry.py
-- [ ] T014 (De)serializar o campo (omitido quando `None`) em src/praxisforge/infrastructure/yaml_folder_registry.py
-- [ ] T015 Declarar a porta `GitContentInspector` (`head_commit(path) -> str | None`, `changed_since(path, commit) -> bool`, ambas `:raises ContentInspectionError:`) em src/praxisforge/application/ports.py
-- [ ] T016 Implementar `GitCliInspector` em src/praxisforge/infrastructure/git_cli_inspector.py: `subprocess.run` com lista de argumentos, `shell=False`, `timeout=10`, `git -C <pasta>`; `rev-parse --is-inside-work-tree`, `rev-parse --verify -q HEAD`, `cat-file -e <hash>^{commit}`, `diff --quiet <hash> HEAD -- .` (código 0/1/outro); validar hash por regex antes de montar o comando; `# nosec` justificado para B404/B603; logs estruturados sem caminho absoluto (research §R1, §R3, §R4)
-- [ ] T017 Rodar T002–T008 → verde; `make lint` e `tests/architecture/` sem violações
+- [X] T010 Adicionar propriedade opcional `last_curated_commit` (`string`, `pattern ^[0-9a-f]{40}([0-9a-f]{24})?$`, fora de `required`) em schemas/folders-schema-v1.json e atualizar `_meta.modificado_em`
+- [X] T011 Adicionar `ContentInspectionError` e `InvalidCommitHashError` em src/praxisforge/domain/errors.py e reexportar em src/praxisforge/application/errors.py
+- [X] T012 Adicionar campo `last_curated_commit: str | None = None` com validação de formato em src/praxisforge/domain/folder.py
+- [X] T013 Aceitar `last_curated_commit` em `FolderRegistry.update()` em src/praxisforge/domain/folder_registry.py
+- [X] T014 (De)serializar o campo (omitido quando `None`) em src/praxisforge/infrastructure/yaml_folder_registry.py
+- [X] T015 Declarar a porta `GitContentInspector` (`head_commit(path) -> str | None`, `changed_since(path, commit) -> bool`, ambas `:raises ContentInspectionError:`) em src/praxisforge/application/ports.py
+- [X] T016 Implementar `GitCliInspector` em src/praxisforge/infrastructure/git_cli_inspector.py: `subprocess.run` com lista de argumentos, `shell=False`, `timeout=10`, `git -C <pasta>`; `rev-parse --is-inside-work-tree`, `rev-parse --verify -q HEAD`, `cat-file -e <hash>^{commit}`, `diff --quiet <hash> HEAD -- .` (código 0/1/outro); validar hash por regex antes de montar o comando; `# nosec` justificado para B404/B603; logs estruturados sem caminho absoluto (research §R1, §R3, §R4)
+- [X] T017 Rodar T002–T008 → verde; `make lint` e `tests/architecture/` sem violações
 
 **Checkpoint**: contrato, Domain, porta e adapter prontos.
 

@@ -3,12 +3,13 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 16:37
+MODIFICADO: 23/09/2026 12:04
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T005) — hierarquia de data-model.md
     - 22/09/2026 17:36: +InvalidRootPathError (T005, feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:04: +ContentInspectionError/InvalidCommitHashError (T003, feature 004)
 STATUS: DEV
 """
 
@@ -16,6 +17,7 @@ import pytest
 
 from praxisforge.domain.errors import (
     AliasAlreadyRegisteredError,
+    ContentInspectionError,
     ContractValidationError,
     FolderNotFoundError,
     FolderPathInvalidError,
@@ -23,6 +25,7 @@ from praxisforge.domain.errors import (
     FolderPathUnreadableError,
     FutureScanDateError,
     InvalidAliasError,
+    InvalidCommitHashError,
     InvalidFolderError,
     InvalidRootPathError,
     PraxisForgeError,
@@ -128,3 +131,19 @@ def test_invalid_root_path_error_cita_root_e_motivo() -> None:
     message = str(error)
     assert raiz in message
     assert "não existe" in message
+
+
+def test_content_inspection_error_eh_praxisforge_error_e_cita_alias() -> None:
+    """Falha de inspeção git é semântica e cita o alias, nunca caminho absoluto (FR-009)."""
+    error = ContentInspectionError("repo", "tempo esgotado")
+    assert isinstance(error, PraxisForgeError)
+    assert error.alias == "repo"
+    assert "repo" in str(error) and "tempo esgotado" in str(error)
+    assert "/" not in str(error)
+
+
+def test_invalid_commit_hash_error_eh_invalid_folder_error() -> None:
+    """Hash malformado é uma violação de invariante de Folder (FR-011)."""
+    error = InvalidCommitHashError("repo")
+    assert isinstance(error, InvalidFolderError)
+    assert "repo" in str(error)

@@ -3,12 +3,13 @@
 NOME: test_folder.py
 TITULO: Testes de falha — entidade Folder (invariantes em __post_init__)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 16:37
+MODIFICADO: 23/09/2026 12:04
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.folder
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T008)
     - 22/09/2026 17:32: +caso unknown/ignore (T003, feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:04: +last_curated_commit (T004, feature 004)
 STATUS: DEV
 """
 
@@ -21,6 +22,7 @@ from praxisforge.domain.alias import Alias
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import (
     FutureScanDateError,
+    InvalidCommitHashError,
     InvalidFolderError,
     UnknownLicenseRequiresPendingError,
 )
@@ -113,3 +115,29 @@ def test_caso_feliz_valido() -> None:
     folder = _make()
     assert folder.alias.value == "github_forks"
     assert folder.status is CurationStatus.PENDING
+
+
+def test_last_curated_commit_default_eh_none() -> None:
+    """Campo opcional: omitido vale None (FR-012)."""
+    assert _make().last_curated_commit is None
+
+
+@pytest.mark.parametrize("status", list(CurationStatus))
+def test_last_curated_commit_valido_em_qualquer_status(status: CurationStatus) -> None:
+    """A versão gravada é histórico: aceita em qualquer status (FR-010)."""
+    last_scanned = None if status is CurationStatus.NOT_SCANNED else _agora()
+    folder = _make(
+        license="MIT", status=status, last_scanned=last_scanned, last_curated_commit="b" * 64
+    )
+    assert folder.last_curated_commit == "b" * 64
+
+
+@pytest.mark.parametrize("valor", ["", "A" * 40, "a" * 39, "a" * 41, "z" * 40, "a" * 40 + "\n"])
+def test_last_curated_commit_malformado_levanta_erro(valor: str) -> None:
+    """Hash fora do formato SHA-1/SHA-256 minúsculo é rejeitado (FR-011)."""
+    with pytest.raises(InvalidCommitHashError):
+        _make(last_curated_commit=valor)
+
+
+def _agora() -> datetime:
+    return datetime.now(ZoneInfo("America/Sao_Paulo")) - timedelta(minutes=1)

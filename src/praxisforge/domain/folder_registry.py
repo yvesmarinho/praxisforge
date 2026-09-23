@@ -3,11 +3,12 @@
 NOME: folder_registry.py
 TITULO: Agregado FolderRegistry — coleção de pastas registradas, com invariantes
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:50
+MODIFICADO: 23/09/2026 12:07
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.folder, praxisforge.domain.curation_status, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T021) — faz tests/unit/domain/test_folder_registry.py passar
+    - 23/09/2026 12:07: update() aceita last_curated_commit (T013, feature 004)
 STATUS: DEV
 """
 
@@ -86,6 +87,7 @@ class FolderRegistry:
         status: CurationStatus | None = None,
         last_scanned: datetime | None = None,
         license: str | None = None,  # noqa: A002 - nome do domínio
+        last_curated_commit: str | None = None,
     ) -> "FolderRegistry":
         """
         Atualiza campos informados de uma pasta, atomicamente.
@@ -102,6 +104,8 @@ class FolderRegistry:
         :type last_scanned: datetime | None
         :param license: nova licença, se informada.
         :type license: str | None
+        :param last_curated_commit: novo hash da versão curada, se informado.
+        :type last_curated_commit: str | None
         :return: novo agregado com a pasta atualizada.
         :rtype: FolderRegistry
         :raises FolderNotFoundError: alias não registrado.
@@ -112,6 +116,11 @@ class FolderRegistry:
             status=status if status is not None else current.status,
             last_scanned=last_scanned if last_scanned is not None else current.last_scanned,
             license=license if license is not None else current.license,
+            last_curated_commit=(
+                last_curated_commit
+                if last_curated_commit is not None
+                else current.last_curated_commit
+            ),
         )
         new_folders = {**self.folders, alias: updated}
         return replace(self, folders=new_folders)

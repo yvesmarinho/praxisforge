@@ -3,12 +3,13 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 16:36
+MODIFICADO: 23/09/2026 12:07
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T017) — faz tests/unit/domain/test_errors.py passar
     - 22/09/2026 17:42: +InvalidRootPathError (T009, feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:07: +InvalidCommitHashError, ContentInspectionError (T011, feature 004)
 STATUS: DEV
 """
 
@@ -99,6 +100,17 @@ class FutureScanDateError(InvalidFolderError):
             f"pasta '{alias}': last_scanned não pode estar no futuro"
             if alias
             else "last_scanned não pode estar no futuro"
+        )
+
+
+class InvalidCommitHashError(InvalidFolderError):
+    """`last_curated_commit` fora do formato SHA-1/SHA-256 hexadecimal minúsculo."""
+
+    def __init__(self, alias: str = "") -> None:
+        super().__init__(
+            f"pasta '{alias}': last_curated_commit fora do formato (40 ou 64 hex minúsculos)"
+            if alias
+            else "last_curated_commit fora do formato (40 ou 64 hex minúsculos)"
         )
 
 
@@ -195,3 +207,26 @@ __all__ = [
     "UnsupportedSchemaVersionError",
     "Violation",
 ]
+
+
+class ContentInspectionError(PraxisForgeError):
+    """
+    Falha ao inspecionar o conteúdo versionado de uma pasta (feature 004).
+
+    Cobre git indisponível, tempo esgotado e saída inesperada. A mensagem nunca
+    contém caminho absoluto — só o alias (quando conhecido) e o motivo.
+
+    :param alias: alias da pasta; vazio quando o adapter ainda não o conhece.
+    :type alias: str
+    :param reason: motivo em pt-BR (ex.: "tempo esgotado").
+    :type reason: str
+    """
+
+    def __init__(self, alias: str, reason: str) -> None:
+        self.alias = alias
+        self.reason = reason
+        super().__init__(
+            f"pasta '{alias}': falha ao inspecionar conteúdo: {reason}"
+            if alias
+            else f"falha ao inspecionar conteúdo: {reason}"
+        )

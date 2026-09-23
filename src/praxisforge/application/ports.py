@@ -3,12 +3,13 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 16:39
+MODIFICADO: 23/09/2026 12:07
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T023)
     - 22/09/2026 18:05: +RootFolderProbe (T016, feature 003-bootstrap-registro-pastas)
+    - 23/09/2026 12:07: +porta GitContentInspector (T015, feature 004)
 STATUS: DEV
 """
 
@@ -130,4 +131,36 @@ class RootFolderProbe(ABC):
         :type path: Path
         :return: identificador da licença reconhecida, ou `None` se ausente/não reconhecida/ambígua.
         :rtype: str | None
+        """
+
+
+class GitContentInspector(ABC):
+    """Porta para inspecionar o conteúdo versionado (git) de uma pasta (feature 004)."""
+
+    @abstractmethod
+    def head_commit(self, path: Path) -> str | None:
+        """
+        Obtém o hash do commit HEAD do repositório que contém a pasta.
+
+        :param path: caminho real da pasta (raiz ou subpasta de um repositório).
+        :type path: Path
+        :return: hash do HEAD, ou `None` se a pasta não está num repositório git ou ele
+            não tem commits.
+        :rtype: str | None
+        :raises ContentInspectionError: git indisponível, tempo esgotado ou saída inesperada.
+        """
+
+    @abstractmethod
+    def changed_since(self, path: Path, commit: str) -> bool:
+        """
+        Indica se arquivos versionados dentro da pasta mudaram entre `commit` e o HEAD.
+
+        :param path: caminho real da pasta (raiz ou subpasta de um repositório).
+        :type path: Path
+        :param commit: hash gravado na última curadoria.
+        :type commit: str
+        :return: True se a pasta mudou ou se `commit` não existe mais no repositório.
+        :rtype: bool
+        :raises ContentInspectionError: hash malformado, git indisponível, tempo esgotado
+            ou saída inesperada.
         """

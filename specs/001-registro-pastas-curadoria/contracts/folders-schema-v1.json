@@ -1,7 +1,7 @@
 {
   "_meta": {
     "criado_em": "21/09/2026 15:59",
-    "modificado_em": "2026-09-22T16:37:35-03:00"
+    "modificado_em": "2026-09-23T12:05:00-03:00"
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://praxisforge.local/schemas/folders-schema-v1.json",
@@ -31,6 +31,10 @@
         },
         "status": {
           "enum": ["not_scanned", "scanned", "in_curation", "curated", "pending", "ignore"]
+        },
+        "last_curated_commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
         }
       },
       "allOf": [
