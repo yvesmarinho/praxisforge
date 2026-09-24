@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 24/09/2026 14:36 -->
+<!-- Modificado em: 24/09/2026 16:52 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -311,3 +311,16 @@ uv run praxisforge folders relocate --from outro.yaml --registry ~/dados/folders
 **Exit codes**: `0` movido · `1` destino existe, origem ausente/vazia/v1/inválida · `2` local é um
 diretório · `3` falha de gravação (origem intacta).
 
+## Skills (feature 008)
+
+```bash
+uv run praxisforge skills validate <nome> | --all
+uv run praxisforge skills catalog
+uv run praxisforge skills publish <nome> | --all --target global|<pasta> [--mode copy|symlink] [--prune]
+scripts/publish-skills ...   # mesmo que `skills publish`, rodável de qualquer diretório
+```
+
+Os comandos resolvem `skills/`, `src/data/sources/` e `schemas/` a partir do diretório atual e
+precisam rodar na raiz do repositório. O script já entra nela sozinho. Uma pasta de projeto
+chamada `global` precisa ser passada como `--target ./global`. O passo a passo completo está em
+[criar-publicar-skills.md](criar-publicar-skills.md).

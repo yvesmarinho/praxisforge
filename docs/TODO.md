@@ -51,4 +51,10 @@
       (`src/data/folders.yaml`) a partir do diretório atual — só funciona na raiz do projeto
 - [ ] Dívida: `scripts/` com violações de ruff e fora do gate; `ruff format --check` fora do
       `make lint` (ex.: `src/praxisforge/infrastructure/filesystem_folder_probe.py`)
-
+- [x] Feature 008-biblioteca-skills: `skills/` versionado com template, `skills validate`,
+      `skills catalog` (`skills/README.md` determinístico), `skills publish` (cópia/symlink,
+      marcador `.praxisforge-skill.json`, regra de versão, órfãs/`--prune`) e
+      `scripts/publish-skills` (24/09/2026)
+- [ ] Limitação conhecida (feature 008): `skills` resolve `skills/` e `src/data/sources/` a partir
+      do diretório atual (mesma da feature 007); `scripts/publish-skills` contorna
+- [ ] Criar as primeiras skills reais (depende de registros em `src/data/sources/`)

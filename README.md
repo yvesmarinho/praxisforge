@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 24/09/2026 14:36 -->
+<!-- Modificado em: 24/09/2026 16:52 -->
 
 # Praxisforge
 
@@ -107,3 +107,15 @@ licença: MIT/BSD-3-Clause/Apache-2.0 → `verbatim`; GPL-3.0 → `verbatim` só
   Rode-o **antes** de atualizar outros clones. Detalhes em
   [ADR 0008](docs/decisions/0008-registro-fora-do-repositorio.md).
 
+### Atualização — biblioteca de skills (feature 008)
+
+- `skills/<nome>/SKILL.md` é a fonte de verdade das skills (formato de skill do Claude, com
+  `metadata.version` em semver e proveniência em `metadata.sources` ou `metadata.authored`).
+  Template em `skills/_template/`.
+- `skills validate <nome>|--all`: valida o formato, os arquivos de apoio e as fontes citadas.
+- `skills catalog`: gera `skills/README.md`, determinístico.
+- `skills publish <nome>|--all --target global|<pasta> [--mode copy|symlink] [--prune]`: publica
+  em `~/.claude/skills/` ou `<pasta>/.claude/skills/`. É idempotente, recusa conteúdo alterado sem
+  nova versão e nunca toca skills de terceiros. Atalho: `scripts/publish-skills`.
+- Guia: [docs/guides/criar-publicar-skills.md](docs/guides/criar-publicar-skills.md) ·
+  [ADR 0009](docs/decisions/0009-biblioteca-de-skills.md).

@@ -3,7 +3,7 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 14:30
+MODIFICADO: 24/09/2026 16:40
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
@@ -13,6 +13,7 @@ HISTÓRICO:
     - 23/09/2026 16:47: exceções de caminho/migração (T003, feature 005)
     - 24/09/2026 10:51: exceções da política de extração (T003, feature 006)
     - 24/09/2026 14:30: exceções do registro fora do repositório (T002, feature 007)
+    - 24/09/2026 16:40: exceções da biblioteca de skills (T003, feature 008)
 STATUS: DEV
 """
 
@@ -222,3 +223,49 @@ def test_excecoes_do_registro_fora_do_repo_feature_007() -> None:
     falha = RegistryRelocationError("sem permissão de escrita")
     assert isinstance(falha, PraxisForgeError)
     assert "sem permissão de escrita" in str(falha)
+
+
+def test_excecoes_da_biblioteca_de_skills_feature_008() -> None:
+    """Exceções semânticas de skills (T003, feature 008)."""
+    from praxisforge.domain.errors import (
+        ForeignSkillDestinationError,
+        InvalidSkillError,
+        SkillNotFoundError,
+        SkillPublicationError,
+        SkillVersionNotBumpedError,
+    )
+
+    violacoes = [Violation("name", "difere da pasta"), Violation("description", "vazia")]
+    invalida = InvalidSkillError("revisar", violacoes)
+    assert isinstance(invalida, PraxisForgeError)
+    assert invalida.name == "revisar"
+    assert invalida.violations == violacoes
+    assert "revisar" in str(invalida)
+    assert "difere da pasta" in str(invalida) and "vazia" in str(invalida)
+
+    ausente = SkillNotFoundError("revisar")
+    assert isinstance(ausente, PraxisForgeError)
+    assert ausente.name == "revisar" and "revisar" in str(ausente)
+
+    terceiro = ForeignSkillDestinationError("revisar", "/destino/revisar")
+    assert isinstance(terceiro, PraxisForgeError)
+    assert terceiro.location == "/destino/revisar"
+    assert "/destino/revisar" in str(terceiro) and "praxisforge" in str(terceiro)
+
+    versao = SkillVersionNotBumpedError("revisar", "1.0.0")
+    assert isinstance(versao, PraxisForgeError)
+    assert versao.version == "1.0.0"
+    assert "1.0.0" in str(versao) and "versão" in str(versao)
+
+    gravacao = SkillPublicationError("revisar", "sem permissão")
+    assert isinstance(gravacao, PraxisForgeError)
+    assert gravacao.reason == "sem permissão" and "sem permissão" in str(gravacao)
+
+
+def test_catalog_write_error_feature_008() -> None:
+    """Falha de gravação do catálogo é semântica e cita o motivo."""
+    from praxisforge.domain.errors import CatalogWriteError
+
+    erro = CatalogWriteError("sem permissão")
+    assert isinstance(erro, PraxisForgeError)
+    assert erro.reason == "sem permissão" and "catálogo" in str(erro)

@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 14:31
+MODIFICADO: 24/09/2026 16:54
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -13,6 +13,7 @@ HISTÓRICO:
     - 24/09/2026 10:52: exceções da política de extração (T009, feature 006)
     - 24/09/2026 14:31: registro fora do repositório: local no erro de ausência + realocação
       (T006, feature 007)
+    - 24/09/2026 16:54: exceções de skills (T008) e CatalogWriteError (T025), feature 008
 STATUS: DEV
 """
 
@@ -192,10 +193,12 @@ class InvalidRootPathError(PraxisForgeError):
 
 __all__ = [
     "AliasAlreadyRegisteredError",
+    "CatalogWriteError",
     "ContentInspectionError",
     "ContractValidationError",
     "ExtractPolicyExceedsLicenseError",
     "FolderNotFoundError",
+    "ForeignSkillDestinationError",
     "FolderPathInvalidError",
     "FolderPathUnreadableError",
     "FutureScanDateError",
@@ -205,6 +208,7 @@ __all__ = [
     "InvalidFolderError",
     "InvalidFolderPathError",
     "InvalidRootPathError",
+    "InvalidSkillError",
     "NestedFolderPathError",
     "NothingToRelocateError",
     "PathAlreadyRegisteredError",
@@ -214,6 +218,9 @@ __all__ = [
     "RegistryMigrationRequiredError",
     "RegistryRelocationError",
     "RegistryUnavailableError",
+    "SkillNotFoundError",
+    "SkillPublicationError",
+    "SkillVersionNotBumpedError",
     "SourceSchemaMigrationRequiredError",
     "UnknownLicenseRequiresPendingError",
     "UnsupportedSchemaVersionError",
@@ -373,3 +380,95 @@ class NothingToRelocateError(PraxisForgeError):
 
     def __init__(self) -> None:
         super().__init__("registro de origem sem pastas; nada a mover")
+
+
+class InvalidSkillError(PraxisForgeError):
+    """
+    Skill viola o formato ou a proveniência exigidos (feature 008).
+
+    :param name: nome da skill (pasta) avaliada.
+    :type name: str
+    :param violations: todas as violações encontradas de uma vez.
+    :type violations: list[Violation]
+    """
+
+    def __init__(self, name: str, violations: list[Violation]) -> None:
+        self.name = name
+        self.violations = violations
+        resumo = "; ".join(f"{v.field}: {v.reason}" for v in violations)
+        super().__init__(
+            f"skill '{name}' inválida — {resumo}" if resumo else f"skill '{name}' inválida"
+        )
+
+
+class SkillNotFoundError(PraxisForgeError):
+    """Skill pedida não existe em `skills/` (feature 008)."""
+
+    def __init__(self, name: str) -> None:
+        self.name = name
+        super().__init__(f"skill '{name}' não encontrada")
+
+
+class ForeignSkillDestinationError(PraxisForgeError):
+    """
+    Destino de mesmo nome não foi publicado pelo praxisforge — nada é alterado (feature 008).
+
+    :param name: nome da skill.
+    :type name: str
+    :param location: destino existente.
+    :type location: str
+    """
+
+    def __init__(self, name: str, location: str) -> None:
+        self.name = name
+        self.location = location
+        super().__init__(
+            f"destino {location} não foi publicado pelo praxisforge; nada foi alterado"
+        )
+
+
+class SkillVersionNotBumpedError(PraxisForgeError):
+    """
+    Conteúdo mudou mas `metadata.version` é a mesma já publicada (feature 008).
+
+    :param name: nome da skill.
+    :type name: str
+    :param version: versão já publicada.
+    :type version: str
+    """
+
+    def __init__(self, name: str, version: str) -> None:
+        self.name = name
+        self.version = version
+        super().__init__(
+            f"conteúdo alterado com a mesma versão {version} já publicada — incremente a versão"
+        )
+
+
+class SkillPublicationError(PraxisForgeError):
+    """
+    Falha de gravação ao publicar; o destino permanece como estava (feature 008).
+
+    :param name: nome da skill.
+    :type name: str
+    :param reason: motivo em pt-BR.
+    :type reason: str
+    """
+
+    def __init__(self, name: str, reason: str) -> None:
+        self.name = name
+        self.reason = reason
+        super().__init__(f"falha ao publicar a skill '{name}': {reason}")
+
+
+class CatalogWriteError(PraxisForgeError):
+    """
+    Falha ao gravar `skills/README.md`; o catálogo anterior permanece (feature 008).
+
+    :param reason: motivo em pt-BR.
+    :type reason: str
+    """
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"falha ao gravar o catálogo: {reason}")

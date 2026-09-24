@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 24/09/2026 14:36 -->
+<!-- Modificado em: 24/09/2026 16:52 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -155,3 +155,17 @@ A CLI resolve o arquivo do registro com `registry_location.resolve_registry_path
 o repositório YAML ([ADR 0008](../decisions/0008-registro-fora-do-repositorio.md)). O registro real
 vive fora do repositório; `src/data/folders.example.yaml` é o único registro versionado.
 
+## Biblioteca de skills (feature 008)
+
+| Camada | Módulo | Papel |
+|---|---|---|
+| Domain | `domain/skill.py` | `SkillName`, `Skill.from_parts` (forma, semver, referências) e `extract_references` |
+| Application | `application/validate_skills.py` | Forma e proveniência (reaproveita `validate_sources`), em lote |
+| Application | `application/build_catalog.py` | `render_catalog` determinístico e gravação pela porta `CatalogWriter` |
+| Application | `application/publish_skills.py` | Idempotência, regra de versão, terceiros, órfãs e `--prune` |
+| Infrastructure | `infrastructure/filesystem_skill_repository.py` | Lê `skills/<nome>/SKILL.md` e calcula o hash de conteúdo |
+| Infrastructure | `infrastructure/filesystem_skill_publisher.py` | Cópia atômica com `.praxisforge-skill.json`, symlink e remoção segura |
+| Infrastructure | `infrastructure/filesystem_catalog_writer.py` | Escrita atômica de `skills/README.md` |
+
+As portas novas em `application/ports.py` são `SkillRepository`, `SkillPublisher` e
+`CatalogWriter`. Decisões: [ADR 0009](../decisions/0009-biblioteca-de-skills.md).
