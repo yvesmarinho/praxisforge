@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 23/09/2026 12:17 -->
+<!-- Modificado em: 23/09/2026 17:05 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -44,7 +44,8 @@ uv run praxisforge folders add \
   --description "Descrição do que essa pasta contém" \
   --content-type documents \
   --license MIT \
-  --status not_scanned
+  --status not_scanned \
+  --path ~/DevOps/github_forks/meu_repo
 ```
 
 - `--alias`: obrigatório, único (repetir com os mesmos dados é idempotente; com dados diferentes,
@@ -54,11 +55,17 @@ uv run praxisforge folders add \
 - `--license`: obrigatório — identificador SPDX (ex.: `MIT`) ou `unknown` se ainda não souber (aí
   o status fica automaticamente `pending`, independente do `--status` informado).
 - `--status`: opcional, padrão `not_scanned`.
+- `--path`: obrigatório (feature 005) — aceita `~`, relativo e links; é gravado na forma absoluta
+  canônica. Recusado se não existir, não for pasta, não puder ser listado, já estiver registrado
+  (mesmo com outras maiúsculas) ou estiver dentro de/contiver outra pasta registrada.
 
-**Exit codes**: `0` registrado/inalterado · `1` regra de negócio violada (ex.: alias já existe com
-dados diferentes) · `2` argumento inválido/ausente.
+**Exit codes**: `0` registrado/inalterado · `1` regra de negócio violada (ex.: alias ou caminho já
+registrado, aninhamento) · `2` argumento inválido/ausente · `3` caminho inexistente/sem permissão.
 
-### 2. Apontar o alias para o caminho real (variável de ambiente)
+### 2. ~~Apontar o alias para o caminho real (variável de ambiente)~~ — removido na feature 005
+
+Desde a feature 005 o caminho fica no próprio registro (`--path`); nenhuma variável é necessária.
+Registros antigos (v1) são convertidos com `folders migrate` (passo 11). O texto abaixo é histórico.
 
 ```bash
 export PRAXISFORGE_FOLDER_MEU_ALIAS=/caminho/real/da/pasta
@@ -124,8 +131,8 @@ uv run praxisforge folders scan --all
   atualizadas, quantas falharam e quantas foram **ignoradas** (pastas com `status: ignore`, ver
   passo 9), e também lista grupos de aliases que apontam para o **mesmo caminho real**
   (duplicidade, só informativo).
-- Pastas com `status: ignore` são puladas automaticamente no modo `--all` (não tentam resolver
-  caminho, não exigem variável de ambiente). A varredura **individual** explícita
+- Pastas com `status: ignore` são puladas automaticamente no modo `--all` (o caminho delas nem é
+  conferido). A varredura **individual** explícita
   (`folders scan <alias>`) continua funcionando normalmente mesmo para um alias `ignore`.
 
 **Exit codes**: `0` ok · `1` alias não registrado (individual) ou houve falha em algum item (modo
@@ -208,6 +215,29 @@ não existe nenhum caso de uso que *crie* esses arquivos automaticamente — ele
 pelo curador; este comando só valida o que já foi escrito.
 
 **Exit codes**: `0` ok · `1` falha de validação em pelo menos um item.
+
+### 11. Migrar um registro antigo (v1 → v2, feature 005)
+
+```bash
+uv run praxisforge folders migrate --root ~/DevOps/github_forks
+```
+
+- Para cada pasta, o caminho vem da variável antiga `PRAXISFORGE_FOLDER_<ALIAS>` (se existir) ou
+  da subpasta de `--root` cujo nome normalizado é igual ao alias; a própria raiz registrada como
+  pasta é **removida** (sem aninhamento).
+- Aliases e todos os demais dados são preservados. Só grava se **nenhuma** pasta ficar pendente;
+  pendências são listadas com o motivo (sem caminho, ambíguo, duplicado, entrada inválida).
+- Rodar de novo num registro já v2 não altera nada.
+
+**Exit codes**: `0` migrado ou já atual · `1` há pendências (nada gravado) ou registro inválido.
+
+### 12. Corrigir o caminho de uma pasta movida
+
+```bash
+uv run praxisforge folders update meu_alias --path /novo/local/meu_repo
+```
+
+Mesmas validações do `add`; status, licença e versão curada são preservados.
 
 ## Referência rápida de exit codes (toda a CLI)
 

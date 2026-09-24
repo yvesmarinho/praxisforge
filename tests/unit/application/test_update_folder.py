@@ -3,13 +3,14 @@
 NOME: test_update_folder.py
 TITULO: Testes de falha — caso de uso update_folder (repositório fake)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:08
+MODIFICADO: 23/09/2026 16:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.update_folder
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T031)
     - 22/09/2026 19:00: +caso status ignore (T027, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:08: resolver/inspector + testes de versão curada (T018, T023, feature 004)
+    - 23/09/2026 16:52: FolderLocator + path (T020, feature 005)
 STATUS: DEV
 """
 
@@ -22,9 +23,9 @@ import pytest
 
 from praxisforge.application.dto import UpdateFolderInput
 from praxisforge.application.ports import (
+    FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
-    PathResolver,
 )
 from praxisforge.application.update_folder import UpdateFolderResult
 from praxisforge.application.update_folder import update_folder as _update_folder
@@ -34,7 +35,7 @@ from praxisforge.domain.errors import (
     ContentInspectionError,
     FolderNotFoundError,
     FolderPathInvalidError,
-    FolderPathNotConfiguredError,
+    FolderPathUnreadableError,
     UnknownLicenseRequiresPendingError,
 )
 from praxisforge.domain.folder import Folder
@@ -60,16 +61,22 @@ class _FakeRepository(FolderRegistryRepository):
         return True
 
 
-class _FakeResolver(PathResolver):
+class _FakeResolver(FolderLocator):
     def __init__(self, error: Exception | None = None) -> None:
         self._error = error
         self.calls = 0
 
-    def resolve(self, alias: str) -> Path:
+    def check(self, alias: str, path: Path) -> Path:
         self.calls += 1
         if self._error is not None:
             raise self._error
-        return Path("/srv/pastas") / alias
+        return path
+
+    def canonicalize(self, alias: str, raw: str) -> Path:
+        self.calls += 1
+        if self._error is not None:
+            raise self._error
+        return Path(raw.rstrip("/") or "/")
 
 
 class _FakeInspector(GitContentInspector):
@@ -88,9 +95,12 @@ class _FakeInspector(GitContentInspector):
         raise AssertionError("update_folder não compara conteúdo")
 
 
-class _ProibidoResolver(PathResolver):
-    def resolve(self, alias: str) -> Path:  # pragma: no cover - falha se chamado
-        raise AssertionError("status != curated não deve resolver caminho")
+class _ProibidoResolver(FolderLocator):
+    def check(self, alias: str, path: Path) -> Path:  # pragma: no cover - falha se chamado
+        raise AssertionError("status != curated não deve conferir o caminho")
+
+    def canonicalize(self, alias: str, raw: str) -> Path:  # pragma: no cover
+        raise AssertionError("sem --path não deve canonizar")
 
 
 class _ProibidoInspector(GitContentInspector):
@@ -104,14 +114,14 @@ class _ProibidoInspector(GitContentInspector):
 def update_folder(repository: FolderRegistryRepository, data: UpdateFolderInput) -> Folder:
     """Casos da feature 001: nenhum marca curated, então git nunca é consultado (FR-010)."""
     result = _update_folder(
-        repository, data, resolver=_ProibidoResolver(), inspector=_ProibidoInspector()
+        repository, data, locator=_ProibidoResolver(), inspector=_ProibidoInspector()
     )
     assert result.head_recorded is None
     return result.folder
 
 
 def _registry() -> FolderRegistry:
-    reg = FolderRegistry(schema_version="1", folders={})
+    reg = FolderRegistry(schema_version="2", folders={})
     return reg.add(
         Folder(
             alias=Alias("github_forks"),
@@ -120,6 +130,7 @@ def _registry() -> FolderRegistry:
             license="unknown",
             last_scanned=None,
             status=CurationStatus.PENDING,
+            path="/srv/pastas/github_forks",
         )
     )
 
@@ -210,7 +221,7 @@ def _registry_mit(
     commit: str | None = None, status: CurationStatus = CurationStatus.SCANNED
 ) -> FolderRegistry:
     agora = datetime.now(ZoneInfo("America/Sao_Paulo")) - timedelta(minutes=5)
-    return FolderRegistry(schema_version="1", folders={}).add(
+    return FolderRegistry(schema_version="2", folders={}).add(
         Folder(
             alias=Alias("repo"),
             description="Repositório",
@@ -218,18 +229,19 @@ def _registry_mit(
             license="MIT",
             last_scanned=agora,
             status=status,
+            path="/srv/pastas/repo",
             last_curated_commit=commit,
         )
     )
 
 
 def _curar(
-    repo: _FakeRepository, resolver: PathResolver, inspector: GitContentInspector
+    repo: _FakeRepository, resolver: FolderLocator, inspector: GitContentInspector
 ) -> UpdateFolderResult:
     return _update_folder(
         repo,
         UpdateFolderInput(alias="repo", status="curated"),
-        resolver=resolver,
+        locator=resolver,
         inspector=inspector,
     )
 
@@ -285,8 +297,8 @@ def test_outro_status_preserva_hash_e_nao_consulta_git() -> None:
 
 @pytest.mark.parametrize(
     "error",
-    [FolderPathNotConfiguredError("repo"), FolderPathInvalidError("repo", "não existe")],
-    ids=["nao_configurado", "invalido"],
+    [FolderPathUnreadableError("repo"), FolderPathInvalidError("repo", "não existe")],
+    ids=["sem_permissao", "movida"],
 )
 def test_caminho_inacessivel_falha_sem_salvar(error: Exception) -> None:
     """Caminho inacessível ao marcar curada → exceção e registro intocado (FR-003)."""
@@ -310,3 +322,74 @@ def test_falha_do_git_ao_marcar_curada_nao_salva() -> None:
         )
     assert info.value.alias == "repo"
     assert repo.save_count == 0
+
+
+# --- feature 005: atualizar caminho (FR-016) --------------------------------------------
+
+
+def test_update_path_canoniza_e_preserva_demais_dados() -> None:
+    """--path grava o caminho canônico e mantém status/licença/versão curada."""
+    repo = _FakeRepository(_registry_mit(commit="c" * 40, status=CurationStatus.CURATED))
+    result = _update_folder(
+        repo,
+        UpdateFolderInput(alias="repo", path="/srv/nova/repo/"),
+        locator=_FakeResolver(),
+        inspector=_ProibidoInspector(),
+    )
+    assert result.folder.path == "/srv/nova/repo"
+    assert result.folder.status is CurationStatus.CURATED
+    assert result.folder.last_curated_commit == "c" * 40
+    assert repo.save_count == 1
+
+
+def test_update_path_duplicado_nao_salva() -> None:
+    """Caminho já usado por outra pasta → PathAlreadyRegisteredError, nada salvo."""
+    from praxisforge.domain.errors import PathAlreadyRegisteredError
+
+    registry = _registry_mit().add(
+        Folder(
+            alias=Alias("outra"),
+            description="Outra",
+            content_type="documents",
+            license="MIT",
+            last_scanned=None,
+            status=CurationStatus.NOT_SCANNED,
+            path="/srv/outra",
+        )
+    )
+    repo = _FakeRepository(registry)
+    with pytest.raises(PathAlreadyRegisteredError) as info:
+        _update_folder(
+            repo,
+            UpdateFolderInput(alias="repo", path="/srv/outra"),
+            locator=_FakeResolver(),
+            inspector=_ProibidoInspector(),
+        )
+    assert info.value.owner == "outra"
+    assert repo.save_count == 0
+
+
+def test_update_path_inexistente_nao_salva() -> None:
+    """Locator recusa o caminho → exceção propagada, nada salvo (FR-004)."""
+    repo = _FakeRepository(_registry_mit())
+    with pytest.raises(FolderPathInvalidError):
+        _update_folder(
+            repo,
+            UpdateFolderInput(alias="repo", path="/nao/existe"),
+            locator=_FakeResolver(error=FolderPathInvalidError("repo", "caminho inexistente")),
+            inspector=_ProibidoInspector(),
+        )
+    assert repo.save_count == 0
+
+
+def test_update_de_licenca_em_pasta_curada_nao_regrava_versao() -> None:
+    """Regressão: só --status curated grava o HEAD; editar outro campo preserva a versão."""
+    repo = _FakeRepository(_registry_mit(commit="c" * 40, status=CurationStatus.CURATED))
+    result = _update_folder(
+        repo,
+        UpdateFolderInput(alias="repo", license="Apache-2.0"),
+        locator=_ProibidoResolver(),
+        inspector=_ProibidoInspector(),
+    )
+    assert result.head_recorded is None
+    assert result.folder.last_curated_commit == "c" * 40

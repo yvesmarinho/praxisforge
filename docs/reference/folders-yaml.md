@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 23/09/2026 12:17 -->
+<!-- Modificado em: 23/09/2026 17:05 -->
 
 # Referência — `src/data/folders.yaml`
 
@@ -12,12 +12,17 @@ passando por `folders validate` antes de commitar).
 
 - **Caminho padrão**: `src/data/folders.yaml` (configurável via `--registry <caminho>` em
   qualquer subcomando da CLI).
-- **Contrato**: `schemas/folders-schema-v1.json` (JSON Schema Draft 2020-12), validado com
+- **Contrato**: `schemas/folders-schema-v2.json` (JSON Schema Draft 2020-12; a v1 só é lida por
+  `folders migrate` — feature 005), validado com
   `jsonschema[format]` — dois pontos de validação: ao carregar (`folders show`/`list`/`scan`/
   `resolve`/`update`/`bootstrap`) e via `folders validate` (varre o arquivo inteiro item a item).
-- **O que ele NÃO contém**: nenhum caminho absoluto do sistema de arquivos. O caminho real de cada
-  pasta vem de uma variável de ambiente (`PRAXISFORGE_FOLDER_<ALIAS>`), nunca do YAML — é assim
-  que o arquivo pode ser versionado no git sem vazar detalhes da máquina de quem o edita.
+- **Caminho de cada pasta** (desde a feature 005, constituição v2.0.0): cada entrada guarda o
+  caminho absoluto canônico em `path`, único no registro e sem aninhamento (nenhuma pasta dentro
+  de outra). O registro passa a refletir a máquina de quem o mantém; as variáveis
+  `PRAXISFORGE_FOLDER_<ALIAS>` não são mais usadas (só por `folders migrate`). Ver
+  [ADR 0006](../decisions/0006-caminho-absoluto-no-registro.md).
+- **Histórico (até a feature 004)**: o YAML não continha caminhos; o caminho vinha da variável
+  `PRAXISFORGE_FOLDER_<ALIAS>`.
 
 ## Estrutura do arquivo
 
@@ -30,12 +35,14 @@ folders:
     last_scanned: <data ISO 8601 com timezone, ou null>
     status: <not_scanned | scanned | in_curation | curated | pending | ignore>
     last_curated_commit: <hash SHA-1/SHA-256, opcional — feature 004>
-schema_version: "1"
+    path: <caminho absoluto canônico, obrigatório — feature 005>
+schema_version: "2"
 ```
 
 ### Campo raiz `schema_version`
 
-- **Tipo**: string, valor fixo `"1"` (única versão suportada hoje).
+- **Tipo**: string, valor fixo `"2"` (feature 005). Registros `"1"` são convertidos por
+  `praxisforge folders migrate [--root <pasta-raiz>]`; qualquer outro comando recusa a v1.
 - Mudança breaking no formato exige um novo schema com major incrementado
   (`schemas/folders-schema-v2.json`) — nunca alterar o significado de um campo existente dentro
   da v1 (constituição II).
@@ -57,6 +64,7 @@ schema_version: "1"
 | `license` | string, mínimo 1 caractere | sim | Identificador de licença (ex.: `MIT`, `Apache-2.0`) ou o valor especial `unknown` quando ainda não determinada. |
 | `last_scanned` | string ISO 8601 *com* timezone, ou `null` | sim (pode ser `null`) | Data/hora da última varredura bem-sucedida (`folders scan`). `null` até a primeira varredura. |
 | `status` | enum: `not_scanned`, `scanned`, `in_curation`, `curated`, `pending`, `ignore` | sim | Estado de curadoria — ver seção "Status" abaixo. |
+| `path` | string absoluta (`^/`), canônica: sem `~`, `.`/`..` nem barra final; links resolvidos | sim | Onde a pasta está (feature 005). Único no registro, sem aninhamento, comparado sem diferenciar maiúsculas. Corrigível com `folders update --path`. |
 | `last_curated_commit` | string, 40 ou 64 hex minúsculos (`^[0-9a-f]{40}([0-9a-f]{24})?$`) | não | Hash do commit revisado na última curadoria (feature 004). Gravado ao marcar `curated`; mantido como histórico nos demais status; chave omitida quando ausente. |
 
 `additionalProperties: false` em ambos os níveis (raiz e por pasta) — nenhum campo fora dessa

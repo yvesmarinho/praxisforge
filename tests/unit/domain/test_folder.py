@@ -3,13 +3,14 @@
 NOME: test_folder.py
 TITULO: Testes de falha — entidade Folder (invariantes em __post_init__)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:04
+MODIFICADO: 23/09/2026 16:47
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.folder
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T008)
     - 22/09/2026 17:32: +caso unknown/ignore (T003, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:04: +last_curated_commit (T004, feature 004)
+    - 23/09/2026 16:47: path obrigatório (T004, feature 005)
 STATUS: DEV
 """
 
@@ -24,6 +25,7 @@ from praxisforge.domain.errors import (
     FutureScanDateError,
     InvalidCommitHashError,
     InvalidFolderError,
+    InvalidFolderPathError,
     UnknownLicenseRequiresPendingError,
 )
 from praxisforge.domain.folder import Folder
@@ -37,6 +39,7 @@ def _make(**overrides: object) -> Folder:
         "license": "unknown",
         "last_scanned": None,
         "status": CurationStatus.PENDING,
+        "path": "/srv/pastas/github_forks",
     }
     fields.update(overrides)
     return Folder(**fields)  # type: ignore[arg-type]
@@ -141,3 +144,37 @@ def test_last_curated_commit_malformado_levanta_erro(valor: str) -> None:
 
 def _agora() -> datetime:
     return datetime.now(ZoneInfo("America/Sao_Paulo")) - timedelta(minutes=1)
+
+
+# --- feature 005: caminho absoluto ----------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "valor",
+    ["", "relativo/pasta", "~/pasta", "/srv/../etc", "/srv/pasta/", "/srv/./pasta", "."],
+    ids=["vazio", "relativo", "til", "ponto_ponto", "barra_final", "ponto", "so_ponto"],
+)
+def test_path_fora_da_forma_canonica_levanta_erro(valor: str) -> None:
+    """path precisa ser absoluto e canônico na forma (FR-001, FR-002)."""
+    with pytest.raises(InvalidFolderPathError):
+        _make(path=valor)
+
+
+@pytest.mark.parametrize("valor", ["/", "/srv/pastas/meu repo", "/srv/pastas/ação", "/a"])
+def test_path_absoluto_valido_eh_aceito(valor: str) -> None:
+    """Espaços, acentos e a raiz do sistema são aceitos."""
+    assert _make(path=valor).path == valor
+
+
+def test_path_eh_obrigatorio() -> None:
+    """Folder sem path não pode ser construída."""
+    fields: dict[str, object] = {
+        "alias": Alias("github_forks"),
+        "description": "d",
+        "content_type": "repository_forks",
+        "license": "MIT",
+        "last_scanned": None,
+        "status": CurationStatus.NOT_SCANNED,
+    }
+    with pytest.raises(TypeError):
+        Folder(**fields)  # type: ignore[arg-type]

@@ -23,6 +23,9 @@
       candidata a próxima feature depois da 003 (bootstrap, já concluída).
 - [ ] `scripts/` fora do gate do ruff (`extend-exclude` em `pyproject.toml`) — refatorar e incluir no lint quando houver tempo
 
+- [ ] Detecção de aliases duplicados em `folders scan --all` (feature 002) ficou inalcançável com a
+      unicidade de caminho da feature 005 — avaliar remoção do código morto
+
 ## ✅ Concluído
 
 - [x] Scaffold inicial gerado (2026-09-18T18:56:11Z)
@@ -38,3 +41,5 @@
 - [x] Feature 004-deteccao-mudanca-conteudo: `last_curated_commit` gravado ao marcar `curated`,
       varredura reverte para `in_curation` quando os arquivos da pasta mudam (via `git`), legado
       recebe referência na primeira varredura (23/09/2026)
+- [x] Feature 005-caminho-absoluto-registro: caminho absoluto obrigatório no registro (schema v2),
+      bootstrap `<raiz>__<sub>` sem colisão, `update --path`, `folders migrate` (23/09/2026)

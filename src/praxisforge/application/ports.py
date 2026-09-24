@@ -3,13 +3,14 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:07
+MODIFICADO: 23/09/2026 16:50
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T023)
     - 22/09/2026 18:05: +RootFolderProbe (T016, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:07: +porta GitContentInspector (T015, feature 004)
+    - 23/09/2026 16:50: PathResolver → FolderLocator + LegacyPathSource (T015, feature 005)
 STATUS: DEV
 """
 
@@ -62,21 +63,55 @@ class FolderRegistryRepository(ABC):
         """
 
 
-class PathResolver(ABC):
-    """Porta para resolução de alias → caminho real (fonte: ambiente)."""
+class FolderLocator(ABC):
+    """Porta para localizar pastas no filesystem pelo caminho do registro (feature 005)."""
 
     @abstractmethod
-    def resolve(self, alias: str) -> Path:
+    def canonicalize(self, alias: str, raw: str) -> Path:
         """
-        Resolve o caminho real configurado para um alias.
+        Converte um caminho informado pelo curador na forma absoluta canônica.
 
-        :param alias: alias já registrado.
+        Expande "~", resolve relativo a partir da pasta atual, elimina "." / ".." e
+        resolve links simbólicos; confirma que é uma pasta legível.
+
+        :param alias: alias da pasta (só para mensagens de erro).
         :type alias: str
-        :return: caminho real, absoluto e legível.
+        :param raw: caminho como informado.
+        :type raw: str
+        :return: caminho absoluto canônico.
         :rtype: Path
-        :raises FolderPathNotConfiguredError: variável ausente/vazia.
-        :raises FolderPathInvalidError: caminho relativo, com `..`, inexistente ou não é diretório.
-        :raises FolderPathUnreadableError: sem permissão de leitura.
+        :raises FolderPathInvalidError: inexistente ou não é diretório.
+        :raises FolderPathUnreadableError: sem permissão de listar/entrar.
+        """
+
+    @abstractmethod
+    def check(self, alias: str, path: Path) -> Path:
+        """
+        Confirma que a pasta registrada continua acessível no caminho gravado.
+
+        :param alias: alias da pasta.
+        :type alias: str
+        :param path: caminho gravado no registro.
+        :type path: Path
+        :return: o próprio caminho, quando acessível.
+        :rtype: Path
+        :raises FolderPathInvalidError: pasta movida/apagada ou não é diretório.
+        :raises FolderPathUnreadableError: sem permissão de listar/entrar.
+        """
+
+
+class LegacyPathSource(ABC):
+    """Porta para ler caminhos do formato antigo (variáveis por alias) — só na migração."""
+
+    @abstractmethod
+    def lookup(self, alias: str) -> str | None:
+        """
+        Devolve o caminho configurado no formato antigo para o alias, se houver.
+
+        :param alias: alias da pasta.
+        :type alias: str
+        :return: caminho bruto, ou None se não configurado.
+        :rtype: str | None
         """
 
 

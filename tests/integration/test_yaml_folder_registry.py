@@ -3,12 +3,13 @@
 NOME: test_yaml_folder_registry.py
 TITULO: Testes de falha — adapter YamlFolderRegistryRepository (Infrastructure)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:04
+MODIFICADO: 23/09/2026 16:47
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.infrastructure.yaml_folder_registry
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T028)
     - 23/09/2026 12:04: +last_curated_commit (T006, feature 004)
+    - 23/09/2026 16:47: formato v2 com path (T006, feature 005)
 STATUS: DEV
 """
 
@@ -41,8 +42,9 @@ def _registry_com_github_forks() -> FolderRegistry:
         license="unknown",
         last_scanned=None,
         status=CurationStatus.PENDING,
+        path="/srv/pastas/github_forks",
     )
-    return FolderRegistry(schema_version="1", folders={}).add(folder)
+    return FolderRegistry(schema_version="2", folders={}).add(folder)
 
 
 def test_save_load_ida_e_volta(tmp_registry_path: Path) -> None:
@@ -117,7 +119,7 @@ def test_add_em_arquivo_ausente_cria_o_arquivo(tmp_registry_path: Path) -> None:
     """add (via save) em arquivo ausente cria o arquivo com folders: {} se vazio."""
     repo = _repo(tmp_registry_path)
     assert not repo.exists()
-    registry = FolderRegistry(schema_version="1", folders={})
+    registry = FolderRegistry(schema_version="2", folders={})
     repo.save(registry)
     assert repo.exists()
     loaded = repo.load()
@@ -139,8 +141,9 @@ def test_last_scanned_preenchido_sobrevive_ida_e_volta_como_string(
         license="MIT",
         last_scanned=now,
         status=CurationStatus.SCANNED,
+        path="/srv/pastas/github_forks",
     )
-    registry = FolderRegistry(schema_version="1", folders={}).add(folder)
+    registry = FolderRegistry(schema_version="2", folders={}).add(folder)
     repo = _repo(tmp_registry_path)
     repo.save(registry)
     conteudo = tmp_registry_path.read_text(encoding="utf-8")
@@ -175,7 +178,7 @@ def test_yaml_com_hash_invalido_falha_na_validacao(tmp_registry_path: Path) -> N
     from praxisforge.domain.errors import ContractValidationError
 
     tmp_registry_path.write_text(
-        "schema_version: '1'\n"
+        "schema_version: '2'\n"
         "folders:\n"
         "  github_forks:\n"
         "    description: Forks\n"
@@ -183,8 +186,73 @@ def test_yaml_com_hash_invalido_falha_na_validacao(tmp_registry_path: Path) -> N
         "    license: MIT\n"
         "    last_scanned: null\n"
         "    status: curated\n"
-        "    last_curated_commit: NAO_EH_HASH\n",
+        "    last_curated_commit: NAO_EH_HASH\n"
+        "    path: /srv/pastas/github_forks\n",
         encoding="utf-8",
     )
     with pytest.raises(ContractValidationError):
         _repo(tmp_registry_path).load()
+
+
+# --- feature 005: formato v2 -------------------------------------------------------------
+
+_V2_DUAS = (
+    "schema_version: '2'\n"
+    "folders:\n"
+    "  repo_a:\n"
+    "    description: A\n"
+    "    content_type: documents\n"
+    "    license: MIT\n"
+    "    last_scanned: null\n"
+    "    status: not_scanned\n"
+    "    path: {a}\n"
+    "  repo_b:\n"
+    "    description: B\n"
+    "    content_type: documents\n"
+    "    license: MIT\n"
+    "    last_scanned: null\n"
+    "    status: not_scanned\n"
+    "    path: {b}\n"
+)
+
+
+def test_save_grava_v2_com_path(tmp_registry_path: Path) -> None:
+    """save grava schema_version 2 e o path de cada pasta."""
+    _repo(tmp_registry_path).save(_registry_com_github_forks())
+    texto = tmp_registry_path.read_text(encoding="utf-8")
+    assert "schema_version: '2'" in texto
+    assert "path: /srv/pastas/github_forks" in texto
+    assert _repo(tmp_registry_path).load().get("github_forks").path == "/srv/pastas/github_forks"
+
+
+def test_load_de_registro_v1_pede_migracao(tmp_registry_path: Path) -> None:
+    """Registro v1 → RegistryMigrationRequiredError; load_raw continua lendo (FR-009)."""
+    from praxisforge.domain.errors import RegistryMigrationRequiredError
+
+    tmp_registry_path.write_text(
+        "schema_version: '1'\nfolders:\n  github_forks:\n    description: F\n"
+        "    content_type: repository_forks\n    license: unknown\n"
+        "    last_scanned: null\n    status: pending\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(RegistryMigrationRequiredError):
+        _repo(tmp_registry_path).load()
+    assert _repo(tmp_registry_path).load_raw()["schema_version"] == "1"
+
+
+@pytest.mark.parametrize(
+    ("a", "b", "erro"),
+    [
+        ("/srv/x", "/SRV/X", "PathAlreadyRegisteredError"),
+        ("/srv/x", "/srv/x/sub", "NestedFolderPathError"),
+    ],
+    ids=["duplicado", "aninhado"],
+)
+def test_yaml_editado_a_mao_com_paths_conflitantes_falha(
+    tmp_registry_path: Path, a: str, b: str, erro: str
+) -> None:
+    """Duplicidade/aninhamento em YAML editado à mão é rejeitado ao carregar (SC-004)."""
+    tmp_registry_path.write_text(_V2_DUAS.format(a=a, b=b), encoding="utf-8")
+    with pytest.raises(Exception) as info:  # noqa: PT011 - tipo conferido pelo nome
+        _repo(tmp_registry_path).load()
+    assert type(info.value).__name__ == erro

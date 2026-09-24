@@ -1,17 +1,20 @@
 <!--
 Sync Impact Report
-- Version change: (template não preenchido) → 1.0.0
-- Princípios adicionados: I. Arquitetura em Camadas; II. Contratos Validados e Versionados;
-  III. Test-First (NON-NEGOTIABLE); IV. Erros Semânticos nas Fronteiras;
-  V. Proveniência e Licença das Fontes; VI. Skills Versionadas no Repositório;
-  VII. Memória e Sessões no Vault Obsidian
-- Seções adicionadas: Restrições Adicionais; Fluxo de Desenvolvimento e Quality Gates; Governança
+- Version change: 1.0.0 → 2.0.0 (MAJOR: redefinição incompatível do Princípio V)
+- Princípios modificados: V. Proveniência e Licença das Fontes → V. Proveniência, Licença e
+  Localização das Fontes (o registro de pastas passa a armazenar o caminho absoluto; a proibição
+  de caminho absoluto fica restrita a código-fonte, logs e mensagens)
+- Seções adicionadas: nenhuma
 - Seções removidas: nenhuma
+- Templates: plan/spec/tasks-template leem a constituição em tempo de execução — sem alteração
+- Plano de migração: feature 005 (src/data/folders.yaml, schemas/folders-schema-v*.json,
+  resolução de caminho por variável de ambiente, docs/reference/folders-yaml.md)
 - TODOs adiados: nenhum
-- Fonte: objetivo-init-praxisforge.md (versão final, 18/09/2026)
+- Motivo: decisão do usuário (23/09/2026) para evitar colisão entre subpastas homônimas de
+  pastas-raiz diferentes; alternativas avaliadas: raiz + caminho relativo, caminho com ~/
 -->
 <!-- Criado em: 18/09/2026 17:50 -->
-<!-- Modificado em: 18/09/2026 17:49 -->
+<!-- Modificado em: 23/09/2026 12:51 -->
 
 # PraxisForge Constitution
 
@@ -53,13 +56,18 @@ só é admitido como último recurso no `main()`. Erros MUST ser registrados com
 (`exc_info=True`). Lotes MUST registrar a falha por item sem derrubar o lote inteiro.
 *Racional*: o log precisa dizer se falhou validação ou rede.
 
-### V. Proveniência e Licença das Fontes
+### V. Proveniência, Licença e Localização das Fontes
 Toda fonte curada MUST ter registro em `src/data/sources/<categoria>/<slug>.md` com origem, data,
 licença por fonte (campo `license` obrigatório) e critério de relevância. Fonte sem licença
 registrada MUST ficar com status "pendente" e MUST NOT gerar extrato copiado para o repositório.
-O material bruto MUST permanecer fora do repo, referenciado por `alias` com caminho resolvido por
-config/variável de ambiente; caminho absoluto MUST NOT aparecer no YAML nem no código.
-*Racional*: rastreabilidade e respeito a direitos, com repositório reproduzível.
+O material bruto MUST permanecer fora do repo. Cada pasta registrada em `src/data/folders.yaml`
+MUST declarar seu caminho absoluto (campo obrigatório por item), que a identifica de forma única
+junto com o `alias` — duas pastas não podem compartilhar o mesmo caminho real. Caminho absoluto
+MUST NOT aparecer no código-fonte (nenhum caminho fixo de máquina) e MUST NOT aparecer em logs ou
+mensagens de erro além do estritamente necessário para identificar o próprio item com problema.
+*Racional*: rastreabilidade e respeito a direitos; o caminho explícito elimina colisão entre
+subpastas homônimas de raízes diferentes, aceitando que o registro passe a refletir a máquina
+de quem o mantém (decisão de 23/09/2026).
 
 ### VI. Skills Versionadas no Repositório
 O repositório é a fonte de verdade das skills e agentes (`skills/<nome>/SKILL.md` + arquivos de
@@ -110,4 +118,4 @@ PATCH para esclarecimentos e ajustes de redação. Todo PR e revisão MUST verif
 com estes princípios; complexidade adicional MUST ser justificada. Orientação de execução
 complementar: `objetivo-init-praxisforge.md` e `CLAUDE.md`.
 
-**Version**: 1.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-18
+**Version**: 2.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-23

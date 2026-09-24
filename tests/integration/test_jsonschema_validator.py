@@ -48,10 +48,17 @@ def test_versao_ausente_levanta_unsupported_schema_version() -> None:
         validator.validate({"folders": {}}, schema_name="folders-schema-v1")
 
 
-def test_versao_2_levanta_unsupported_schema_version() -> None:
-    """Documento com schema_version '2' levanta UnsupportedSchemaVersionError."""
+def test_versao_3_levanta_unsupported_schema_version() -> None:
+    """Versão fora de ("1", "2") levanta UnsupportedSchemaVersionError (v2: feature 005)."""
     validator = JsonSchemaContractValidator(schemas_dir=SCHEMAS_DIR)
     with pytest.raises(UnsupportedSchemaVersionError):
+        validator.validate({"schema_version": "3", "folders": {}}, schema_name="folders-schema-v2")
+
+
+def test_versao_2_contra_schema_v1_viola_contrato() -> None:
+    """Versão conhecida mas de outro schema é violação de contrato (const)."""
+    validator = JsonSchemaContractValidator(schemas_dir=SCHEMAS_DIR)
+    with pytest.raises(ContractValidationError):
         validator.validate({"schema_version": "2", "folders": {}}, schema_name="folders-schema-v1")
 
 

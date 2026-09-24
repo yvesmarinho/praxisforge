@@ -24,10 +24,12 @@ from praxisforge.domain.errors import (
     ContractValidationError,
     FolderNotFoundError,
     FolderPathInvalidError,
-    FolderPathNotConfiguredError,
     FolderPathUnreadableError,
     InvalidRootPathError,
+    NestedFolderPathError,
+    PathAlreadyRegisteredError,
     PraxisForgeError,
+    RegistryMigrationRequiredError,
     RegistryUnavailableError,
 )
 
@@ -36,9 +38,11 @@ __all__ = [
     "ContractValidationError",
     "FolderNotFoundError",
     "FolderPathInvalidError",
-    "FolderPathNotConfiguredError",
     "FolderPathUnreadableError",
     "InvalidRootPathError",
+    "NestedFolderPathError",
+    "PathAlreadyRegisteredError",
     "PraxisForgeError",
+    "RegistryMigrationRequiredError",
     "RegistryUnavailableError",
 ]

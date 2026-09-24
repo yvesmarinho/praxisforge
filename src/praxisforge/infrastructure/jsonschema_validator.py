@@ -26,7 +26,7 @@ from praxisforge.domain.errors import (
     Violation,
 )
 
-_SUPPORTED_SCHEMA_VERSIONS = ("1",)
+_SUPPORTED_SCHEMA_VERSIONS = ("1", "2")
 
 logger = logging.getLogger(__name__)
 

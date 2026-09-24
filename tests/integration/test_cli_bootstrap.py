@@ -3,15 +3,17 @@
 NOME: test_cli_bootstrap.py
 TITULO: Testes de falha — CLI praxisforge folders bootstrap
 DATA: 22/09/2026 18:00
-MODIFICADO: 22/09/2026 16:47
+MODIFICADO: 23/09/2026 16:58
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 18:00: criação (T014)
     - 22/09/2026 18:50: +caso de rerun idempotente (T022, US2)
+    - 23/09/2026 16:58: v2, alias <raiz>__<sub>, duas raízes, escala (T029, feature 005)
 STATUS: DEV
 """
 
+import time
 from pathlib import Path
 
 import pytest
@@ -26,7 +28,7 @@ def _run(argv: list[str], capsys: pytest.CaptureFixture[str]) -> tuple[int, str,
 
 
 def _registro_vazio(caminho: Path) -> None:
-    caminho.write_text("schema_version: '1'\nfolders: {}\n", encoding="utf-8")
+    caminho.write_text("schema_version: '2'\nfolders: {}\n", encoding="utf-8")
 
 
 def test_bootstrap_registra_subpastas_codigo_0(
@@ -42,7 +44,7 @@ def test_bootstrap_registra_subpastas_codigo_0(
         ["--registry", str(tmp_registry_path), "folders", "bootstrap", str(raiz)], capsys
     )
     assert code == 0
-    assert "repo_a" in out
+    assert "raiz__repo_a" in out
 
 
 def test_bootstrap_raiz_inexistente_codigo_1(
@@ -110,3 +112,45 @@ def test_bootstrap_sem_registro_previo_funciona(
     assert code == 0
     assert "repo_a" in out
     assert tmp_registry_path.exists()
+
+
+# --- feature 005 -----------------------------------------------------------------------
+
+
+def test_duas_raizes_com_subpasta_homonima_sem_colisao(
+    tmp_registry_path: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Bootstrap em duas raízes com 'graphify' registra ambas; saída só com aliases (SC-001)."""
+    raizes = []
+    for nome in ("r1", "r2"):
+        raiz = tmp_path / nome
+        (raiz / "graphify").mkdir(parents=True)
+        raizes.append(raiz)
+    saidas = []
+    for raiz in raizes:
+        code, out, _ = _run(
+            ["--registry", str(tmp_registry_path), "folders", "bootstrap", str(raiz)], capsys
+        )
+        assert code == 0
+        saidas.append(out)
+    assert "r1__graphify" in saidas[0] and "r2__graphify" in saidas[1]
+    assert all(str(tmp_path) not in out for out in saidas)
+    texto = tmp_registry_path.read_text(encoding="utf-8")
+    assert f"path: {(raizes[0] / 'graphify').resolve()}" in texto
+    assert f"path: {(raizes[1] / 'graphify').resolve()}" in texto
+
+
+def test_bootstrap_de_100_subpastas_em_menos_de_5s(
+    tmp_registry_path: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Escala: 100 subpastas registradas em < 5 s (Plan §Performance)."""
+    raiz = tmp_path / "grande"
+    for i in range(100):
+        (raiz / f"repo_{i:03d}").mkdir(parents=True)
+    inicio = time.perf_counter()
+    code, out, _ = _run(
+        ["--registry", str(tmp_registry_path), "folders", "bootstrap", str(raiz)], capsys
+    )
+    assert time.perf_counter() - inicio < 5.0
+    assert code == 0
+    assert "100 registradas" in out

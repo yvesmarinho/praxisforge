@@ -3,13 +3,15 @@
 NOME: test_scan_folders.py
 TITULO: Testes de falha — casos de uso scan_folder e scan_all_folders (fakes)
 DATA: 22/09/2026 12:35
-MODIFICADO: 23/09/2026 12:14
+MODIFICADO: 24/09/2026 09:32
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.scan_folders
 HISTÓRICO:
     - 22/09/2026 12:35: criação (T002/T008/T014)
     - 22/09/2026 19:05: +caso pular status ignore no lote (T028, feature 003-bootstrap)
     - 23/09/2026 12:14: verificação de conteúdo e reversão (T024, T025, T031, feature 004)
+    - 23/09/2026 16:52: FolderLocator no lugar de PathResolver (T021, feature 005)
+    - 24/09/2026 09:32: lote carrega/grava o registro uma única vez (regressão de desempenho)
 STATUS: DEV
 """
 
@@ -20,9 +22,9 @@ from pathlib import Path
 import pytest
 
 from praxisforge.application.ports import (
+    FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
-    PathResolver,
 )
 from praxisforge.application.scan_folders import (
     ContentCheck,
@@ -37,7 +39,6 @@ from praxisforge.domain.errors import (
     ContentInspectionError,
     FolderNotFoundError,
     FolderPathInvalidError,
-    FolderPathNotConfiguredError,
 )
 from praxisforge.domain.folder import Folder
 from praxisforge.domain.folder_registry import FolderRegistry
@@ -47,8 +48,10 @@ class _FakeRepository(FolderRegistryRepository):
     def __init__(self, registry: FolderRegistry) -> None:
         self._registry = registry
         self.save_count = 0
+        self.load_count = 0
 
     def load(self) -> FolderRegistry:
+        self.load_count += 1
         return self._registry
 
     def load_raw(self) -> dict[str, object]:  # pragma: no cover
@@ -62,19 +65,22 @@ class _FakeRepository(FolderRegistryRepository):
         return True
 
 
-class _FakeResolver(PathResolver):
+class _FakeResolver(FolderLocator):
     def __init__(
         self, paths: dict[str, Path], broken: Mapping[str, Exception] | None = None
     ) -> None:
         self._paths = paths
         self._broken = broken or {}
 
-    def resolve(self, alias: str) -> Path:
+    def check(self, alias: str, path: Path) -> Path:
         if alias in self._broken:
             raise self._broken[alias]
         if alias not in self._paths:
-            raise FolderPathNotConfiguredError(alias)
+            raise FolderPathInvalidError(alias, "pasta não encontrada no caminho registrado")
         return self._paths[alias]
+
+    def canonicalize(self, alias: str, raw: str) -> Path:  # pragma: no cover - não usado aqui
+        return Path(raw)
 
 
 class _FakeInspector(GitContentInspector):
@@ -105,14 +111,14 @@ class _FakeInspector(GitContentInspector):
 
 
 def scan_folder(
-    repository: FolderRegistryRepository, resolver: PathResolver, alias: str
+    repository: FolderRegistryRepository, resolver: FolderLocator, alias: str
 ) -> ScanResult:
     """Casos das features 002/003: pastas fora de repositório git (inspector devolve None)."""
     return _scan_folder(repository, resolver, alias, inspector=_FakeInspector())
 
 
 def scan_all_folders(
-    repository: FolderRegistryRepository, resolver: PathResolver
+    repository: FolderRegistryRepository, resolver: FolderLocator
 ) -> ScanBatchReport:
     """Casos das features 002/003: pastas fora de repositório git (inspector devolve None)."""
     return _scan_all_folders(repository, resolver, inspector=_FakeInspector())
@@ -131,12 +137,13 @@ def _folder(
         license=license,
         last_scanned=None,
         status=status,
+        path=f"/srv/pastas/{alias}",
         last_curated_commit=commit,
     )
 
 
 def _registry(*folders: Folder) -> FolderRegistry:
-    reg = FolderRegistry(schema_version="1", folders={})
+    reg = FolderRegistry(schema_version="2", folders={})
     for folder in folders:
         reg = reg.add(folder)
     return reg
@@ -211,7 +218,7 @@ def test_falha_de_caminho_nao_altera_registro() -> None:
     """Falha ao resolver o caminho propaga a exceção e não altera o registro."""
     repo = _FakeRepository(_registry(_folder("demo_a", CurationStatus.NOT_SCANNED)))
     resolver = _FakeResolver({})
-    with pytest.raises(FolderPathNotConfiguredError):
+    with pytest.raises(FolderPathInvalidError):
         scan_folder(repo, resolver, "demo_a")
     assert repo.save_count == 0
     assert repo.load().get("demo_a").status is CurationStatus.NOT_SCANNED
@@ -249,6 +256,29 @@ def test_lote_com_pastas_validas_e_invalidas_isola_falha(tmp_path: Path) -> None
     assert len(report.ok) == 190
     assert len(report.failures) == 10
     assert {f.alias for f in report.failures} == set(broken)
+
+
+def test_lote_carrega_e_grava_o_registro_uma_unica_vez(tmp_path: Path) -> None:
+    """Lote de N pastas: 1 leitura e 1 escrita do registro, não N (desempenho, SC-001 da 004)."""
+    folders = [_folder(f"pasta{i:03d}", CurationStatus.NOT_SCANNED) for i in range(20)]
+    repo = _FakeRepository(_registry(*folders))
+    paths = {f.alias.value: tmp_path for f in folders}
+    broken = {"pasta019": FolderPathInvalidError("pasta019", reason="caminho inexistente")}
+    del paths["pasta019"]
+    report = scan_all_folders(repo, _FakeResolver(paths, broken=broken))
+    assert len(report.ok) == 19
+    assert repo.load_count == 1
+    assert repo.save_count == 1
+    assert all(f.status is CurationStatus.SCANNED for f in repo.load().list()[:19])
+    assert repo.load().get("pasta019").status is CurationStatus.NOT_SCANNED
+
+
+def test_lote_sem_nenhuma_pasta_ok_nao_grava(tmp_path: Path) -> None:
+    """Se todas as pastas falham, o registro não é regravado."""
+    folders = [_folder("demo_a", CurationStatus.NOT_SCANNED)]
+    repo = _FakeRepository(_registry(*folders))
+    scan_all_folders(repo, _FakeResolver({}))
+    assert repo.save_count == 0
 
 
 def test_registro_vazio_eh_ok() -> None:

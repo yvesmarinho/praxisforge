@@ -46,7 +46,7 @@ clean:
 ## Valida src/data contra os contratos versionados em schemas/
 validate-data:
 	@uv run yamllint src/data
-	@uv run check-jsonschema --schemafile schemas/folders-schema-v1.json src/data/folders.yaml
+	@uv run check-jsonschema --schemafile schemas/folders-schema-v2.json src/data/folders.yaml
 
 ## Roda bandit e safety sobre o código-fonte
 security:

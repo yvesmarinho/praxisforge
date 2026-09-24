@@ -42,7 +42,7 @@ class _FakeRepository(FolderRegistryRepository):
 
 
 def _registry() -> FolderRegistry:
-    reg = FolderRegistry(schema_version="1", folders={})
+    reg = FolderRegistry(schema_version="2", folders={})
     reg = reg.add(
         Folder(
             alias=Alias("github_forks"),
@@ -51,6 +51,7 @@ def _registry() -> FolderRegistry:
             license="unknown",
             last_scanned=None,
             status=CurationStatus.PENDING,
+            path="/srv/pastas/github_forks",
         )
     )
     reg = reg.add(
@@ -61,6 +62,7 @@ def _registry() -> FolderRegistry:
             license="MIT",
             last_scanned=None,
             status=CurationStatus.SCANNED,
+            path="/srv/pastas/outra",
         )
     )
     return reg

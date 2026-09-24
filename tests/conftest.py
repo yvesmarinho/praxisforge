@@ -3,7 +3,7 @@
 NOME: conftest.py
 TITULO: Fixtures compartilhadas entre tests/unit, tests/integration, tests/contract
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:51
+MODIFICADO: 23/09/2026 16:54
 VERSÃO: 0.1.0
 DEPEND: pytest
 HISTÓRICO:
@@ -76,6 +76,7 @@ def valid_folder_doc() -> dict[str, object]:
         "license": "unknown",
         "last_scanned": None,
         "status": "pending",
+        "path": "/srv/pastas/github_forks",
     }
 
 

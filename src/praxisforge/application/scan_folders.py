@@ -4,7 +4,7 @@ NOME: scan_folders.py
 TITULO: Casos de uso — varrer uma pasta registrada e varrer todas em lote (com detecção de
         aliases duplicados)
 DATA: 22/09/2026 12:45
-MODIFICADO: 23/09/2026 12:15
+MODIFICADO: 24/09/2026 09:35
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain, praxisforge.application.ports,
         praxisforge.application.resolve_folder_path, praxisforge.application.logging_events
@@ -12,6 +12,8 @@ HISTÓRICO:
     - 22/09/2026 12:45: criação (T005/T011/T017) — faz test_scan_folders.py passar
     - 22/09/2026 19:15: pular pastas ignore no lote (T032, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:15: verificação de conteúdo, ContentCheck (T028-T029, T035, feature 004)
+    - 23/09/2026 16:55: caminho do registro via FolderLocator (T025, feature 005)
+    - 24/09/2026 09:35: lote carrega/grava o registro uma única vez (desempenho em O(n))
 STATUS: DEV
 """
 
@@ -23,14 +25,15 @@ from pathlib import Path
 
 from praxisforge.application.logging_events import log_event
 from praxisforge.application.ports import (
+    FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
-    PathResolver,
 )
 from praxisforge.application.resolve_folder_path import ItemFailure
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import ContentInspectionError
 from praxisforge.domain.folder import Folder
+from praxisforge.domain.folder_registry import FolderRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -139,19 +142,19 @@ def _verificar_conteudo(
 
 
 def _aplicar_varredura(
-    repository: FolderRegistryRepository,
+    registry: FolderRegistry,
     folder: Folder,
     caminho: Path,
     inspector: GitContentInspector,
-) -> ScanResult:
+) -> tuple[FolderRegistry, ScanResult]:
     """
-    Verifica o conteúdo e persiste o efeito da varredura numa única escrita.
+    Verifica o conteúdo e aplica o efeito da varredura ao registro em memória.
 
-    Se a verificação falhar, nada é persistido (status, hash e last_scanned intactos).
+    A persistência fica com o chamador. Se a verificação falhar, o registro não é alterado
+    (status, hash e last_scanned intactos).
     """
     alias = folder.alias.value
     content_check, baseline = _verificar_conteudo(folder, caminho, inspector)
-    registry = repository.load()
     last_scanned = datetime.now(UTC)
     if folder.status is CurationStatus.NOT_SCANNED:
         novo_status: CurationStatus | None = CurationStatus.SCANNED
@@ -162,7 +165,6 @@ def _aplicar_varredura(
     updated_registry = registry.update(
         alias, status=novo_status, last_scanned=last_scanned, last_curated_commit=baseline
     )
-    repository.save(updated_registry)
     if content_check is not ContentCheck.NOT_APPLICABLE:
         log_event(
             logger,
@@ -171,7 +173,7 @@ def _aplicar_varredura(
             outcome=content_check.value,
             error_type=None,
         )
-    return ScanResult(
+    return updated_registry, ScanResult(
         alias=alias,
         status=updated_registry.get(alias).status,
         last_scanned=last_scanned,
@@ -181,7 +183,7 @@ def _aplicar_varredura(
 
 def scan_folder(
     repository: FolderRegistryRepository,
-    resolver: PathResolver,
+    locator: FolderLocator,
     alias: str,
     *,
     inspector: GitContentInspector,
@@ -191,8 +193,8 @@ def scan_folder(
 
     :param repository: porta de persistência do registro.
     :type repository: FolderRegistryRepository
-    :param resolver: porta de resolução de caminho (ambiente).
-    :type resolver: PathResolver
+    :param locator: porta que confere o caminho registrado no disco.
+    :type locator: FolderLocator
     :param alias: alias a varrer.
     :type alias: str
     :param inspector: porta de inspeção do conteúdo versionado (feature 004).
@@ -200,16 +202,17 @@ def scan_folder(
     :return: resultado da varredura (status resultante, timestamp e verificação de conteúdo).
     :rtype: ScanResult
     :raises FolderNotFoundError: alias não registrado (ambiente não é consultado).
-    :raises FolderPathNotConfiguredError: variável ausente/vazia.
     :raises FolderPathInvalidError: caminho relativo, com `..`, inexistente ou não é diretório.
     :raises FolderPathUnreadableError: sem permissão de leitura.
     :raises ContentInspectionError: falha do git em pasta curada; nada é persistido.
     """
-    # garante que o alias existe antes de consultar o ambiente
-    folder = repository.load().get(alias)
+    # garante que o alias existe antes de consultar o disco
+    registry = repository.load()
+    folder = registry.get(alias)
     try:
-        caminho = resolver.resolve(alias)
-        resultado = _aplicar_varredura(repository, folder, caminho, inspector)
+        caminho = locator.check(alias, Path(folder.path))
+        updated_registry, resultado = _aplicar_varredura(registry, folder, caminho, inspector)
+        repository.save(updated_registry)
     except Exception as error:
         log_event(
             logger,
@@ -225,7 +228,7 @@ def scan_folder(
 
 def scan_all_folders(
     repository: FolderRegistryRepository,
-    resolver: PathResolver,
+    locator: FolderLocator,
     *,
     inspector: GitContentInspector,
 ) -> ScanBatchReport:
@@ -237,8 +240,8 @@ def scan_all_folders(
 
     :param repository: porta de persistência do registro.
     :type repository: FolderRegistryRepository
-    :param resolver: porta de resolução de caminho (ambiente).
-    :type resolver: PathResolver
+    :param locator: porta que confere o caminho registrado no disco.
+    :type locator: FolderLocator
     :param inspector: porta de inspeção do conteúdo versionado (feature 004).
     :type inspector: GitContentInspector
     :return: relatório com pastas atualizadas, falhas por item e grupos duplicados.
@@ -255,8 +258,8 @@ def scan_all_folders(
             ignored.append(alias)
             continue
         try:
-            caminho = resolver.resolve(alias)
-            resultado = _aplicar_varredura(repository, folder, caminho, inspector)
+            caminho = locator.check(alias, Path(folder.path))
+            registry, resultado = _aplicar_varredura(registry, folder, caminho, inspector)
         except Exception as error:  # noqa: BLE001 - agrega falha por item, não interrompe o lote
             failures.append(
                 ItemFailure(alias=alias, error_type=type(error).__name__, message=str(error))
@@ -264,6 +267,10 @@ def scan_all_folders(
             continue
         caminhos_por_alias[alias] = caminho
         ok.append(resultado)
+
+    if ok:
+        # uma única escrita ao fim do lote: regravar por pasta tornava o lote O(n²)
+        repository.save(registry)
 
     grupos: dict[Path, list[str]] = {}
     for alias, caminho in caminhos_por_alias.items():
