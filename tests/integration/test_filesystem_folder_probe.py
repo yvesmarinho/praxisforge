@@ -3,11 +3,12 @@
 NOME: test_filesystem_folder_probe.py
 TITULO: Testes de falha — adapter FilesystemFolderProbe (Infrastructure)
 DATA: 22/09/2026 17:50
-MODIFICADO: 22/09/2026 16:41
+MODIFICADO: 24/09/2026 10:16
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.infrastructure.filesystem_folder_probe
 HISTÓRICO:
     - 22/09/2026 17:50: criação (T012)
+    - 24/09/2026 10:16: +Elastic-2.0 (bug: bootstrap marcava ELv2 como unknown)
 STATUS: DEV
 """
 
@@ -156,12 +157,16 @@ def test_read_description_none_readme_so_badges_e_cabecalho(tmp_path: Path) -> N
             "holder nor...",
             "BSD-3-Clause",
         ),
+        (
+            "Elastic License 2.0 (ELv2)\n\nCopyright 2026 ...\n\n## Acceptance\n...",
+            "Elastic-2.0",
+        ),
     ],
 )
 def test_detect_license_reconhece_licencas_suportadas(
     tmp_path: Path, conteudo: str, esperado: str
 ) -> None:
-    """Reconhece MIT/Apache-2.0/GPL-3.0/BSD-3-Clause pelas frases-chave documentadas."""
+    """Reconhece MIT/Apache-2.0/GPL-3.0/BSD-3-Clause/Elastic-2.0 pelas frases-chave documentadas."""
     pasta = tmp_path / "repo"
     pasta.mkdir()
     (pasta / "LICENSE").write_text(conteudo, encoding="utf-8")

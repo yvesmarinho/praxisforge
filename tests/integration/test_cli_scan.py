@@ -3,7 +3,7 @@
 NOME: test_cli_scan.py
 TITULO: Testes de falha — CLI praxisforge folders scan
 DATA: 22/09/2026 12:40
-MODIFICADO: 23/09/2026 16:52
+MODIFICADO: 24/09/2026 10:12
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 22/09/2026 19:10: +casos status ignore (T030, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:15: linha 'conteúdo' e reversão com repositórios git reais (T026, feature 004)
     - 23/09/2026 16:52: caminho no registro, sem variáveis de ambiente (T022, feature 005)
+    - 24/09/2026 10:12: registro inválido sai com código 1, sem traceback (bug)
 STATUS: DEV
 """
 
@@ -339,3 +340,23 @@ def test_legado_recebe_referencia_e_depois_reverte(
     _commit(repo, "novo.md", "novo")
     code, out, _ = _run([*registry_arg, "folders", "scan", "fonte"], capsys)
     assert "conteúdo: mudou — revertida para em curadoria" in out
+
+
+_REGISTRO_INVALIDO = (
+    "schema_version: '2'\nfolders:\n  fonte:\n    content_type: documents\n"
+    "    description: ''\n    last_scanned: null\n    license: MIT\n"
+    "    path: /srv/fonte\n    status: not_scanned\n"
+)
+
+
+@pytest.mark.parametrize("alvo", [["fonte"], ["--all"]])
+def test_scan_registro_invalido_codigo_1_sem_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], alvo: list[str]
+) -> None:
+    """Registro fora do contrato → código 1 e mensagem amigável no stderr (bug 24/09/2026)."""
+    registry = tmp_path / "folders.yaml"
+    registry.write_text(_REGISTRO_INVALIDO, encoding="utf-8")
+    code, _, err = _run(["--registry", str(registry), "folders", "scan", *alvo], capsys)
+    assert code == 1
+    assert "description" in err
+    assert "folders validate" in err

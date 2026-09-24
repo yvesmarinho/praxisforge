@@ -3,11 +3,12 @@
 NOME: filesystem_folder_probe.py
 TITULO: Adapter do RootFolderProbe — lista subpastas e extrai description/license via filesystem
 DATA: 22/09/2026 18:10
-MODIFICADO: 22/09/2026 16:41
+MODIFICADO: 24/09/2026 10:17
 VERSÃO: 0.1.0
 DEPEND: os, re, praxisforge.application.ports, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 18:10: criação (T017) — faz test_filesystem_folder_probe.py passar
+    - 24/09/2026 10:17: reconhece Elastic-2.0
 STATUS: DEV
 """
 
@@ -37,6 +38,7 @@ _ASSINATURAS: dict[str, tuple[str, ...]] = {
         "redistribution and use in source and binary forms",
         "neither the name of",
     ),
+    "Elastic-2.0": ("elastic license 2.0",),
 }
 
 
