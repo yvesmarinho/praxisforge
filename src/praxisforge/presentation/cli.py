@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 10:14
+MODIFICADO: 24/09/2026 10:57
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -11,6 +11,9 @@ HISTÓRICO:
     - 23/09/2026 12:08: versão curada e linha 'conteúdo' (T022, T030, feature 004)
     - 23/09/2026 16:56: caminho no registro (--path, list/show), FolderLocator (T026, feature 005)
     - 24/09/2026 10:14: scan/resolve tratam registro inválido sem traceback (bug)
+    - 24/09/2026 10:55: sources validate via caso de uso validate_sources (v2, recursivo)
+      (T020, feature 006)
+    - 24/09/2026 10:57: política máxima em folders show/list (T026, feature 006)
 STATUS: DEV
 """
 
@@ -32,7 +35,6 @@ from praxisforge.application.errors import (
     FolderPathUnreadableError,
     InvalidRootPathError,
     PraxisForgeError,
-    RegistryUnavailableError,
 )
 from praxisforge.application.migrate_registry import migrate_registry
 from praxisforge.application.ports import (
@@ -41,7 +43,7 @@ from praxisforge.application.ports import (
     GitContentInspector,
     RootFolderProbe,
 )
-from praxisforge.application.query_folders import list_folders, show_folder
+from praxisforge.application.query_folders import folder_policy, list_folders, show_folder
 from praxisforge.application.register_folder import register_folder
 from praxisforge.application.resolve_folder_path import (
     resolve_all_folder_paths,
@@ -50,13 +52,14 @@ from praxisforge.application.resolve_folder_path import (
 from praxisforge.application.scan_folders import scan_all_folders, scan_folder
 from praxisforge.application.update_folder import update_folder
 from praxisforge.application.validate_registry import validate_registry
+from praxisforge.application.validate_sources import validate_sources
 from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSource
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.logging_setup import configure_logging
-from praxisforge.infrastructure.source_frontmatter import read_frontmatter
+from praxisforge.infrastructure.source_frontmatter import FrontmatterSourceReader
 from praxisforge.infrastructure.yaml_folder_registry import YamlFolderRegistryRepository
 
 _EXIT_AMBIENTE_ERRORS = (
@@ -175,7 +178,8 @@ def _cmd_folders_list(args: argparse.Namespace, repository: FolderRegistryReposi
     for folder in folders:
         sys.stdout.write(
             f"{folder.alias.value}\t{folder.content_type}\t{folder.license}\t"
-            f"{folder.status.label_pt_br()}\t{_formatar_data(folder.last_scanned)}\t"
+            f"{folder.status.label_pt_br()}\t{folder_policy(folder).maximum.value}\t"
+            f"{_formatar_data(folder.last_scanned)}\t"
             f"{folder.path}\n"
         )
     return _EXIT_OK
@@ -192,6 +196,9 @@ def _cmd_folders_show(args: argparse.Namespace, repository: FolderRegistryReposi
     sys.stdout.write(f"tipo de conteúdo: {folder.content_type}\n")
     sys.stdout.write(f"licença: {folder.license}\n")
     sys.stdout.write(f"status: {folder.status.label_pt_br()}\n")
+    politica = folder_policy(folder)
+    sufixo = "" if politica.classified else " (licença não classificada)"
+    sys.stdout.write(f"política máxima: {politica.maximum.value}{sufixo}\n")
     sys.stdout.write(f"última varredura: {_formatar_data(folder.last_scanned)}\n")
     sys.stdout.write(f"caminho: {folder.path}\n")
     versao = folder.last_curated_commit[:12] if folder.last_curated_commit else "-"
@@ -390,23 +397,14 @@ def _cmd_sources_validate(args: argparse.Namespace, validator: JsonSchemaContrac
     arquivos: list[Path] = []
     for path in args.paths:
         if path.is_dir():
-            arquivos.extend(sorted(path.glob("*.md")))
+            arquivos.extend(sorted(path.rglob("*.md")))
         else:
             arquivos.append(path)
-    ok = 0
-    falhas: list[tuple[Path, str]] = []
-    for arquivo in arquivos:
-        try:
-            documento = read_frontmatter(arquivo)
-            validator.validate(documento, schema_name="source-schema-v1")
-        except (RegistryUnavailableError, ContractValidationError) as error:
-            falhas.append((arquivo, str(error)))
-        else:
-            ok += 1
-    for arquivo, motivo in falhas:
-        sys.stdout.write(f"{arquivo}: {motivo}\n")
-    sys.stdout.write(f"{ok} ok, {len(falhas)} com falha\n")
-    return _EXIT_OK if not falhas else _EXIT_VALIDACAO
+    report = validate_sources(FrontmatterSourceReader(), validator, arquivos)
+    for falha in report.failures:
+        sys.stdout.write(f"{falha.path}: {falha.message}\n")
+    sys.stdout.write(f"{len(report.ok)} ok, {len(report.failures)} com falha\n")
+    return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
 
 
 def main(argv: list[str] | None = None) -> int:

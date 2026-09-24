@@ -3,7 +3,7 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:47
+MODIFICADO: 24/09/2026 10:51
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 22/09/2026 17:36: +InvalidRootPathError (T005, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:04: +ContentInspectionError/InvalidCommitHashError (T003, feature 004)
     - 23/09/2026 16:47: exceções de caminho/migração (T003, feature 005)
+    - 24/09/2026 10:51: exceções da política de extração (T003, feature 006)
 STATUS: DEV
 """
 
@@ -163,3 +164,36 @@ def test_excecoes_de_caminho_da_feature_005() -> None:
     migracao = RegistryMigrationRequiredError()
     assert isinstance(migracao, RegistryUnavailableError)
     assert "folders migrate" in str(migracao)
+
+
+def test_excecoes_da_politica_de_extracao_feature_006() -> None:
+    """Hierarquia, atributos e mensagens (T003, feature 006)."""
+    from praxisforge.domain.errors import (
+        ContractValidationError,
+        ExtractPolicyExceedsLicenseError,
+        IncompleteAttributionError,
+        SourceSchemaMigrationRequiredError,
+    )
+
+    excede = ExtractPolicyExceedsLicenseError(
+        license="Elastic-2.0", scope="code", declared="verbatim", maximum="summary"
+    )
+    assert isinstance(excede, PraxisForgeError)
+    assert (excede.license, excede.scope, excede.declared, excede.maximum) == (
+        "Elastic-2.0",
+        "code",
+        "verbatim",
+        "summary",
+    )
+    assert str(excede) == (
+        "política 'verbatim' excede a máxima 'summary' para a licença Elastic-2.0 (escopo: code)"
+    )
+
+    atribuicao = IncompleteAttributionError(field="author", policy="summary")
+    assert isinstance(atribuicao, PraxisForgeError)
+    assert atribuicao.field == "author"
+    assert "author" in str(atribuicao) and "summary" in str(atribuicao)
+
+    migracao = SourceSchemaMigrationRequiredError()
+    assert isinstance(migracao, ContractValidationError)
+    assert "extract_policy" in str(migracao) and "source-schema-v2" in str(migracao)

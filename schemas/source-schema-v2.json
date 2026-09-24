@@ -1,0 +1,113 @@
+{
+  "_meta": {
+    "criado_em": "24/09/2026 10:52",
+    "modificado_em": "2026-09-24T10:52:14-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/source-schema-v2.json",
+  "title": "Proveniência de fonte curada — frontmatter (v2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "origin",
+    "date",
+    "license",
+    "relevance",
+    "status",
+    "extract_policy"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2"
+    },
+    "origin": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^(/|[A-Za-z]:\\\\)"
+      }
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relevance": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "active",
+        "pending"
+      ]
+    },
+    "extract_policy": {
+      "enum": [
+        "link",
+        "summary",
+        "verbatim"
+      ]
+    },
+    "extract_scope": {
+      "enum": [
+        "docs",
+        "code"
+      ]
+    },
+    "notice_preserved": {
+      "type": "boolean"
+    },
+    "modified": {
+      "type": "boolean"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "license": {
+            "const": "unknown"
+          }
+        },
+        "required": [
+          "license"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "pending"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "pending"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "extract_policy": {
+            "const": "link"
+          }
+        }
+      }
+    }
+  ]
+}

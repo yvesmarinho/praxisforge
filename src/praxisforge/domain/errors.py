@@ -3,13 +3,14 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:07
+MODIFICADO: 24/09/2026 10:52
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T017) — faz tests/unit/domain/test_errors.py passar
     - 22/09/2026 17:42: +InvalidRootPathError (T009, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:07: +InvalidCommitHashError, ContentInspectionError (T011, feature 004)
+    - 24/09/2026 10:52: exceções da política de extração (T009, feature 006)
 STATUS: DEV
 """
 
@@ -183,10 +184,12 @@ __all__ = [
     "AliasAlreadyRegisteredError",
     "ContentInspectionError",
     "ContractValidationError",
+    "ExtractPolicyExceedsLicenseError",
     "FolderNotFoundError",
     "FolderPathInvalidError",
     "FolderPathUnreadableError",
     "FutureScanDateError",
+    "IncompleteAttributionError",
     "InvalidAliasError",
     "InvalidCommitHashError",
     "InvalidFolderError",
@@ -198,6 +201,7 @@ __all__ = [
     "RegistryFileNotFoundError",
     "RegistryMigrationRequiredError",
     "RegistryUnavailableError",
+    "SourceSchemaMigrationRequiredError",
     "UnknownLicenseRequiresPendingError",
     "UnsupportedSchemaVersionError",
     "Violation",
@@ -266,4 +270,60 @@ class RegistryMigrationRequiredError(RegistryUnavailableError):
     def __init__(self) -> None:
         super().__init__(
             "registro no formato v1 — execute: praxisforge folders migrate [--root <pasta-raiz>]"
+        )
+
+
+class ExtractPolicyExceedsLicenseError(PraxisForgeError):
+    """
+    Política de extração declarada acima da máxima permitida pela licença (feature 006).
+
+    :param license: licença declarada na fonte.
+    :type license: str
+    :param scope: escopo considerado (docs ou code).
+    :type scope: str
+    :param declared: política declarada.
+    :type declared: str
+    :param maximum: política máxima para a licença e o escopo.
+    :type maximum: str
+    """
+
+    def __init__(self, license: str, scope: str, declared: str, maximum: str) -> None:  # noqa: A002
+        self.license = license
+        self.scope = scope
+        self.declared = declared
+        self.maximum = maximum
+        super().__init__(
+            f"política '{declared}' excede a máxima '{maximum}' para a licença {license} "
+            f"(escopo: {scope})"
+        )
+
+
+class IncompleteAttributionError(PraxisForgeError):
+    """
+    Campo de atribuição/conformidade exigido pela política está ausente ou inválido.
+
+    :param field: campo exigido (ex.: author, notice_preserved, modified).
+    :type field: str
+    :param policy: política declarada que exige o campo.
+    :type policy: str
+    """
+
+    def __init__(self, field: str, policy: str) -> None:
+        self.field = field
+        self.policy = policy
+        super().__init__(f"política '{policy}' exige o campo '{field}'")
+
+
+class SourceSchemaMigrationRequiredError(ContractValidationError):
+    """Registro de fonte no formato v1 (extract_allowed) — não é mais aceito."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            [
+                Violation(
+                    field="schema_version",
+                    reason="source-schema-v1 não é mais aceito — use extract_policy "
+                    "(source-schema-v2)",
+                )
+            ]
         )

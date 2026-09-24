@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 23/09/2026 12:07
+MODIFICADO: 24/09/2026 10:52
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -16,33 +16,40 @@ HISTÓRICO:
       usados por `sources validate` na CLI
     - 22/09/2026 18:20: adiciona InvalidRootPathError (feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:07: reexporta ContentInspectionError (T011, feature 004)
+    - 24/09/2026 10:52: reexporta exceções da política de extração (T009, feature 006)
 STATUS: DEV
 """
 
 from praxisforge.domain.errors import (
     ContentInspectionError,
     ContractValidationError,
+    ExtractPolicyExceedsLicenseError,
     FolderNotFoundError,
     FolderPathInvalidError,
     FolderPathUnreadableError,
+    IncompleteAttributionError,
     InvalidRootPathError,
     NestedFolderPathError,
     PathAlreadyRegisteredError,
     PraxisForgeError,
     RegistryMigrationRequiredError,
     RegistryUnavailableError,
+    SourceSchemaMigrationRequiredError,
 )
 
 __all__ = [
     "ContentInspectionError",
     "ContractValidationError",
+    "ExtractPolicyExceedsLicenseError",
     "FolderNotFoundError",
     "FolderPathInvalidError",
     "FolderPathUnreadableError",
+    "IncompleteAttributionError",
     "InvalidRootPathError",
     "NestedFolderPathError",
     "PathAlreadyRegisteredError",
     "PraxisForgeError",
     "RegistryMigrationRequiredError",
     "RegistryUnavailableError",
+    "SourceSchemaMigrationRequiredError",
 ]

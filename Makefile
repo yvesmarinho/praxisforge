@@ -47,6 +47,7 @@ clean:
 validate-data:
 	@uv run yamllint src/data
 	@uv run check-jsonschema --schemafile schemas/folders-schema-v2.json src/data/folders.yaml
+	@if [ -d src/data/sources ]; then uv run praxisforge sources validate src/data/sources; fi
 
 ## Roda bandit e safety sobre o código-fonte
 security:

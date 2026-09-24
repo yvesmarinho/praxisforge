@@ -3,7 +3,7 @@
 NOME: test_cli_folders.py
 TITULO: Testes de falha — CLI praxisforge folders add|list|show|update
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:53
+MODIFICADO: 24/09/2026 10:56
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 22/09/2026 19:08: +caso update --status ignore (T029, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:08: versão curada em update/show (T019, feature 004)
     - 23/09/2026 16:53: --path obrigatório, caminho em list/show (T022, feature 005)
+    - 24/09/2026 10:56: política máxima em show/list (T023, feature 006)
 STATUS: DEV
 """
 
@@ -428,3 +429,62 @@ def test_update_path_move_a_pasta_preservando_dados(
     _, out, _ = _run([*registry_arg, "folders", "show", "exemplo"], capsys)
     assert f"caminho: {nova}" in out
     assert "status: não varrida" in out
+
+
+def _add_com_licenca(
+    registry: Path, alias: str, licenca: str, capsys: pytest.CaptureFixture[str]
+) -> Path:
+    pasta = _pasta(registry, alias)
+    code, _, err = _run(
+        [
+            "--registry",
+            str(registry),
+            "folders",
+            "add",
+            "--alias",
+            alias,
+            "--description",
+            "d",
+            "--content-type",
+            "documents",
+            "--license",
+            licenca,
+            "--path",
+            str(pasta),
+            "--status",
+            "not_scanned",
+        ],
+        capsys,
+    )
+    assert code == 0, err
+    return pasta
+
+
+def test_show_exibe_politica_maxima(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """show: linha 'política máxima' derivada da licença (FR-013, SC-004)."""
+    _add_com_licenca(tmp_registry_path, "fonte_mit", "MIT", capsys)
+    _add_com_licenca(tmp_registry_path, "fonte_mpl", "MPL-2.0", capsys)
+    registry_arg = ["--registry", str(tmp_registry_path)]
+
+    code, out, _ = _run([*registry_arg, "folders", "show", "fonte_mit"], capsys)
+    assert code == 0
+    assert "política máxima: verbatim\n" in out
+
+    code, out, _ = _run([*registry_arg, "folders", "show", "fonte_mpl"], capsys)
+    assert "política máxima: link (licença não classificada)" in out
+
+
+def test_list_exibe_politica_apos_status_e_caminho_por_ultimo(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """list: política logo após o status; caminho continua a última coluna."""
+    pasta = _add_com_licenca(tmp_registry_path, "fonte_mit", "MIT", capsys)
+    code, out, _ = _run(["--registry", str(tmp_registry_path), "folders", "list"], capsys)
+    assert code == 0
+    colunas = out.strip().split("\t")
+    assert colunas[0] == "fonte_mit"
+    assert colunas[3] == "não varrida"
+    assert colunas[4] == "verbatim"
+    assert colunas[-1] == str(pasta)
