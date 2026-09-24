@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 23/09/2026 17:05 -->
+<!-- Modificado em: 24/09/2026 14:36 -->
 
 # Referência — `src/data/folders.yaml`
 
@@ -10,8 +10,13 @@ passando por `folders validate` antes de commitar).
 
 ## Onde vive e o que ele é
 
-- **Caminho padrão**: `src/data/folders.yaml` (configurável via `--registry <caminho>` em
-  qualquer subcomando da CLI).
+- **Local (desde a feature 007, constituição v3.0.0)**: **fora do repositório** — por padrão
+  `$XDG_CONFIG_HOME/praxisforge/folders.yaml` (sem a variável, `~/.config/praxisforge/folders.yaml`);
+  `--registry <caminho>` ou `PRAXISFORGE_REGISTRY` escolhem outro arquivo (nessa ordem de
+  precedência). O repositório versiona só o exemplo `src/data/folders.example.yaml`; o antigo
+  `src/data/folders.yaml` é ignorado pelo git e pode ser movido com `folders relocate`. Ver
+  [ADR 0008](../decisions/0008-registro-fora-do-repositorio.md).
+- **Histórico (features 001–006)**: caminho padrão `src/data/folders.yaml`, versionado.
 - **Contrato**: `schemas/folders-schema-v2.json` (JSON Schema Draft 2020-12; a v1 só é lida por
   `folders migrate` — feature 005), validado com
   `jsonschema[format]` — dois pontos de validação: ao carregar (`folders show`/`list`/`scan`/

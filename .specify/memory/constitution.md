@@ -1,20 +1,23 @@
 <!--
 Sync Impact Report
-- Version change: 1.0.0 → 2.0.0 (MAJOR: redefinição incompatível do Princípio V)
-- Princípios modificados: V. Proveniência e Licença das Fontes → V. Proveniência, Licença e
-  Localização das Fontes (o registro de pastas passa a armazenar o caminho absoluto; a proibição
-  de caminho absoluto fica restrita a código-fonte, logs e mensagens)
+- Version change: 2.0.0 → 3.0.0 (MAJOR: redefinição incompatível do Princípio V — o registro de
+  pastas sai de src/data/folders.yaml e passa a viver fora do repositório)
+- Princípios modificados: V. Proveniência, Licença e Localização das Fontes (título mantido;
+  localização do registro de pastas redefinida; repositório só versiona exemplo sem caminhos
+  pessoais)
 - Seções adicionadas: nenhuma
 - Seções removidas: nenhuma
 - Templates: plan/spec/tasks-template leem a constituição em tempo de execução — sem alteração
-- Plano de migração: feature 005 (src/data/folders.yaml, schemas/folders-schema-v*.json,
-  resolução de caminho por variável de ambiente, docs/reference/folders-yaml.md)
+- Plano de migração: feature 007 (local padrão $XDG_CONFIG_HOME/praxisforge/folders.yaml com
+  fallback ~/.config/praxisforge/folders.yaml; --registry e PRAXISFORGE_REGISTRY;
+  src/data/folders.example.yaml validado no CI; mover o registro local existente)
 - TODOs adiados: nenhum
-- Motivo: decisão do usuário (23/09/2026) para evitar colisão entre subpastas homônimas de
-  pastas-raiz diferentes; alternativas avaliadas: raiz + caminho relativo, caminho com ~/
+- Motivo: decisão do usuário (24/09/2026) — o repositório é público e o registro com caminhos
+  absolutos reflete a máquina do curador; alternativas avaliadas: arquivo local ignorado no
+  repositório, caminhos relativos a uma raiz versionados
 -->
 <!-- Criado em: 18/09/2026 17:50 -->
-<!-- Modificado em: 23/09/2026 12:51 -->
+<!-- Modificado em: 24/09/2026 11:22 -->
 
 # PraxisForge Constitution
 
@@ -60,14 +63,20 @@ só é admitido como último recurso no `main()`. Erros MUST ser registrados com
 Toda fonte curada MUST ter registro em `src/data/sources/<categoria>/<slug>.md` com origem, data,
 licença por fonte (campo `license` obrigatório) e critério de relevância. Fonte sem licença
 registrada MUST ficar com status "pendente" e MUST NOT gerar extrato copiado para o repositório.
-O material bruto MUST permanecer fora do repo. Cada pasta registrada em `src/data/folders.yaml`
-MUST declarar seu caminho absoluto (campo obrigatório por item), que a identifica de forma única
-junto com o `alias` — duas pastas não podem compartilhar o mesmo caminho real. Caminho absoluto
-MUST NOT aparecer no código-fonte (nenhum caminho fixo de máquina) e MUST NOT aparecer em logs ou
-mensagens de erro além do estritamente necessário para identificar o próprio item com problema.
+O material bruto MUST permanecer fora do repo. O registro de pastas a curar MUST viver fora do
+repositório: local padrão `$XDG_CONFIG_HOME/praxisforge/folders.yaml` (sem a variável,
+`~/.config/praxisforge/folders.yaml`), substituível por `--registry` ou pela variável
+`PRAXISFORGE_REGISTRY`. O repositório MUST NOT versionar registro de pastas com caminhos pessoais;
+mantém apenas um exemplo sem caminhos pessoais (`src/data/folders.example.yaml`), validado no CI.
+Cada pasta registrada MUST declarar seu caminho absoluto (campo obrigatório por item), que a
+identifica de forma única junto com o `alias` — duas pastas não podem compartilhar o mesmo
+caminho real nem estar uma dentro da outra. Registros de fonte (`src/data/sources/`) continuam
+versionados no repositório. Caminho absoluto MUST NOT aparecer no código-fonte (nenhum caminho
+fixo de máquina) e MUST NOT aparecer em logs ou mensagens de erro além do estritamente necessário
+para identificar o próprio item com problema.
 *Racional*: rastreabilidade e respeito a direitos; o caminho explícito elimina colisão entre
-subpastas homônimas de raízes diferentes, aceitando que o registro passe a refletir a máquina
-de quem o mantém (decisão de 23/09/2026).
+subpastas homônimas de raízes diferentes (23/09/2026); como o repositório é público e o registro
+reflete a máquina de quem o mantém, ele fica fora do versionamento (24/09/2026).
 
 ### VI. Skills Versionadas no Repositório
 O repositório é a fonte de verdade das skills e agentes (`skills/<nome>/SKILL.md` + arquivos de
@@ -118,4 +127,4 @@ PATCH para esclarecimentos e ajustes de redação. Todo PR e revisão MUST verif
 com estes princípios; complexidade adicional MUST ser justificada. Orientação de execução
 complementar: `objetivo-init-praxisforge.md` e `CLAUDE.md`.
 
-**Version**: 2.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-23
+**Version**: 3.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-24

@@ -3,15 +3,19 @@
 NOME: test_no_absolute_paths.py
 TITULO: Testes de contrato — nenhum caminho absoluto pessoal versionado (SC-005)
 DATA: 22/09/2026 10:10
-MODIFICADO: 22/09/2026 10:01
+MODIFICADO: 24/09/2026 14:33
 VERSÃO: 0.1.0
 DEPEND: pytest, jsonschema
 HISTÓRICO:
     - 22/09/2026 10:10: criação (T044)
+    - 24/09/2026 14:33: guarda cobre o conteúdo versionado (git ls-files); registro local ignorado
+      fica de fora (FR-007, feature 007)
 STATUS: DEV
 """
 
 import re
+import shutil
+import subprocess  # nosec B404
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -20,20 +24,38 @@ ROOT = Path(__file__).parents[2]
 _PATTERN = re.compile(r"/home/|/Users/|C:\\")
 
 
+def _arquivos_versionados(*bases: str) -> list[Path]:
+    """Arquivos rastreados pelo git sob as bases; sem git, todos os arquivos do disco."""
+    git = shutil.which("git")
+    if git is not None:
+        saida = subprocess.run(  # noqa: S603 # nosec B603
+            [git, "ls-files", "-z", *bases], cwd=ROOT, capture_output=True, check=False
+        )
+        if saida.returncode == 0:
+            return [ROOT / nome for nome in saida.stdout.decode().split("\0") if nome]
+    return [path for base in bases for path in (ROOT / base).rglob("*") if path.is_file()]
+
+
 def test_nenhum_caminho_absoluto_pessoal_em_src_schemas() -> None:
-    """src/ e schemas/ não contêm caminhos pessoais absolutos versionados."""
+    """src/ e schemas/ versionados não contêm caminhos pessoais absolutos."""
     ofensores = []
-    for base in (ROOT / "src", ROOT / "schemas"):
-        for path in base.rglob("*"):
-            if not path.is_file():
-                continue
-            try:
-                conteudo = path.read_text(encoding="utf-8")
-            except (UnicodeDecodeError, OSError):
-                continue
-            if _PATTERN.search(conteudo):
-                ofensores.append(str(path.relative_to(ROOT)))
+    for path in _arquivos_versionados("src", "schemas"):
+        if not path.is_file():
+            continue
+        try:
+            conteudo = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        if _PATTERN.search(conteudo):
+            ofensores.append(str(path.relative_to(ROOT)))
     assert ofensores == []
+
+
+def test_registro_local_ignorado_nao_entra_no_guarda() -> None:
+    """src/data/folders.yaml (ignorado) não é conteúdo versionado (FR-005, FR-007)."""
+    versionados = {str(p.relative_to(ROOT)) for p in _arquivos_versionados("src")}
+    assert "src/data/folders.yaml" not in versionados
+    assert "src/data/folders.example.yaml" in versionados
 
 
 def test_registro_com_caminho_absoluto_no_lugar_do_alias_eh_rejeitado() -> None:

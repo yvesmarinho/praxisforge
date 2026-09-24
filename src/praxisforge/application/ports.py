@@ -3,7 +3,7 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 10:55
+MODIFICADO: 24/09/2026 14:35
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
@@ -12,6 +12,7 @@ HISTÓRICO:
     - 23/09/2026 12:07: +porta GitContentInspector (T015, feature 004)
     - 23/09/2026 16:50: PathResolver → FolderLocator + LegacyPathSource (T015, feature 005)
     - 24/09/2026 10:55: +porta SourceReader (T018, feature 006)
+    - 24/09/2026 14:35: +porta RegistryFileMover (T029, feature 007)
 STATUS: DEV
 """
 
@@ -215,4 +216,20 @@ class SourceReader(ABC):
         :return: documento do frontmatter (datas como `str` ISO 8601).
         :rtype: dict[str, object]
         :raises RegistryUnavailableError: arquivo ilegível, sem frontmatter ou corrompido.
+        """
+
+
+class RegistryFileMover(ABC):
+    """Porta para mover o arquivo do registro entre locais (feature 007)."""
+
+    @abstractmethod
+    def move(self, source: Path, target: Path) -> None:
+        """
+        Move o arquivo preservando o conteúdo; em falha, a origem permanece intacta.
+
+        :param source: arquivo de origem.
+        :type source: Path
+        :param target: destino (a pasta é criada se preciso).
+        :type target: Path
+        :raises RegistryRelocationError: falha de I/O; nenhum arquivo parcial no destino.
         """

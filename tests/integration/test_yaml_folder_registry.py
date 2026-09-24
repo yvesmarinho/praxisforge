@@ -3,13 +3,14 @@
 NOME: test_yaml_folder_registry.py
 TITULO: Testes de falha — adapter YamlFolderRegistryRepository (Infrastructure)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:47
+MODIFICADO: 24/09/2026 14:32
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.infrastructure.yaml_folder_registry
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T028)
     - 23/09/2026 12:04: +last_curated_commit (T006, feature 004)
     - 23/09/2026 16:47: formato v2 com path (T006, feature 005)
+    - 24/09/2026 14:32: erro de ausência cita o local (T012, feature 007)
 STATUS: DEV
 """
 
@@ -256,3 +257,12 @@ def test_yaml_editado_a_mao_com_paths_conflitantes_falha(
     with pytest.raises(Exception) as info:  # noqa: PT011 - tipo conferido pelo nome
         _repo(tmp_registry_path).load()
     assert type(info.value).__name__ == erro
+
+
+@pytest.mark.parametrize("metodo", ["load", "load_raw"])
+def test_ausencia_cita_o_local_do_registro(tmp_registry_path: Path, metodo: str) -> None:
+    """RegistryFileNotFoundError.location é o caminho do registro (FR-004)."""
+    repo = _repo(tmp_registry_path)
+    with pytest.raises(RegistryFileNotFoundError) as info:
+        getattr(repo, metodo)()
+    assert info.value.location == str(tmp_registry_path)

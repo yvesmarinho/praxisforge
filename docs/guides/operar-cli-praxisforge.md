@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 24/09/2026 10:58 -->
+<!-- Modificado em: 24/09/2026 14:36 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -31,8 +31,13 @@ features já implementadas e mergeadas em `main`:
   `PRAXISFORGE_FOLDER_<ALIAS_MAIÚSCULO>`, nunca do YAML. Isso existe para o registro poder ser
   versionado no git sem vazar caminhos absolutos da sua máquina.
 - **`--registry`**: toda invocação da CLI aceita `--registry <caminho>` para apontar para um
-  arquivo de registro diferente do padrão (`src/data/folders.yaml`). Útil para testes manuais sem
-  tocar o dado real do projeto.
+  arquivo de registro diferente do padrão. Útil para testes manuais sem tocar o dado real.
+- **Local do registro (feature 007)**: o registro real vive **fora do repositório**. Sem
+  `--registry`, vale `PRAXISFORGE_REGISTRY` (se definida e não vazia), depois
+  `$XDG_CONFIG_HOME/praxisforge/folders.yaml` e, por fim, `~/.config/praxisforge/folders.yaml`.
+  `folders add`/`bootstrap` criam o arquivo; os demais comandos informam "registro ausente em
+  <local>". O repositório só versiona `src/data/folders.example.yaml`. **Os itens acima sobre
+  variáveis por alias e registro versionado são históricos** (features 001–004 e 001–006).
 
 ## Passo a passo
 
@@ -285,3 +290,24 @@ Essas lacunas são candidatas a features futuras de curadoria/proveniência (ver
 - [`specs/001-registro-pastas-curadoria/quickstart.md`](../../specs/001-registro-pastas-curadoria/quickstart.md)
 - [`specs/002-varredura-pastas-curadoria/quickstart.md`](../../specs/002-varredura-pastas-curadoria/quickstart.md)
 - [`specs/003-bootstrap-registro-pastas/quickstart.md`](../../specs/003-bootstrap-registro-pastas/quickstart.md)
+
+### 13. Levar o registro antigo para fora do repositório (feature 007)
+
+```bash
+cp src/data/folders.yaml /tmp/folders.yaml.bak   # cópia de segurança (opcional)
+uv run praxisforge folders relocate              # origem padrão: src/data/folders.yaml
+uv run praxisforge folders relocate --from outro.yaml --registry ~/dados/folders.yaml
+```
+
+- Valida a origem (formato v1 → rode `folders migrate` antes; inválida → lista as violações;
+  sem pastas → recusa) e move para o local resolvido, criando a pasta.
+- **Nunca sobrescreve**: se já existe registro no destino, nada é alterado.
+- Copia, confere os bytes e só então remove a origem; falha de gravação deixa a origem intacta.
+- Enquanto o registro não existir no novo local, `list`/`show`/`scan`/… mostram a dica
+  `registro antigo encontrado em src/data/folders.yaml — execute: praxisforge folders relocate`.
+- **Outros clones**: rode `folders relocate` **antes** de atualizar a branch — como
+  `src/data/folders.yaml` saiu do versionamento, o `git pull` pode removê-lo.
+
+**Exit codes**: `0` movido · `1` destino existe, origem ausente/vazia/v1/inválida · `2` local é um
+diretório · `3` falha de gravação (origem intacta).
+
