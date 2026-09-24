@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 23/09/2026 17:05 -->
+<!-- Modificado em: 24/09/2026 10:58 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -33,7 +33,8 @@ Infrastructure (adapters) → depende de Domain + Application
 ```
 
 - **Domain** (`domain/`): `Alias`, `CurationStatus`, `Folder`, `FolderRegistry`,
-  `SourceRecord`, hierarquia de exceções (`errors.py`). Só stdlib; sem `logging`;
+  `SourceRecord`, tabela de política de extração (`license_policy.py`, feature 006),
+  hierarquia de exceções (`errors.py`). Só stdlib; sem `logging`;
   sem libs externas ([ADR 0001](../decisions/0001-domain-sem-pydantic.md)).
 - **Application** (`application/`): casos de uso (`register_folder`,
   `query_folders`, `update_folder`, `resolve_folder_path`, `validate_registry`),
@@ -72,8 +73,10 @@ Infrastructure (adapters) → depende de Domain + Application
    `FolderRegistry` v2 (unicidade/aninhamento) → grava só sem pendências
    ([ADR 0006](../decisions/0006-caminho-absoluto-no-registro.md)).
 5. **Validar** (`folders validate`, `sources validate`): CLI →
-   `validate_registry`/leitura direta de frontmatter → `JsonSchemaContractValidator`
-   por item, agregando falhas em `BatchReport`/`FoldersBatchReport` sem interromper o lote.
+   `validate_registry`/`validate_sources` → `JsonSchemaContractValidator` por item (+ entidade
+   `SourceRecord` com a regra licença × política, feature 006), agregando falhas em
+   `FoldersBatchReport`/`SourceValidationReport` sem interromper o lote
+   ([ADR 0007](../decisions/0007-politica-de-extracao-por-licenca.md)).
 
 ## Validação em duas etapas (FR-009, constituição II)
 
@@ -116,7 +119,8 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `domain/curation_status.py` | Enum `CurationStatus` |
 | `domain/folder.py` | Entidade `Folder` |
 | `domain/folder_registry.py` | Agregado `FolderRegistry` |
-| `domain/source_record.py` | Entidade `SourceRecord` (proveniência) |
+| `domain/source_record.py` | Entidade `SourceRecord` (proveniência + política declarada, v2) |
+| `domain/license_policy.py` | `ExtractPolicy`/`ExtractScope` e tabela licença → política máxima (feature 006) |
 | `application/ports.py` | Portas (Dependency Inversion) |
 | `application/dto.py` | DTOs pydantic de entrada |
 | `application/register_folder.py` | Caso de uso: registrar |
@@ -127,6 +131,7 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `application/bootstrap_folders.py` | Caso de uso: gerar registro inicial a partir de uma pasta-raiz (feature 003) |
 | `application/validate_registry.py` | Caso de uso: validar registro em lote |
 | `application/migrate_registry.py` | Caso de uso: migrar registro v1 → v2 (feature 005) |
+| `application/validate_sources.py` | Caso de uso: validar registros de fonte em lote (porta `SourceReader`, feature 006) |
 | `infrastructure/filesystem_folder_locator.py` | Adapter `FolderLocator` (feature 005) |
 | `infrastructure/env_legacy_path_source.py` | Adapter `LegacyPathSource`, só migração (feature 005) |
 | `infrastructure/git_cli_inspector.py` | Adapter `GitContentInspector` via executável `git` (feature 004) |
@@ -135,7 +140,7 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `infrastructure/yaml_folder_registry.py` | Adapter do repositório (YAML) |
 | `infrastructure/env_path_resolver.py` | Adapter do resolvedor de caminho |
 | `infrastructure/jsonschema_validator.py` | Adapter do validador de contrato |
-| `infrastructure/source_frontmatter.py` | Leitor de frontmatter de fontes |
+| `infrastructure/source_frontmatter.py` | Leitor de frontmatter de fontes + adapter `FrontmatterSourceReader` (feature 006) |
 | `infrastructure/logging_setup.py` | Configuração de logging (formatter JSON) |
 | `infrastructure/yaml_loader.py` | `SafeLoader` compartilhado |
 | `infrastructure/filesystem_folder_probe.py` | Adapter que lista subpastas e extrai description/license via filesystem (feature 003) |

@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 24/09/2026 10:13 -->
+<!-- Modificado em: 24/09/2026 10:58 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -78,7 +78,7 @@ versionado**.
 ### 3. Consultar o que já está registrado
 
 ```bash
-# lista todas as pastas (alias, tipo, licença, status, última varredura)
+# lista todas as pastas (alias, tipo, licença, status, política máxima, última varredura, caminho)
 uv run praxisforge folders list
 
 # filtra por status
@@ -87,6 +87,10 @@ uv run praxisforge folders list --status pending
 # detalhe de uma pasta
 uv run praxisforge folders show meu_alias
 ```
+
+`show` e `list` exibem a **política máxima de extração** derivada da licença da pasta
+(`link`, `summary` ou `verbatim`; escopo de código). Licença fora da tabela aparece como
+`link (licença não classificada)` em `show`. Detalhes: [ADR 0007](../decisions/0007-politica-de-extracao-por-licenca.md).
 
 ### 4. Confirmar o caminho resolvido (sem alterar nada)
 
@@ -210,9 +214,23 @@ uv run praxisforge sources validate src/data/sources/
 uv run praxisforge sources validate src/data/sources/papers/exemplo.md
 ```
 
-Valida o frontmatter YAML de arquivos `.md` contra `schemas/source-schema-v1.json`. **Nota**: hoje
-não existe nenhum caso de uso que *crie* esses arquivos automaticamente — eles são escritos à mão
-pelo curador; este comando só valida o que já foi escrito.
+Valida o frontmatter YAML de arquivos `.md` (diretórios são varridos recursivamente) contra
+`schemas/source-schema-v2.json` **e** a política de extração por licença (feature 006):
+
+| Nível | O que pode ir para o repositório (público) |
+|---|---|
+| `link` | só referência e metadados |
+| `summary` | síntese com suas palavras + citações curtas com autor e origem |
+| `verbatim` | cópia literal, com aviso de copyright e licença preservados (`notice_preserved: true`) |
+
+A política declarada não pode exceder a máxima da licença (MIT/BSD-3-Clause/Apache-2.0 →
+`verbatim`; GPL-3.0 → `verbatim` só com `extract_scope: docs`, senão `summary`; Elastic-2.0 →
+`summary`; `unknown`/não classificada → `link`). `summary`/`verbatim` exigem `author`; Apache-2.0
+em `verbatim` exige `modified`. Registro no formato v1 (`extract_allowed`) é rejeitado. Campos e
+exemplos: [sources-frontmatter.md](../reference/sources-frontmatter.md).
+
+**Nota**: hoje não existe nenhum caso de uso que *crie* esses arquivos automaticamente — eles são
+escritos à mão pelo curador; este comando só valida o que já foi escrito.
 
 **Exit codes**: `0` ok · `1` falha de validação em pelo menos um item.
 

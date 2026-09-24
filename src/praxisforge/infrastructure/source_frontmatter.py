@@ -3,11 +3,12 @@
 NOME: source_frontmatter.py
 TITULO: Leitor de frontmatter YAML de arquivos de fonte (.md)
 DATA: 22/09/2026 10:30
-MODIFICADO: 22/09/2026 10:15
+MODIFICADO: 24/09/2026 10:55
 VERSÃO: 0.1.0
-DEPEND: pyyaml, praxisforge.domain.errors
+DEPEND: pyyaml, praxisforge.domain.errors, praxisforge.application.ports
 HISTÓRICO:
     - 22/09/2026 10:30: criação (T057) — faz tests/integration/test_source_frontmatter.py passar
+    - 24/09/2026 10:55: adapter FrontmatterSourceReader da porta SourceReader (T018, feature 006)
 STATUS: DEV
 """
 
@@ -15,6 +16,7 @@ from pathlib import Path
 
 import yaml
 
+from praxisforge.application.ports import SourceReader
 from praxisforge.domain.errors import RegistryUnavailableError
 from praxisforge.infrastructure.yaml_loader import NoTimestampSafeLoader
 
@@ -52,3 +54,11 @@ def read_frontmatter(path: Path) -> dict[str, object]:
     if not isinstance(documento, dict):
         raise RegistryUnavailableError("frontmatter corrompido: não é um mapa")
     return documento
+
+
+class FrontmatterSourceReader(SourceReader):
+    """Adapter de `SourceReader` sobre `read_frontmatter` (filesystem + YAML seguro)."""
+
+    def read(self, path: Path) -> dict[str, object]:
+        """Ver SourceReader.read."""
+        return read_frontmatter(path)

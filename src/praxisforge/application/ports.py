@@ -3,7 +3,7 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:50
+MODIFICADO: 24/09/2026 10:55
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 22/09/2026 18:05: +RootFolderProbe (T016, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:07: +porta GitContentInspector (T015, feature 004)
     - 23/09/2026 16:50: PathResolver → FolderLocator + LegacyPathSource (T015, feature 005)
+    - 24/09/2026 10:55: +porta SourceReader (T018, feature 006)
 STATUS: DEV
 """
 
@@ -198,4 +199,20 @@ class GitContentInspector(ABC):
         :rtype: bool
         :raises ContentInspectionError: hash malformado, git indisponível, tempo esgotado
             ou saída inesperada.
+        """
+
+
+class SourceReader(ABC):
+    """Porta para ler o frontmatter de um registro de fonte (feature 006)."""
+
+    @abstractmethod
+    def read(self, path: Path) -> dict[str, object]:
+        """
+        Lê o frontmatter de um registro de fonte.
+
+        :param path: caminho do arquivo `.md`.
+        :type path: Path
+        :return: documento do frontmatter (datas como `str` ISO 8601).
+        :rtype: dict[str, object]
+        :raises RegistryUnavailableError: arquivo ilegível, sem frontmatter ou corrompido.
         """

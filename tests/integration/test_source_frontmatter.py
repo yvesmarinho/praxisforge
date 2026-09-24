@@ -3,11 +3,12 @@
 NOME: test_source_frontmatter.py
 TITULO: Testes de falha — leitor de frontmatter de fontes (Infrastructure)
 DATA: 22/09/2026 10:30
-MODIFICADO: 22/09/2026 10:05
+MODIFICADO: 24/09/2026 10:54
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.infrastructure.source_frontmatter
 HISTÓRICO:
     - 22/09/2026 10:30: criação (T052)
+    - 24/09/2026 10:54: adapter FrontmatterSourceReader da porta SourceReader (T013, feature 006)
 STATUS: DEV
 """
 
@@ -15,8 +16,9 @@ from pathlib import Path
 
 import pytest
 
+from praxisforge.application.ports import SourceReader
 from praxisforge.domain.errors import RegistryUnavailableError
-from praxisforge.infrastructure.source_frontmatter import read_frontmatter
+from praxisforge.infrastructure.source_frontmatter import FrontmatterSourceReader, read_frontmatter
 
 
 def test_sem_frontmatter_levanta_erro(tmp_path: Path) -> None:
@@ -82,3 +84,24 @@ def test_lote_de_arquivos_com_falha_por_item(tmp_path: Path) -> None:
             resultados[arquivo.name] = error
     assert isinstance(resultados["valido.md"], dict)
     assert isinstance(resultados["invalido.md"], RegistryUnavailableError)
+
+
+def test_adapter_implementa_a_porta_e_le_o_frontmatter(tmp_path: Path) -> None:
+    """FrontmatterSourceReader é um SourceReader e devolve o mesmo dict de read_frontmatter."""
+    arquivo = tmp_path / "fonte.md"
+    arquivo.write_text("---\norigin: x\ndate: 2026-09-21\n---\ncorpo\n", encoding="utf-8")
+    reader = FrontmatterSourceReader()
+    assert isinstance(reader, SourceReader)
+    assert reader.read(arquivo) == {"origin": "x", "date": "2026-09-21"}
+
+
+@pytest.mark.parametrize(
+    "conteudo", [None, "sem frontmatter\n", "---\norigin: [x\n---\n", "---\norigin: x\n"]
+)
+def test_adapter_falhas_viram_registry_unavailable(tmp_path: Path, conteudo: str | None) -> None:
+    """Inexistente, sem frontmatter, YAML inválido e não fechado → RegistryUnavailableError."""
+    arquivo = tmp_path / "fonte.md"
+    if conteudo is not None:
+        arquivo.write_text(conteudo, encoding="utf-8")
+    with pytest.raises(RegistryUnavailableError):
+        FrontmatterSourceReader().read(arquivo)

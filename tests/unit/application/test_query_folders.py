@@ -3,11 +3,12 @@
 NOME: test_query_folders.py
 TITULO: Testes de falha — casos de uso list_folders e show_folder (repositório fake)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:58
+MODIFICADO: 24/09/2026 10:56
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.query_folders
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T030)
+    - 24/09/2026 10:56: política máxima derivada da licença (T022, feature 006)
 STATUS: DEV
 """
 
@@ -16,12 +17,13 @@ import logging
 import pytest
 
 from praxisforge.application.ports import FolderRegistryRepository
-from praxisforge.application.query_folders import list_folders, show_folder
+from praxisforge.application.query_folders import folder_policy, list_folders, show_folder
 from praxisforge.domain.alias import Alias
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import FolderNotFoundError
 from praxisforge.domain.folder import Folder
 from praxisforge.domain.folder_registry import FolderRegistry
+from praxisforge.domain.license_policy import ExtractPolicy
 
 
 class _FakeRepository(FolderRegistryRepository):
@@ -121,3 +123,31 @@ def test_log_estruturado_show_sem_caminho_absoluto(caplog: pytest.LogCaptureFixt
     assert caplog.records
     for record in caplog.records:
         assert "/home/" not in record.message
+
+
+@pytest.mark.parametrize(
+    ("licenca", "maxima", "classificada"),
+    [
+        ("MIT", ExtractPolicy.VERBATIM, True),
+        ("unknown", ExtractPolicy.LINK, True),
+        ("Elastic-2.0", ExtractPolicy.SUMMARY, True),
+        ("MPL-2.0", ExtractPolicy.LINK, False),
+    ],
+)
+def test_folder_policy_deriva_da_licenca(
+    licenca: str, maxima: ExtractPolicy, classificada: bool
+) -> None:
+    """Política máxima derivada da licença da pasta, sem persistir nada (FR-013)."""
+    status = CurationStatus.PENDING if licenca == "unknown" else CurationStatus.SCANNED
+    folder = Folder(
+        alias=Alias("pasta"),
+        description="d",
+        content_type="documents",
+        license=licenca,
+        last_scanned=None,
+        status=status,
+        path="/srv/pastas/pasta",
+    )
+    politica = folder_policy(folder)
+    assert politica.maximum is maxima
+    assert politica.classified is classificada
