@@ -69,3 +69,6 @@ tmp/*
 
 # graphify (artefato gerado localmente por `graphify update .`)
 graphify-out/
+
+# Registro de pastas real (caminhos pessoais) — vive fora do repositório (feature 007)
+src/data/folders.yaml

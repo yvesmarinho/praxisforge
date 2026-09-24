@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 24/09/2026 11:31 -->
+<!-- Modificado em: 24/09/2026 14:36 -->
 
 # Praxisforge
 
@@ -95,4 +95,15 @@ licença: MIT/BSD-3-Clause/Apache-2.0 → `verbatim`; GPL-3.0 → `verbatim` só
 
 `0` sucesso · `1` falha de validação/regra de negócio · `2` uso incorreto · `3` falha de ambiente
 (caminho inválido, sem permissão, falha do `git`).
+
+### Atualização — registro fora do repositório (feature 007)
+
+- O registro de pastas real **não fica mais no repositório**: por padrão
+  `$XDG_CONFIG_HOME/praxisforge/folders.yaml` (ou `~/.config/praxisforge/folders.yaml`).
+  Precedência: `--registry` > `PRAXISFORGE_REGISTRY` > XDG > `~/.config`.
+- O repositório versiona apenas o exemplo `src/data/folders.example.yaml`.
+- Novo comando: `folders relocate [--from ARQUIVO]` — move um registro antigo
+  (`src/data/folders.yaml`) para o novo local, validando a origem e sem sobrescrever o destino.
+  Rode-o **antes** de atualizar outros clones. Detalhes em
+  [ADR 0008](docs/decisions/0008-registro-fora-do-repositorio.md).
 

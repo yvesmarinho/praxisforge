@@ -1,0 +1,27 @@
+# Registro de pastas — EXEMPLO versionado (feature 007, constituição v3.0.0 Princípio V).
+# O registro real vive fora do repositório: $XDG_CONFIG_HOME/praxisforge/folders.yaml
+# (fallback ~/.config/praxisforge/folders.yaml), ou --registry / PRAXISFORGE_REGISTRY.
+# Caminhos abaixo são fictícios; não use caminhos pessoais neste arquivo.
+folders:
+  exemplo__agentes:
+    content_type: repository_forks
+    description: Fork fictício com skills de agentes
+    last_scanned: '2026-09-24T12:00:00+00:00'
+    license: MIT
+    path: /srv/praxisforge/exemplo/agentes
+    status: scanned
+  exemplo__documentos:
+    content_type: documents
+    description: Pasta fictícia de documentos a curar
+    last_scanned: null
+    license: Apache-2.0
+    path: /srv/praxisforge/exemplo/documentos
+    status: not_scanned
+  exemplo__sem_licenca:
+    content_type: unclassified
+    description: Pasta fictícia sem licença detectada
+    last_scanned: null
+    license: unknown
+    path: /srv/praxisforge/exemplo/sem_licenca
+    status: pending
+schema_version: '2'

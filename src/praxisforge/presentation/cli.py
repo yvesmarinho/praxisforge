@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 10:57
+MODIFICADO: 24/09/2026 14:32
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -14,10 +14,14 @@ HISTÓRICO:
     - 24/09/2026 10:55: sources validate via caso de uso validate_sources (v2, recursivo)
       (T020, feature 006)
     - 24/09/2026 10:57: política máxima em folders show/list (T026, feature 006)
+    - 24/09/2026 14:32: registro fora do repositório — local resolvido por precedência (T015/T022,
+      feature 007)
+    - 24/09/2026 14:35: folders relocate e dica de registro antigo (T031, feature 007)
 STATUS: DEV
 """
 
 import argparse
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -35,6 +39,7 @@ from praxisforge.application.errors import (
     FolderPathUnreadableError,
     InvalidRootPathError,
     PraxisForgeError,
+    RegistryRelocationError,
 )
 from praxisforge.application.migrate_registry import migrate_registry
 from praxisforge.application.ports import (
@@ -45,6 +50,7 @@ from praxisforge.application.ports import (
 )
 from praxisforge.application.query_folders import folder_policy, list_folders, show_folder
 from praxisforge.application.register_folder import register_folder
+from praxisforge.application.relocate_registry import relocate_registry
 from praxisforge.application.resolve_folder_path import (
     resolve_all_folder_paths,
     resolve_folder_path,
@@ -56,9 +62,14 @@ from praxisforge.application.validate_sources import validate_sources
 from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSource
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
+from praxisforge.infrastructure.filesystem_registry_mover import FilesystemRegistryMover
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.logging_setup import configure_logging
+from praxisforge.infrastructure.registry_location import (
+    find_legacy_registry,
+    resolve_registry_path,
+)
 from praxisforge.infrastructure.source_frontmatter import FrontmatterSourceReader
 from praxisforge.infrastructure.yaml_folder_registry import YamlFolderRegistryRepository
 
@@ -68,8 +79,9 @@ _EXIT_AMBIENTE_ERRORS = (
     ContentInspectionError,
 )
 
-_DEFAULT_REGISTRY = Path("src/data/folders.yaml")
 _SCHEMAS_DIR = Path("schemas")
+_LEGACY_REGISTRY = Path("src/data/folders.yaml")
+_COMANDOS_QUE_CRIAM = ("add", "bootstrap", "relocate")
 
 _EXIT_OK = 0
 _EXIT_VALIDACAO = 1
@@ -85,7 +97,7 @@ def _formatar_data(value: datetime | None) -> str:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="praxisforge")
-    parser.add_argument("--registry", type=Path, default=_DEFAULT_REGISTRY)
+    parser.add_argument("--registry", type=Path, default=None)
     parser.add_argument("--log-level", default="INFO")
     subparsers = parser.add_subparsers(dest="comando", required=True)
 
@@ -130,6 +142,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     migrate_parser = folders_sub.add_parser("migrate")
     migrate_parser.add_argument("--root", type=Path, default=None)
+
+    relocate_parser = folders_sub.add_parser("relocate")
+    relocate_parser.add_argument("--from", dest="source", type=Path, default=_LEGACY_REGISTRY)
 
     sources = subparsers.add_parser("sources")
     sources_sub = sources.add_subparsers(dest="subcomando", required=True)
@@ -407,6 +422,32 @@ def _cmd_sources_validate(args: argparse.Namespace, validator: JsonSchemaContrac
     return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
 
 
+def _cmd_folders_relocate(
+    args: argparse.Namespace,
+    repository: FolderRegistryRepository,
+    registry_path: Path,
+    validator: JsonSchemaContractValidator,
+) -> int:
+    source_path = args.source if args.source.is_absolute() else Path.cwd() / args.source
+    source = YamlFolderRegistryRepository(source_path, validator)
+    try:
+        resultado = relocate_registry(
+            source,
+            repository,
+            FilesystemRegistryMover(),
+            source_path=source_path,
+            target_path=registry_path,
+        )
+    except RegistryRelocationError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    except PraxisForgeError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    sys.stdout.write(f"registro movido para {resultado.target} ({resultado.folders} pastas)\n")
+    return _EXIT_OK
+
+
 def main(argv: list[str] | None = None) -> int:
     """
     Ponto de entrada da CLI `praxisforge`.
@@ -420,10 +461,25 @@ def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
     validator = JsonSchemaContractValidator(schemas_dir=_SCHEMAS_DIR)
-    repository: FolderRegistryRepository = YamlFolderRegistryRepository(args.registry, validator)
+    registry_path = resolve_registry_path(args.registry, os.environ, Path.home(), Path.cwd())
+    if args.comando == "folders" and registry_path.is_dir():
+        sys.stderr.write(f"local do registro é um diretório: {registry_path}\n")
+        return _EXIT_USO
+    repository: FolderRegistryRepository = YamlFolderRegistryRepository(registry_path, validator)
     locator = FilesystemFolderLocator()
 
     if args.comando == "folders":
+        if (
+            args.subcomando not in _COMANDOS_QUE_CRIAM
+            and not repository.exists()
+            and find_legacy_registry(Path.cwd()) is not None
+        ):
+            sys.stderr.write(
+                "registro antigo encontrado em src/data/folders.yaml — "
+                "execute: praxisforge folders relocate\n"
+            )
+        if args.subcomando == "relocate":
+            return _cmd_folders_relocate(args, repository, registry_path, validator)
         if args.subcomando == "add":
             return _cmd_folders_add(args, repository, locator)
         if args.subcomando == "list":

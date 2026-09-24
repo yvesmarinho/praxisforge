@@ -3,7 +3,7 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 10:51
+MODIFICADO: 24/09/2026 14:30
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
@@ -12,6 +12,7 @@ HISTÓRICO:
     - 23/09/2026 12:04: +ContentInspectionError/InvalidCommitHashError (T003, feature 004)
     - 23/09/2026 16:47: exceções de caminho/migração (T003, feature 005)
     - 24/09/2026 10:51: exceções da política de extração (T003, feature 006)
+    - 24/09/2026 14:30: exceções do registro fora do repositório (T002, feature 007)
 STATUS: DEV
 """
 
@@ -197,3 +198,27 @@ def test_excecoes_da_politica_de_extracao_feature_006() -> None:
     migracao = SourceSchemaMigrationRequiredError()
     assert isinstance(migracao, ContractValidationError)
     assert "extract_policy" in str(migracao) and "source-schema-v2" in str(migracao)
+
+
+def test_excecoes_do_registro_fora_do_repo_feature_007() -> None:
+    """Local do registro nas mensagens; novas exceções da realocação (T002, feature 007)."""
+    from praxisforge.domain.errors import (
+        RegistryAlreadyExistsError,
+        RegistryFileNotFoundError,
+        RegistryRelocationError,
+    )
+
+    ausente = RegistryFileNotFoundError("/cfg/praxisforge/folders.yaml")
+    assert isinstance(ausente, RegistryUnavailableError)
+    assert ausente.location == "/cfg/praxisforge/folders.yaml"
+    assert "/cfg/praxisforge/folders.yaml" in str(ausente)
+    assert "folders add" in str(ausente) and "folders bootstrap" in str(ausente)
+
+    existe = RegistryAlreadyExistsError("/cfg/praxisforge/folders.yaml")
+    assert isinstance(existe, PraxisForgeError)
+    assert existe.location == "/cfg/praxisforge/folders.yaml"
+    assert "/cfg/praxisforge/folders.yaml" in str(existe)
+
+    falha = RegistryRelocationError("sem permissão de escrita")
+    assert isinstance(falha, PraxisForgeError)
+    assert "sem permissão de escrita" in str(falha)

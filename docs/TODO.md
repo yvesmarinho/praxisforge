@@ -43,3 +43,12 @@
       recebe referência na primeira varredura (23/09/2026)
 - [x] Feature 005-caminho-absoluto-registro: caminho absoluto obrigatório no registro (schema v2),
       bootstrap `<raiz>__<sub>` sem colisão, `update --path`, `folders migrate` (23/09/2026)
+- [x] Feature 006-politica-extracao-licenca: `extract_policy` por licença (link/summary/verbatim),
+      `source-schema-v2`, `validate_sources`, política máxima em `folders show/list` (24/09/2026)
+- [x] Feature 007-registro-fora-do-repo: registro de pastas fora do repositório (XDG/`~/.config`,
+      `--registry`, `PRAXISFORGE_REGISTRY`), exemplo versionado, `folders relocate` (24/09/2026)
+- [ ] Limitação conhecida (feature 007): a CLI resolve `schemas/` e o registro antigo
+      (`src/data/folders.yaml`) a partir do diretório atual — só funciona na raiz do projeto
+- [ ] Dívida: `scripts/` com violações de ruff e fora do gate; `ruff format --check` fora do
+      `make lint` (ex.: `src/praxisforge/infrastructure/filesystem_folder_probe.py`)
+

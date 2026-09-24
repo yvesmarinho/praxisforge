@@ -3,12 +3,13 @@
 NOME: yaml_folder_registry.py
 TITULO: Adapter YAML do FolderRegistryRepository — escrita atômica e determinística
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 12:07
+MODIFICADO: 24/09/2026 14:31
 VERSÃO: 0.1.0
 DEPEND: pyyaml, praxisforge.application.ports, praxisforge.domain
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T034) — faz tests/integration/test_yaml_folder_registry.py passar
     - 23/09/2026 12:07: (de)serializa last_curated_commit, omitido quando None (T014, feature 004)
+    - 24/09/2026 14:31: RegistryFileNotFoundError cita o local do registro (T006, feature 007)
 STATUS: DEV
 """
 
@@ -54,7 +55,7 @@ class YamlFolderRegistryRepository(FolderRegistryRepository):
     def load_raw(self) -> dict[str, object]:
         """Ver FolderRegistryRepository.load_raw."""
         if not self._path.exists():
-            raise RegistryFileNotFoundError
+            raise RegistryFileNotFoundError(str(self._path))
         try:
             with self._path.open("r", encoding="utf-8") as handle:
                 # NoTimestampSafeLoader só remove o resolvedor de timestamp do

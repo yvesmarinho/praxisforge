@@ -3,11 +3,12 @@
 NOME: test_folders_schema_v2.py
 TITULO: Testes de contrato — folders-schema-v2.json (path obrigatório)
 DATA: 23/09/2026 16:47
-MODIFICADO: 23/09/2026 16:47
+MODIFICADO: 24/09/2026 14:39
 VERSÃO: 0.1.0
 DEPEND: pytest, jsonschema
 HISTÓRICO:
     - 23/09/2026 16:47: criação (T002, feature 005-caminho-absoluto-registro)
+    - 24/09/2026 14:39: registro versionado passa a ser o exemplo (feature 007)
 STATUS: DEV
 """
 
@@ -87,7 +88,7 @@ def test_regras_da_v1_continuam(schema: dict[str, object]) -> None:
 
 
 def test_registro_versionado_atual_valida_na_v2(schema: dict[str, object]) -> None:
-    """src/data/folders.yaml versionado está no formato v2 (T036)."""
-    texto = (_RAIZ / "src" / "data" / "folders.yaml").read_text("utf-8")
+    """O registro versionado (exemplo, desde a feature 007) está no formato v2 (T036)."""
+    texto = (_RAIZ / "src" / "data" / "folders.example.yaml").read_text("utf-8")
     documento = yaml.load(texto, Loader=NoTimestampSafeLoader)  # noqa: S506 # nosec B506
     assert _validar(schema, documento) == []

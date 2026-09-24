@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 10:52
+MODIFICADO: 24/09/2026 14:31
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -11,6 +11,8 @@ HISTÓRICO:
     - 22/09/2026 17:42: +InvalidRootPathError (T009, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:07: +InvalidCommitHashError, ContentInspectionError (T011, feature 004)
     - 24/09/2026 10:52: exceções da política de extração (T009, feature 006)
+    - 24/09/2026 14:31: registro fora do repositório: local no erro de ausência + realocação
+      (T006, feature 007)
 STATUS: DEV
 """
 
@@ -139,10 +141,18 @@ class RegistryUnavailableError(PraxisForgeError):
 
 
 class RegistryFileNotFoundError(RegistryUnavailableError):
-    """Arquivo do registro ausente (só `folders add` pode criá-lo)."""
+    """
+    Arquivo do registro ausente (só `folders add`/`folders bootstrap` o criam).
 
-    def __init__(self) -> None:
-        super().__init__("registro ausente")
+    :param location: local resolvido do registro (o próprio item com problema); vazio quando
+        desconhecido.
+    :type location: str
+    """
+
+    def __init__(self, location: str = "") -> None:
+        self.location = location
+        onde = f" em {location}" if location else ""
+        super().__init__(f"registro ausente{onde} — crie com folders add ou folders bootstrap")
 
 
 class FolderPathInvalidError(PraxisForgeError):
@@ -196,10 +206,13 @@ __all__ = [
     "InvalidFolderPathError",
     "InvalidRootPathError",
     "NestedFolderPathError",
+    "NothingToRelocateError",
     "PathAlreadyRegisteredError",
     "PraxisForgeError",
+    "RegistryAlreadyExistsError",
     "RegistryFileNotFoundError",
     "RegistryMigrationRequiredError",
+    "RegistryRelocationError",
     "RegistryUnavailableError",
     "SourceSchemaMigrationRequiredError",
     "UnknownLicenseRequiresPendingError",
@@ -327,3 +340,36 @@ class SourceSchemaMigrationRequiredError(ContractValidationError):
                 )
             ]
         )
+
+
+class RegistryAlreadyExistsError(PraxisForgeError):
+    """
+    Já existe registro no destino da realocação — nada é sobrescrito (feature 007).
+
+    :param location: destino resolvido.
+    :type location: str
+    """
+
+    def __init__(self, location: str) -> None:
+        self.location = location
+        super().__init__(f"já existe registro em {location}; nada foi alterado")
+
+
+class RegistryRelocationError(PraxisForgeError):
+    """
+    Falha de I/O ao realocar o registro; a origem permanece intacta (feature 007).
+
+    :param reason: motivo em pt-BR.
+    :type reason: str
+    """
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"falha ao realocar o registro: {reason}")
+
+
+class NothingToRelocateError(PraxisForgeError):
+    """Registro de origem sem pastas — nada a realocar (feature 007)."""
+
+    def __init__(self) -> None:
+        super().__init__("registro de origem sem pastas; nada a mover")

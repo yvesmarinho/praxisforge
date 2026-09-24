@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 24/09/2026 10:58 -->
+<!-- Modificado em: 24/09/2026 14:36 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -131,6 +131,7 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `application/bootstrap_folders.py` | Caso de uso: gerar registro inicial a partir de uma pasta-raiz (feature 003) |
 | `application/validate_registry.py` | Caso de uso: validar registro em lote |
 | `application/migrate_registry.py` | Caso de uso: migrar registro v1 → v2 (feature 005) |
+| `application/relocate_registry.py` | Caso de uso: realocar o registro para fora do repositório (porta `RegistryFileMover`, feature 007) |
 | `application/validate_sources.py` | Caso de uso: validar registros de fonte em lote (porta `SourceReader`, feature 006) |
 | `infrastructure/filesystem_folder_locator.py` | Adapter `FolderLocator` (feature 005) |
 | `infrastructure/env_legacy_path_source.py` | Adapter `LegacyPathSource`, só migração (feature 005) |
@@ -138,6 +139,8 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `application/logging_events.py` | Log estruturado (versão Application) |
 | `application/errors.py` | Reexportação de erros para Presentation |
 | `infrastructure/yaml_folder_registry.py` | Adapter do repositório (YAML) |
+| `infrastructure/registry_location.py` | Local do registro fora do repo (precedência `--registry` > `PRAXISFORGE_REGISTRY` > XDG > `~/.config`) e detecção do registro antigo (feature 007) |
+| `infrastructure/filesystem_registry_mover.py` | Adapter `RegistryFileMover`: cópia verificada + troca atômica (feature 007) |
 | `infrastructure/env_path_resolver.py` | Adapter do resolvedor de caminho |
 | `infrastructure/jsonschema_validator.py` | Adapter do validador de contrato |
 | `infrastructure/source_frontmatter.py` | Leitor de frontmatter de fontes + adapter `FrontmatterSourceReader` (feature 006) |
@@ -145,3 +148,10 @@ a matriz de dependências — confirmando o valor do guarda automatizado (US4).
 | `infrastructure/yaml_loader.py` | `SafeLoader` compartilhado |
 | `infrastructure/filesystem_folder_probe.py` | Adapter que lista subpastas e extrai description/license via filesystem (feature 003) |
 | `presentation/cli.py` | CLI `praxisforge` |
+
+## Local do registro (feature 007)
+
+A CLI resolve o arquivo do registro com `registry_location.resolve_registry_path` antes de compor
+o repositório YAML ([ADR 0008](../decisions/0008-registro-fora-do-repositorio.md)). O registro real
+vive fora do repositório; `src/data/folders.example.yaml` é o único registro versionado.
+
