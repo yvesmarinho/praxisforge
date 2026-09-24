@@ -3,19 +3,21 @@
 NOME: folder_registry.py
 TITULO: Agregado FolderRegistry — coleção de pastas registradas, com invariantes
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:55
+MODIFICADO: 24/09/2026 09:37
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.folder, praxisforge.domain.curation_status, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T021) — faz tests/unit/domain/test_folder_registry.py passar
     - 23/09/2026 12:07: update() aceita last_curated_commit (T013, feature 004)
     - 23/09/2026 16:55: path único e sem aninhamento (T013, feature 005)
+    - 24/09/2026 09:37: componentes do caminho em cache (checagem por pares ficava cara em lote)
 STATUS: DEV
 """
 
 from collections.abc import Mapping
 from dataclasses import dataclass, replace
 from datetime import datetime
+from functools import lru_cache
 
 from praxisforge.domain.curation_status import CurationStatus
 from praxisforge.domain.errors import (
@@ -206,6 +208,7 @@ def ensure_path_available(path: str, ocupados: Mapping[str, str]) -> None:
             raise NestedFolderPathError(alias)
 
 
+@lru_cache(maxsize=4096)
 def _componentes(path: str) -> tuple[str, ...]:
     """Componentes do caminho em casefold; "/" vira tupla vazia (ancestral de tudo)."""
     return tuple(parte for parte in path.casefold().split("/") if parte)

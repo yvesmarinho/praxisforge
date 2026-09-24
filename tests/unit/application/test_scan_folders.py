@@ -3,7 +3,7 @@
 NOME: test_scan_folders.py
 TITULO: Testes de falha — casos de uso scan_folder e scan_all_folders (fakes)
 DATA: 22/09/2026 12:35
-MODIFICADO: 23/09/2026 16:52
+MODIFICADO: 24/09/2026 09:32
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.scan_folders
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 22/09/2026 19:05: +caso pular status ignore no lote (T028, feature 003-bootstrap)
     - 23/09/2026 12:14: verificação de conteúdo e reversão (T024, T025, T031, feature 004)
     - 23/09/2026 16:52: FolderLocator no lugar de PathResolver (T021, feature 005)
+    - 24/09/2026 09:32: lote carrega/grava o registro uma única vez (regressão de desempenho)
 STATUS: DEV
 """
 
@@ -47,8 +48,10 @@ class _FakeRepository(FolderRegistryRepository):
     def __init__(self, registry: FolderRegistry) -> None:
         self._registry = registry
         self.save_count = 0
+        self.load_count = 0
 
     def load(self) -> FolderRegistry:
+        self.load_count += 1
         return self._registry
 
     def load_raw(self) -> dict[str, object]:  # pragma: no cover
@@ -253,6 +256,29 @@ def test_lote_com_pastas_validas_e_invalidas_isola_falha(tmp_path: Path) -> None
     assert len(report.ok) == 190
     assert len(report.failures) == 10
     assert {f.alias for f in report.failures} == set(broken)
+
+
+def test_lote_carrega_e_grava_o_registro_uma_unica_vez(tmp_path: Path) -> None:
+    """Lote de N pastas: 1 leitura e 1 escrita do registro, não N (desempenho, SC-001 da 004)."""
+    folders = [_folder(f"pasta{i:03d}", CurationStatus.NOT_SCANNED) for i in range(20)]
+    repo = _FakeRepository(_registry(*folders))
+    paths = {f.alias.value: tmp_path for f in folders}
+    broken = {"pasta019": FolderPathInvalidError("pasta019", reason="caminho inexistente")}
+    del paths["pasta019"]
+    report = scan_all_folders(repo, _FakeResolver(paths, broken=broken))
+    assert len(report.ok) == 19
+    assert repo.load_count == 1
+    assert repo.save_count == 1
+    assert all(f.status is CurationStatus.SCANNED for f in repo.load().list()[:19])
+    assert repo.load().get("pasta019").status is CurationStatus.NOT_SCANNED
+
+
+def test_lote_sem_nenhuma_pasta_ok_nao_grava(tmp_path: Path) -> None:
+    """Se todas as pastas falham, o registro não é regravado."""
+    folders = [_folder("demo_a", CurationStatus.NOT_SCANNED)]
+    repo = _FakeRepository(_registry(*folders))
+    scan_all_folders(repo, _FakeResolver({}))
+    assert repo.save_count == 0
 
 
 def test_registro_vazio_eh_ok() -> None:
