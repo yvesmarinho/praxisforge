@@ -3,11 +3,12 @@
 NOME: jsonschema_validator.py
 TITULO: Adapter do ContractValidator — validação via jsonschema (Draft 2020-12)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:51
+MODIFICADO: 24/09/2026 16:54
 VERSÃO: 0.1.0
 DEPEND: jsonschema, praxisforge.application.ports, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T024) — faz tests/integration/test_jsonschema_validator.py passar
+    - 24/09/2026 16:54: schema_version só é exigido quando o schema o declara (T017, feature 008)
 STATUS: DEV
 """
 
@@ -58,13 +59,16 @@ class JsonSchemaContractValidator(ContractValidator):
 
     def validate(self, document: Mapping[str, object], schema_name: str) -> None:
         """Ver ContractValidator.validate."""
-        version = document.get("schema_version")
-        if version not in _SUPPORTED_SCHEMA_VERSIONS:
-            raise UnsupportedSchemaVersionError(
-                found=version if isinstance(version, str) else None,
-                supported=_SUPPORTED_SCHEMA_VERSIONS,
-            )
         schema = self._load_schema(schema_name)
+        propriedades = schema.get("properties")
+        # Schemas versionados pelo nome (ex.: skill-frontmatter-v1) não declaram schema_version
+        if isinstance(propriedades, dict) and "schema_version" in propriedades:
+            version = document.get("schema_version")
+            if version not in _SUPPORTED_SCHEMA_VERSIONS:
+                raise UnsupportedSchemaVersionError(
+                    found=version if isinstance(version, str) else None,
+                    supported=_SUPPORTED_SCHEMA_VERSIONS,
+                )
         validator = Draft202012Validator(schema, format_checker=FormatChecker())
         errors = sorted(
             validator.iter_errors(document), key=lambda e: ".".join(str(p) for p in e.path)
