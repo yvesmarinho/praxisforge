@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 23/09/2026 17:05 -->
+<!-- Modificado em: 24/09/2026 10:13 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -170,7 +170,7 @@ uv run praxisforge folders bootstrap ~/DevOps
   não existem no registro — nunca sobrescreve uma pasta já registrada (idempotente: rodar de novo
   só adiciona pastas novas que apareceram desde a última execução).
 - Para cada subpasta nova, tenta extrair `description` do README e `license` do LICENSE
-  (heurística reconhecendo MIT/Apache-2.0/GPL-3.0/BSD-3-Clause); sem reconhecimento confiável, fica
+  (heurística reconhecendo MIT/Apache-2.0/GPL-3.0/BSD-3-Clause/Elastic-2.0); sem reconhecimento confiável, fica
   `license: unknown` / `status: pending` (mesma regra do passo 1).
 - `content_type` recebe um valor genérico (`unclassified`) — ajuste manualmente depois com
   `folders update` conforme for curando cada pasta.

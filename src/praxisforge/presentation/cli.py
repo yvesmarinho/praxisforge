@@ -3,13 +3,14 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:56
+MODIFICADO: 24/09/2026 10:14
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T038) — subcomandos folders add|list|show|update
     - 23/09/2026 12:08: versão curada e linha 'conteúdo' (T022, T030, feature 004)
     - 23/09/2026 16:56: caminho no registro (--path, list/show), FolderLocator (T026, feature 005)
+    - 24/09/2026 10:14: scan/resolve tratam registro inválido sem traceback (bug)
 STATUS: DEV
 """
 
@@ -231,11 +232,22 @@ def _cmd_folders_update(
     return _EXIT_OK
 
 
+def _falha_de_registro(error: PraxisForgeError) -> int:
+    """Mensagem amigável para registro ilegível ou fora do contrato; código 1."""
+    sys.stderr.write(f"{error}\n")
+    if isinstance(error, ContractValidationError):
+        sys.stderr.write("registro inválido: rode `praxisforge folders validate` para detalhes\n")
+    return _EXIT_VALIDACAO
+
+
 def _cmd_folders_resolve(
     args: argparse.Namespace, repository: FolderRegistryRepository, locator: FolderLocator
 ) -> int:
     if args.all_aliases:
-        report = resolve_all_folder_paths(repository, locator)
+        try:
+            report = resolve_all_folder_paths(repository, locator)
+        except PraxisForgeError as error:
+            return _falha_de_registro(error)
         for alias, path in sorted(report.ok.items()):
             sys.stdout.write(f"{alias} → ok ({path})\n")
         for failure in sorted(report.failures, key=lambda f: f.alias):
@@ -250,6 +262,8 @@ def _cmd_folders_resolve(
     except _EXIT_AMBIENTE_ERRORS as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_AMBIENTE
+    except PraxisForgeError as error:
+        return _falha_de_registro(error)
     sys.stdout.write(f"{path}\n")
     return _EXIT_OK
 
@@ -261,7 +275,10 @@ def _cmd_folders_scan(
     inspector: GitContentInspector,
 ) -> int:
     if args.all_aliases:
-        report = scan_all_folders(repository, locator, inspector=inspector)
+        try:
+            report = scan_all_folders(repository, locator, inspector=inspector)
+        except PraxisForgeError as error:
+            return _falha_de_registro(error)
         for resultado in report.ok:
             sys.stdout.write(
                 f"{resultado.alias} → varrida ({resultado.status.label_pt_br()}) — "
@@ -287,6 +304,8 @@ def _cmd_folders_scan(
     except _EXIT_AMBIENTE_ERRORS as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_AMBIENTE
+    except PraxisForgeError as error:
+        return _falha_de_registro(error)
     sys.stdout.write(
         f"pasta '{resultado.alias}' varrida — status: {resultado.status.label_pt_br()}, "
         f"última varredura: {_formatar_data(resultado.last_scanned)}\n"

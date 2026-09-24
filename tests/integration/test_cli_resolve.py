@@ -3,12 +3,13 @@
 NOME: test_cli_resolve.py
 TITULO: Testes de falha — CLI praxisforge folders resolve
 DATA: 22/09/2026 10:10
-MODIFICADO: 23/09/2026 16:53
+MODIFICADO: 24/09/2026 10:12
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 22/09/2026 10:10: criação (T043)
     - 23/09/2026 16:53: caminho no registro, sem variáveis de ambiente (T022, feature 005)
+    - 24/09/2026 10:12: registro inválido sai com código 1, sem traceback (bug)
 STATUS: DEV
 """
 
@@ -123,3 +124,23 @@ def test_registro_v1_pede_migracao(
     code, _, err = _run(["--registry", str(tmp_registry_path), "folders", "list"], capsys)
     assert code == 1
     assert "folders migrate" in err
+
+
+_REGISTRO_INVALIDO = (
+    "schema_version: '2'\nfolders:\n  fonte:\n    content_type: documents\n"
+    "    description: ''\n    last_scanned: null\n    license: MIT\n"
+    "    path: /srv/fonte\n    status: not_scanned\n"
+)
+
+
+@pytest.mark.parametrize("alvo", [["fonte"], ["--all"]])
+def test_resolve_registro_invalido_codigo_1_sem_traceback(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], alvo: list[str]
+) -> None:
+    """Registro fora do contrato → código 1 e mensagem amigável no stderr (bug 24/09/2026)."""
+    registry = tmp_path / "folders.yaml"
+    registry.write_text(_REGISTRO_INVALIDO, encoding="utf-8")
+    code, _, err = _run(["--registry", str(registry), "folders", "resolve", *alvo], capsys)
+    assert code == 1
+    assert "description" in err
+    assert "folders validate" in err
