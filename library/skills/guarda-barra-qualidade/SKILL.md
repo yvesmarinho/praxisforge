@@ -3,12 +3,13 @@ name: guarda-barra-qualidade
 description: Define a barra de qualidade do projeto como contrato escrito e verificável (CONSTRAINTS.md) e impede que o agente a rebaixe para chegar ao verde — supressões novas, testes pulados ou apagados, asserções removidas, stubs, limites editados para baixo. Use quando não há barra escrita, quando pedirem para "definir padrões"/"quality gates", ou quando um agente estiver silenciando verificações para passar.
 license: MIT
 metadata:
-  version: '1.0.0'
+  version: '1.0.1'
   sources: [agent-skills-constraints]
   authored: false
+  rewrite_pending: true
 ---
 <!-- Criado em: 25/09/2026 09:45 -->
-<!-- Modificado em: 25/09/2026 09:46 -->
+<!-- Modificado em: 25/09/2026 13:11 -->
 
 # Guarda da barra de qualidade
 
