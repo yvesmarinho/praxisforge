@@ -1,16 +1,18 @@
 {
   "_meta": {
-    "criado_em": "24/09/2026 16:54",
+    "criado_em": "25/09/2026 12:59",
     "modificado_em": "2026-09-25T12:59:00-03:00"
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://praxisforge.local/schemas/skill-frontmatter-v1.json",
-  "title": "Frontmatter de SKILL.md (praxisforge v1)",
+  "$id": "https://praxisforge.local/schemas/hook-frontmatter-v1.json",
+  "title": "Frontmatter de HOOK.md do acervo (praxisforge v1)",
   "type": "object",
   "additionalProperties": true,
   "required": [
     "name",
     "description",
+    "event",
+    "run",
     "metadata"
   ],
   "properties": {
@@ -24,9 +26,31 @@
       "minLength": 1,
       "maxLength": 1024
     },
-    "license": {
+    "event": {
+      "enum": [
+        "PreToolUse",
+        "PostToolUse",
+        "UserPromptSubmit",
+        "Stop",
+        "SubagentStop",
+        "SessionStart",
+        "SessionEnd",
+        "Notification",
+        "PreCompact"
+      ]
+    },
+    "matcher": {
       "type": "string",
       "minLength": 1
+    },
+    "run": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "metadata": {
       "type": "object",
@@ -52,15 +76,6 @@
         },
         "rewrite_pending": {
           "type": "boolean"
-        },
-        "references": {
-          "type": "array",
-          "uniqueItems": true,
-          "items": {
-            "type": "string",
-            "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-            "maxLength": 64
-          }
         }
       }
     }

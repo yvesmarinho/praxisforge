@@ -19,14 +19,14 @@ tarefa incompleta.
 
 **Purpose**: registrar a mudança de princípio e os contratos antes de qualquer código.
 
-- [ ] T001 Emendar a constituição para v4.0.0 (MAJOR) em `.specify/memory/constitution.md`: Princípio VI → acervo `library/` com seis tipos e publicação só em pastas de projeto; Princípio V → só ideias são extraídas, licença obrigatória e só informativa; Sync Impact Report e cabeçalho atualizados (research R9)
-- [ ] T002 [P] Escrever `docs/decisions/0011-acervo-library.md` (estrutura por tipo, formatos R1–R3, marcador R4, remoção do alvo global) e marcar o ADR 0009 como substituído em `docs/decisions/0009-biblioteca-de-skills.md`
-- [ ] T003 [P] Escrever `docs/decisions/0012-fontes-so-ideias.md` (fim dos níveis de extração, conversão manual v2 → v3, research R6)
-- [ ] T004 [P] Criar `schemas/command-frontmatter-v1.json`, `schemas/agent-frontmatter-v1.json`, `schemas/rule-frontmatter-v1.json`, `schemas/hook-frontmatter-v1.json` e `schemas/reference-frontmatter-v1.json` com o bloco `metadata` comum (`version`, `sources`, `authored`, `rewrite_pending`) conforme research R1/R2/R5
-- [ ] T005 [P] Estender `schemas/skill-frontmatter-v1.json` (aditivo) com `metadata.references` e `metadata.rewrite_pending`
-- [ ] T006 [P] Criar `schemas/library-publication-v1.json` (`kind`, `name`, `version`, `content_sha256`, `source` = `library/<kind>s/<nome>`) conforme data-model
-- [ ] T007 [P] Criar `schemas/source-schema-v3.json` sem `extract_policy`, `extract_scope`, `notice_preserved` e `modified` (research R6)
-- [ ] T008 Testes de contrato em `tests/contract/test_library_schemas.py`: exemplo válido e inválido por schema (T004–T007), incluindo `name` fora do formato, `version` não semver, `event` de hook fora do enum e `run` vazio; atualizar `tests/contract/test_schemas_match_contracts.py` se ele listar os schemas
+- [X] T001 Emendar a constituição para v4.0.0 (MAJOR) em `.specify/memory/constitution.md`: Princípio VI → acervo `library/` com seis tipos e publicação só em pastas de projeto; Princípio V → só ideias são extraídas, licença obrigatória e só informativa; Sync Impact Report e cabeçalho atualizados (research R9)
+- [X] T002 [P] Escrever `docs/decisions/0011-acervo-library.md` (estrutura por tipo, formatos R1–R3, marcador R4, remoção do alvo global) e marcar o ADR 0009 como substituído em `docs/decisions/0009-biblioteca-de-skills.md`
+- [X] T003 [P] Escrever `docs/decisions/0012-fontes-so-ideias.md` (fim dos níveis de extração, conversão manual v2 → v3, research R6)
+- [X] T004 [P] Criar `schemas/command-frontmatter-v1.json`, `schemas/agent-frontmatter-v1.json`, `schemas/rule-frontmatter-v1.json`, `schemas/hook-frontmatter-v1.json` e `schemas/reference-frontmatter-v1.json` com o bloco `metadata` comum (`version`, `sources`, `authored`, `rewrite_pending`) conforme research R1/R2/R5
+- [X] T005 [P] Estender `schemas/skill-frontmatter-v1.json` (aditivo) com `metadata.references` e `metadata.rewrite_pending`
+- [X] T006 [P] Criar `schemas/library-publication-v1.json` (`kind`, `name`, `version`, `content_sha256`, `source` = `library/<kind>s/<nome>`) conforme data-model
+- [X] T007 [P] Criar `schemas/source-schema-v3.json` sem `extract_policy`, `extract_scope`, `notice_preserved` e `modified` (research R6)
+- [X] T008 Testes de contrato em `tests/contract/test_library_schemas.py`: exemplo válido e inválido por schema (T004–T007), incluindo `name` fora do formato, `version` não semver, `event` de hook fora do enum e `run` vazio; atualizar `tests/contract/test_schemas_match_contracts.py` se ele listar os schemas
 
 ---
 

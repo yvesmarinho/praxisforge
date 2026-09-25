@@ -1,0 +1,74 @@
+{
+  "_meta": {
+    "criado_em": "25/09/2026 12:59",
+    "modificado_em": "2026-09-25T12:59:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/source-schema-v3.json",
+  "title": "Proveniência de fonte curada — frontmatter (v3, só ideias)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "origin",
+    "date",
+    "license",
+    "relevance",
+    "status"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "3"
+    },
+    "origin": {
+      "type": "string",
+      "minLength": 1,
+      "not": {
+        "pattern": "^(/|[A-Za-z]:\\\\)"
+      }
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1
+    },
+    "relevance": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "active",
+        "pending"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "license": {
+            "const": "unknown"
+          }
+        },
+        "required": [
+          "license"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "pending"
+          }
+        }
+      }
+    }
+  ]
+}
