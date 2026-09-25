@@ -54,14 +54,14 @@ tarefa incompleta.
 
 ### Tests (vermelho primeiro)
 
-- [ ] T016 [P] [US1] Testes em `tests/unit/application/test_validate_library.py` (migrando `test_validate_skills.py`): fonte citada inexistente, fonte duplicada em `src/data/sources/`, fonte inválida, item não autoral sem fonte válida, reference citada inexistente ou inválida, falha de um item não interrompe os demais, filtro por tipo e por nome, entrada de tipo desconhecido conta como falha, `rewrite_pending` reportado sem invalidar
-- [ ] T017 [P] [US1] Testes em `tests/integration/test_cli_library_validate.py` (migrando `test_cli_skills_validate.py`): códigos 0/1/2/3 do contrato, `<nome>` sem `--type` → 2, tipo desconhecido → 2, `library/` ausente → 3 com dica, saída `<kind>/<nome>: <motivo>` e resumo `N ok, M com falha`
+- [X] T016 [P] [US1] Testes em `tests/unit/application/test_validate_library.py` (migrando `test_validate_skills.py`): fonte citada inexistente, fonte duplicada em `src/data/sources/`, fonte inválida, item não autoral sem fonte válida, reference citada inexistente ou inválida, falha de um item não interrompe os demais, filtro por tipo e por nome, entrada de tipo desconhecido conta como falha, `rewrite_pending` reportado sem invalidar
+- [X] T017 [P] [US1] Testes em `tests/integration/test_cli_library_validate.py` (migrando `test_cli_skills_validate.py`): códigos 0/1/2/3 do contrato, `<nome>` sem `--type` → 2, tipo desconhecido → 2, `library/` ausente → 3 com dica, saída `<kind>/<nome>: <motivo>` e resumo `N ok, M com falha`
 
 ### Implementation
 
-- [ ] T018 [US1] Implementar `validate_library` em `src/praxisforge/application/validate_library.py` (sucede `validate_skills.py`; o antigo sai em T049), com índice de fontes carregado uma vez por execução (research R8)
-- [ ] T019 [US1] Adicionar o grupo `library validate [--type T] [<nome>]` em `src/praxisforge/presentation/cli.py` usando `root / "library"`
-- [ ] T020 [US1] Criar os templates em `library/_templates/` **exceto o de skill** (que chega por `git mv` em T023): `command.md`, `agent.md`, `hook/HOOK.md` + `hook/run.sh` (versionado com `+x`), `rule.md`, `reference.md`, cada um com instruções de preenchimento e sem links de exemplo fora de blocos de código
+- [X] T018 [US1] Implementar `validate_library` em `src/praxisforge/application/validate_library.py` (sucede `validate_skills.py`; o antigo sai em T049), com índice de fontes carregado uma vez por execução (research R8)
+- [X] T019 [US1] Adicionar o grupo `library validate [--type T] [<nome>]` em `src/praxisforge/presentation/cli.py` usando `root / "library"`
+- [X] T020 [US1] Criar os templates em `library/_templates/` **exceto o de skill** (que chega por `git mv` em T023): `command.md`, `agent.md`, `hook/HOOK.md` + `hook/run.sh` (versionado com `+x`), `rule.md`, `reference.md`, cada um com instruções de preenchimento e sem links de exemplo fora de blocos de código
 - [ ] T021 [US1] Teste de contrato em `tests/contract/test_library_templates.py` (migrando `test_skill_template.py`, depois de T023): uma **cópia** de cada template, preenchida só nos campos marcados, passa em `library validate`
 
 **Checkpoint**: US1 funcional e testável sozinha.

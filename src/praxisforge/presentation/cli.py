@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 09:57
+MODIFICADO: 25/09/2026 13:09
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -22,6 +22,7 @@ HISTÓRICO:
     - 24/09/2026 16:54: skills publish (T036, feature 008)
     - 25/09/2026 09:52: folders update --description
     - 25/09/2026 09:57: schemas/skills/fontes/registro antigo pela raiz do projeto (não pelo cwd)
+    - 25/09/2026 13:09: library validate (T019, feature 009)
 STATUS: DEV
 """
 
@@ -45,9 +46,11 @@ from praxisforge.application.errors import (
     FolderPathInvalidError,
     FolderPathUnreadableError,
     InvalidRootPathError,
+    LibraryNotFoundError,
     PraxisForgeError,
     ProjectRootNotFoundError,
     RegistryRelocationError,
+    UnknownItemKindError,
 )
 from praxisforge.application.migrate_registry import migrate_registry
 from praxisforge.application.ports import (
@@ -66,6 +69,7 @@ from praxisforge.application.resolve_folder_path import (
 )
 from praxisforge.application.scan_folders import scan_all_folders, scan_folder
 from praxisforge.application.update_folder import update_folder
+from praxisforge.application.validate_library import ItemKind, validate_library
 from praxisforge.application.validate_registry import validate_registry
 from praxisforge.application.validate_skills import validate_skills
 from praxisforge.application.validate_sources import validate_sources
@@ -73,6 +77,7 @@ from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSourc
 from praxisforge.infrastructure.filesystem_catalog_writer import FilesystemCatalogWriter
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
+from praxisforge.infrastructure.filesystem_library_repository import FilesystemLibraryRepository
 from praxisforge.infrastructure.filesystem_registry_mover import FilesystemRegistryMover
 from praxisforge.infrastructure.filesystem_skill_publisher import FilesystemSkillPublisher
 from praxisforge.infrastructure.filesystem_skill_repository import FilesystemSkillRepository
@@ -98,6 +103,7 @@ _LEGACY_REGISTRY = Path("src/data/folders.yaml")
 _COMANDOS_QUE_CRIAM = ("add", "bootstrap", "relocate")
 _SKILLS_DIR = Path("skills")
 _SOURCES_DIR = Path("src/data/sources")
+_LIBRARY_DIR = Path("library")
 
 _EXIT_OK = 0
 _EXIT_VALIDACAO = 1
@@ -167,6 +173,12 @@ def _build_parser() -> argparse.ArgumentParser:
     sources_sub = sources.add_subparsers(dest="subcomando", required=True)
     sources_validate_parser = sources_sub.add_parser("validate")
     sources_validate_parser.add_argument("paths", nargs="+", type=Path)
+
+    library = subparsers.add_parser("library")
+    library_sub = library.add_subparsers(dest="subcomando", required=True)
+    library_validate_parser = library_sub.add_parser("validate")
+    library_validate_parser.add_argument("--type", dest="tipo", default=None)
+    library_validate_parser.add_argument("nome", nargs="?")
 
     skills = subparsers.add_parser("skills")
     skills_sub = skills.add_subparsers(dest="subcomando", required=True)
@@ -466,6 +478,47 @@ def _fontes(root: Path) -> list[Path]:
     return sorted(sources_dir.rglob("*.md")) if sources_dir.is_dir() else []
 
 
+def _tipo_pedido(args: argparse.Namespace) -> ItemKind | None | bool:
+    """Tipo pedido, None (= todos) ou False quando o uso é incorreto."""
+    if args.nome and not args.tipo:
+        sys.stderr.write("informe --type junto com o nome do item\n")
+        return False
+    if args.tipo is None:
+        return None
+    try:
+        return ItemKind.from_str(args.tipo)
+    except UnknownItemKindError as error:
+        sys.stderr.write(f"{error}\n")
+        return False
+
+
+def _cmd_library_validate(
+    args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
+) -> int:
+    tipo = _tipo_pedido(args)
+    if tipo is False:
+        return _EXIT_USO
+    try:
+        report = validate_library(
+            FilesystemLibraryRepository(root / _LIBRARY_DIR),
+            validator,
+            FrontmatterSourceReader(),
+            _fontes(root),
+            kind=tipo if isinstance(tipo, ItemKind) else None,
+            name=args.nome,
+        )
+    except LibraryNotFoundError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    for falha in report.failures:
+        for motivo in falha.reasons:
+            sys.stdout.write(f"{falha.kind}/{falha.name}: {motivo}\n")
+    for item in report.rewrite_pending:
+        sys.stdout.write(f"{item.kind.value}/{item.name}: reescrita pendente\n")
+    sys.stdout.write(f"{len(report.ok)} ok, {len(report.failures)} com falha\n")
+    return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
+
+
 def _cmd_skills_validate(
     args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
 ) -> int:
@@ -654,6 +707,9 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.comando == "sources" and args.subcomando == "validate":
         return _cmd_sources_validate(args, validator)
+
+    if args.comando == "library" and args.subcomando == "validate":
+        return _cmd_library_validate(args, validator, root)
 
     if args.comando == "skills" and args.subcomando == "validate":
         return _cmd_skills_validate(args, validator, root)
