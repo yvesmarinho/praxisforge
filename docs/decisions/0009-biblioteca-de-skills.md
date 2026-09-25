@@ -1,11 +1,11 @@
 <!-- Criado em: 24/09/2026 16:52 -->
-<!-- Modificado em: 24/09/2026 16:52 -->
+<!-- Modificado em: 25/09/2026 12:40 -->
 
 # ADR 0009: Biblioteca de skills versionada
 
 ## Status
 
-Aceito (24/09/2026). Origem: feature `008-biblioteca-skills` e Princípio VI da constituição v3.0.0.
+**Substituído** pelo [ADR 0011](0011-acervo-library.md) em 25/09/2026. Aceito (24/09/2026). Origem: feature `008-biblioteca-skills` e Princípio VI da constituição v3.0.0.
 
 ## Contexto
 

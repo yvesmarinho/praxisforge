@@ -1,23 +1,23 @@
 <!--
 Sync Impact Report
-- Version change: 2.0.0 → 3.0.0 (MAJOR: redefinição incompatível do Princípio V — o registro de
-  pastas sai de src/data/folders.yaml e passa a viver fora do repositório)
-- Princípios modificados: V. Proveniência, Licença e Localização das Fontes (título mantido;
-  localização do registro de pastas redefinida; repositório só versiona exemplo sem caminhos
-  pessoais)
+- Version change: 3.0.0 → 4.0.0 (MAJOR: redefinição incompatível do Princípio VI — o acervo deixa
+  de ser só skills/ e passa a library/ com seis tipos, e a publicação no escopo global é removida;
+  Princípio V passa a admitir só a extração de ideias das fontes)
+- Princípios modificados: V. Proveniência, Licença e Localização das Fontes (só ideias; licença
+  obrigatória e informativa); VI. Skills Versionadas no Repositório → VI. Acervo Versionado no
+  Repositório
 - Seções adicionadas: nenhuma
 - Seções removidas: nenhuma
 - Templates: plan/spec/tasks-template leem a constituição em tempo de execução — sem alteração
-- Plano de migração: feature 007 (local padrão $XDG_CONFIG_HOME/praxisforge/folders.yaml com
-  fallback ~/.config/praxisforge/folders.yaml; --registry e PRAXISFORGE_REGISTRY;
-  src/data/folders.example.yaml validado no CI; mover o registro local existente)
-- TODOs adiados: nenhum
-- Motivo: decisão do usuário (24/09/2026) — o repositório é público e o registro com caminhos
-  absolutos reflete a máquina do curador; alternativas avaliadas: arquivo local ignorado no
-  repositório, caminhos relativos a uma raiz versionados
+- Plano de migração: feature 009-acervo-library (git mv skills/ → library/skills/, validadores por
+  tipo, library/INDEX.md, publicação só em pastas de projeto, source-schema-v3 e conversão manual
+  dos registros de fonte, guarda-barra-qualidade marcada para reescrita)
+- TODOs adiados: revisar a "política máxima" exibida por folders show/list (feature 006)
+- Motivo: debate docs/debates/curadoria-automatizada.md (25/09/2026) — curadoria de todos os tipos
+  de recurso, base de conhecimento agnóstica, só ideias, nada no escopo global. ADRs 0011 e 0012
 -->
 <!-- Criado em: 18/09/2026 17:50 -->
-<!-- Modificado em: 24/09/2026 11:22 -->
+<!-- Modificado em: 25/09/2026 12:40 -->
 
 # PraxisForge Constitution
 
@@ -63,7 +63,9 @@ só é admitido como último recurso no `main()`. Erros MUST ser registrados com
 Toda fonte curada MUST ter registro em `src/data/sources/<categoria>/<slug>.md` com origem, data,
 licença por fonte (campo `license` obrigatório) e critério de relevância. Fonte sem licença
 registrada MUST ficar com status "pendente" e MUST NOT gerar extrato copiado para o repositório.
-O material bruto MUST permanecer fora do repo. O registro de pastas a curar MUST viver fora do
+Das fontes MUST ser extraídas só **ideias**: nenhum trecho literal, tradução ou paráfrase próxima de
+terceiros entra no repositório, qualquer que seja a licença; a licença continua obrigatória no
+registro, como informação, e não gradua a extração. O material bruto MUST permanecer fora do repo. O registro de pastas a curar MUST viver fora do
 repositório: local padrão `$XDG_CONFIG_HOME/praxisforge/folders.yaml` (sem a variável,
 `~/.config/praxisforge/folders.yaml`), substituível por `--registry` ou pela variável
 `PRAXISFORGE_REGISTRY`. O repositório MUST NOT versionar registro de pastas com caminhos pessoais;
@@ -76,15 +78,19 @@ fixo de máquina) e MUST NOT aparecer em logs ou mensagens de erro além do estr
 para identificar o próprio item com problema.
 *Racional*: rastreabilidade e respeito a direitos; o caminho explícito elimina colisão entre
 subpastas homônimas de raízes diferentes (23/09/2026); como o repositório é público e o registro
-reflete a máquina de quem o mantém, ele fica fora do versionamento (24/09/2026).
+reflete a máquina de quem o mantém, ele fica fora do versionamento (24/09/2026). Só ideias (25/09/2026): síntese
+autoral evita obra derivada e dispensa avaliar cada licença.
 
-### VI. Skills Versionadas no Repositório
-O repositório é a fonte de verdade das skills e agentes (`skills/<nome>/SKILL.md` + arquivos de
-apoio). Toda skill/agente MUST passar por validação (lint do `SKILL.md`, arquivos de apoio,
-proveniência das fontes de origem) antes de publicar. A publicação em outros projetos MUST usar
-`scripts/publish-skills` (cópia/symlink idempotente). O vault Obsidian NÃO guarda cópias das
-skills, apenas catálogo e templates de criação.
-*Racional*: histórico, revisão e CI só existem em git; cópias duplicadas geram drift.
+### VI. Acervo Versionado no Repositório
+O repositório é a fonte de verdade do acervo em `library/`, com um diretório por tipo de recurso:
+`skills`, `commands`, `agents`, `hooks`, `rules` e `references`, mais o índice `library/INDEX.md` e um
+template por tipo. Todo item MUST passar por validação do seu tipo (formato, arquivos de apoio,
+proveniência das fontes) antes de publicar. A publicação MUST ter como alvo apenas pastas de
+projeto e MUST usar o comando de publicação do acervo (cópia/symlink idempotente); o escopo
+global do usuário MUST NOT ser escrito. O vault Obsidian NÃO guarda cópias do acervo, apenas
+catálogo e templates de criação.
+*Racional*: histórico, revisão e CI só existem em git; cópias duplicadas geram drift; o objetivo é
+uma base de conhecimento agnóstica, não a configuração pessoal do curador (25/09/2026).
 
 ### VII. Memória e Sessões no Vault Obsidian
 Toda memória e registro de sessão MUST usar o vault `claude_memory`: sessões em `daily/`, dados do
@@ -127,4 +133,4 @@ PATCH para esclarecimentos e ajustes de redação. Todo PR e revisão MUST verif
 com estes princípios; complexidade adicional MUST ser justificada. Orientação de execução
 complementar: `objetivo-init-praxisforge.md` e `CLAUDE.md`.
 
-**Version**: 3.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-24
+**Version**: 4.0.0 | **Ratified**: 2026-09-18 | **Last Amended**: 2026-09-25
