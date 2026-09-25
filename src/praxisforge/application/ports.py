@@ -3,7 +3,7 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 13:01
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
@@ -16,6 +16,7 @@ HISTÓRICO:
     - 24/09/2026 16:54: +SkillDocument e porta SkillRepository (T017, feature 008)
     - 24/09/2026 16:54: +porta CatalogWriter (T025, feature 008)
     - 24/09/2026 16:50: +PublishedState e porta SkillPublisher (T034, feature 008)
+    - 25/09/2026 13:01: portas do acervo library/ ao lado das da 008 (T012, feature 009)
 STATUS: DEV
 """
 
@@ -25,6 +26,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from praxisforge.domain.folder_registry import FolderRegistry
+from praxisforge.domain.library_item import ItemKind
 
 
 class FolderRegistryRepository(ABC):
@@ -323,15 +325,18 @@ class PublishedState:
     """
     Estado de uma skill no destino de publicação (feature 008).
 
-    :param kind: `absent`, `copy` (cópia com marcador nosso), `symlink` (link para o repositório)
+    :param kind: `absent`, `copy` (cópia com marcador nosso), `symlink` (link para o repositório),
+        `broken_symlink` (link nosso cujo alvo antigo em `skills/` sumiu — feature 009)
         ou `foreign` (qualquer outra coisa — não publicada pelo praxisforge).
     :param version: versão registrada no marcador (só `copy`).
     :param content_sha256: hash registrado no marcador (só `copy`).
+    :param legacy_marker: marcador no formato da 008 (`skill-publication-v1`) — feature 009.
     """
 
     kind: str
     version: str | None = None
     content_sha256: str | None = None
+    legacy_marker: bool = False
 
 
 class SkillPublisher(ABC):
@@ -383,5 +388,155 @@ class SkillPublisher(ABC):
         :param dest_root: pasta `.claude/skills` de destino.
         :type dest_root: Path
         :return: nomes das skills nossas no destino.
+        :rtype: list[str]
+        """
+
+
+# --- feature 009: acervo library/ -------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ItemDocument:
+    """
+    Conteúdo bruto de um item do acervo lido do repositório (feature 009).
+
+    :param kind: tipo do item.
+    :param entry_name: nome da pasta (skill, hook) ou do arquivo sem `.md`.
+    :param frontmatter: frontmatter do arquivo principal.
+    :param support_files: alvos locais citados no corpo, em ordem.
+    :param missing_files: arquivos citados (corpo ou `run` do hook) que não existem.
+    """
+
+    kind: ItemKind
+    entry_name: str
+    frontmatter: dict[str, object]
+    support_files: list[str]
+    missing_files: list[str]
+
+
+class LibraryRepository(ABC):
+    """Porta de leitura do acervo versionado em `library/` (feature 009)."""
+
+    @abstractmethod
+    def list_entries(self, kind: ItemKind) -> list[str]:
+        """
+        Lista os itens de um tipo (ignora `_` e `.` no início), em ordem alfabética.
+
+        :param kind: tipo.
+        :type kind: ItemKind
+        :return: nomes das pastas ou arquivos (sem `.md`).
+        :rtype: list[str]
+        :raises LibraryNotFoundError: `library/` ausente.
+        """
+
+    @abstractmethod
+    def unknown_entries(self) -> list[str]:
+        """
+        Entradas de `library/` fora dos diretórios de tipo, `_templates/` e `INDEX.md`.
+
+        :return: caminhos relativos a `library/`, em ordem.
+        :rtype: list[str]
+        """
+
+    @abstractmethod
+    def load(self, kind: ItemKind, name: str) -> ItemDocument:
+        """
+        Lê o arquivo principal do item.
+
+        :raises LibraryItemNotFoundError: item inexistente.
+        :raises InvalidLibraryItemError: arquivo ausente, ilegível ou com frontmatter inválido.
+        """
+
+    @abstractmethod
+    def content_hash(self, kind: ItemKind, name: str) -> str:
+        """
+        SHA-256 do item (caminhos relativos ao item + bytes; sem marcador nem `__pycache__`).
+
+        :return: 64 caracteres hexadecimais minúsculos.
+        :rtype: str
+        """
+
+    @abstractmethod
+    def item_path(self, kind: ItemKind, name: str) -> Path:
+        """
+        Caminho do item no repositório (pasta ou arquivo `.md`).
+
+        :rtype: Path
+        """
+
+
+class IndexWriter(ABC):
+    """Porta de gravação do índice `library/INDEX.md` (feature 009)."""
+
+    @abstractmethod
+    def write(self, content: str) -> None:
+        """
+        Grava o índice de forma atômica.
+
+        :raises IndexWriteError: falha de I/O; o índice anterior permanece.
+        """
+
+
+class ItemPublisher(ABC):
+    """Porta de publicação de itens em `<projeto>/.claude/<tipo>s/` (feature 009)."""
+
+    @abstractmethod
+    def inspect(self, project: Path, kind: ItemKind, name: str) -> PublishedState:
+        """
+        Classifica o destino do item no projeto.
+
+        :param project: pasta do projeto (o destino fica em `.claude/`).
+        :rtype: PublishedState
+        """
+
+    @abstractmethod
+    def publish_copy(
+        self,
+        project: Path,
+        kind: ItemKind,
+        name: str,
+        version: str,
+        content_sha256: str,
+        references: list[Path],
+    ) -> None:
+        """
+        Copia o item com o marcador `library-publication-v1`, de forma atômica.
+
+        :param references: references citadas (só skill), copiadas para `references/`.
+        :raises SkillPublicationError: falha de I/O; o destino anterior permanece.
+        """
+
+    @abstractmethod
+    def publish_symlink(self, project: Path, kind: ItemKind, name: str) -> None:
+        """
+        Cria (ou troca) o link simbólico para o item no acervo.
+
+        :raises SkillPublicationError: falha de I/O; o destino anterior permanece.
+        """
+
+    @abstractmethod
+    def rewrite_marker(
+        self, project: Path, kind: ItemKind, name: str, version: str, content_sha256: str
+    ) -> None:
+        """
+        Regrava só o marcador no formato novo, sem tocar no conteúdo (FR-017b).
+
+        :raises SkillPublicationError: falha de I/O.
+        """
+
+    @abstractmethod
+    def remove(self, project: Path, kind: ItemKind, name: str) -> None:
+        """
+        Remove um destino publicado pelo praxisforge.
+
+        :raises ForeignSkillDestinationError: destino não é nosso (nada é removido).
+        :raises SkillPublicationError: falha de I/O.
+        """
+
+    @abstractmethod
+    def list_published(self, project: Path, kind: ItemKind) -> list[str]:
+        """
+        Lista, em ordem alfabética, os itens do tipo publicados pelo praxisforge no projeto.
+
         :rtype: list[str]
         """

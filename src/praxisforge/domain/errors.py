@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 09:56
+MODIFICADO: 25/09/2026 13:00
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -15,6 +15,7 @@ HISTÓRICO:
       (T006, feature 007)
     - 24/09/2026 16:54: exceções de skills (T008) e CatalogWriteError (T025), feature 008
     - 25/09/2026 09:56: ProjectRootNotFoundError (CLI independente do cwd)
+    - 25/09/2026 13:00: exceções do acervo library/ (T009, feature 009)
 STATUS: DEV
 """
 
@@ -486,3 +487,84 @@ class ProjectRootNotFoundError(PraxisForgeError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(f"raiz do projeto não encontrada: {reason}")
+
+
+class UnknownItemKindError(PraxisForgeError):
+    """
+    Tipo de recurso fora dos seis tipos do acervo (feature 009).
+
+    :param kind: tipo informado.
+    :type kind: str
+    """
+
+    def __init__(self, kind: str) -> None:
+        self.kind = kind
+        super().__init__(
+            f"tipo desconhecido: '{kind}' (use skill, command, agent, hook, rule ou reference)"
+        )
+
+
+class InvalidLibraryItemError(PraxisForgeError):
+    """
+    Item do acervo viola o formato ou a proveniência do seu tipo (feature 009).
+
+    :param kind: tipo do item.
+    :type kind: str
+    :param name: nome do item (arquivo ou pasta).
+    :type name: str
+    :param violations: todas as violações encontradas de uma vez.
+    :type violations: list[Violation]
+    """
+
+    def __init__(self, kind: str, name: str, violations: list[Violation]) -> None:
+        self.kind = kind
+        self.name = name
+        self.violations = violations
+        resumo = "; ".join(f"{v.field}: {v.reason}" for v in violations)
+        super().__init__(
+            f"{kind}/{name} inválido — {resumo}" if resumo else f"{kind}/{name} inválido"
+        )
+
+
+class LibraryItemNotFoundError(PraxisForgeError):
+    """Item pedido não existe no acervo (feature 009)."""
+
+    def __init__(self, kind: str, name: str) -> None:
+        self.kind = kind
+        self.name = name
+        super().__init__(f"{kind}/{name} não encontrado no acervo")
+
+
+class LibraryNotFoundError(PraxisForgeError):
+    """Diretório `library/` ausente na raiz do projeto (clone anterior à migração, feature 009)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "acervo library/ não encontrado na raiz do projeto — atualize o repositório "
+            "(a migração de skills/ para library/ é da feature 009)"
+        )
+
+
+class NotPublishableKindError(PraxisForgeError):
+    """Tipo de recurso que não é publicado em projetos (hook, reference — feature 009)."""
+
+    def __init__(self, kind: str, reason: str) -> None:
+        self.kind = kind
+        super().__init__(f"o tipo '{kind}' não é publicável: {reason}")
+
+
+class GlobalTargetRemovedError(PraxisForgeError):
+    """Publicação no escopo global removida (constituição v4.0.0, feature 009)."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "publicação só em pastas de projeto — o alvo 'global' foi removido (ADR 0011)"
+        )
+
+
+class IndexWriteError(PraxisForgeError):
+    """Falha ao gravar `library/INDEX.md`; o índice anterior permanece (feature 009)."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"falha ao gravar o índice: {reason}")
