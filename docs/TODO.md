@@ -62,3 +62,6 @@
 - [ ] Registro de pastas: descrição de `github_forks__andrej_karpathy_skills` veio errada do bootstrap; `folders update` não tem `--description`
 - [x] Decisão: skill `diretrizes-codificacao` **não** publicada no `~/.claude/skills` global — duplicaria o CLAUDE.md global (25/09/2026)
 - [x] Curadoria `agent_skills`: fonte `praticas-agentes/agent-skills-constraints` (MIT, `summary`) e skill `guarda-barra-qualidade` 1.0.0; pasta `github_forks__agent_skills` marcada `curated` (25/09/2026)
+- [ ] Curadoria automatizada — debate em `docs/debates/curadoria-automatizada.md` (25/09/2026), dividida em 4 features:
+      009-acervo-library → 010-inventario-curadoria → 011-triagem-llm → 012-revisao-promocao
+- [ ] Reescrever `guarda-barra-qualidade` só pelas ideias (hoje é derivada, MIT com aviso) — na refação da 012

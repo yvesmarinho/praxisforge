@@ -105,3 +105,10 @@ melhorar, atualize o registro.
 - [ ] Métricas só medidas têm valor atual e direção.
 - [ ] Exceções têm dono e validade.
 - [ ] `CLAUDE.md`/`AGENTS.md` aponta para o arquivo.
+
+## Atribuição
+
+Obra derivada (tradução e adaptação para pt-BR) da skill `constraint-driven-development` de
+[addyosmani/agent-skills](https://github.com/addyosmani/agent-skills), commit `d2c37ef`.
+Copyright (c) 2025 Addy Osmani, licença MIT — texto integral em
+[LICENSE.agent-skills](LICENSE.agent-skills).
