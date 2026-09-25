@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "criado_em": "25/09/2026 14:35",
+    "modificado_em": "2026-09-25T14:35:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/curation-state-schema-v1.json",
+  "title": "Estado da curadoria de uma pasta (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "alias",
+    "conventions_version",
+    "updated_at",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "alias": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,62}$"
+    },
+    "conventions_version": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifacts": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "sha256",
+          "stage",
+          "verdict",
+          "last_error",
+          "attempts"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "skill",
+              "command",
+              "agent",
+              "hook",
+              "rule",
+              "reference",
+              "project_instruction",
+              "unknown"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "stage": {
+            "enum": [
+              "pending",
+              "triaged",
+              "drafted",
+              "reviewed",
+              "promoted",
+              "failed",
+              "discarded",
+              "removed"
+            ]
+          },
+          "verdict": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      }
+    }
+  }
+}

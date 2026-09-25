@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 13:23
+MODIFICADO: 25/09/2026 14:55
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -17,6 +17,7 @@ HISTÓRICO:
     - 25/09/2026 09:56: ProjectRootNotFoundError (CLI independente do cwd)
     - 25/09/2026 13:00: exceções do acervo library/ (T009, feature 009)
     - 25/09/2026 13:23: remove InvalidSkillError, SkillNotFoundError e CatalogWriteError (T049)
+    - 25/09/2026 14:55: exceções do inventário de curadoria (T007, feature 010)
 STATUS: DEV
 """
 
@@ -527,3 +528,61 @@ class IndexWriteError(PraxisForgeError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(f"falha ao gravar o índice: {reason}")
+
+
+class InvalidCurationArtifactError(PraxisForgeError):
+    """Uma invariante de artefato, exclusão ou manifesto de curadoria foi violada (feature 010)."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"artefato de curadoria inválido: {reason}")
+
+
+class ConventionsError(PraxisForgeError):
+    """Convenções de classificação ilegíveis ou fora do contrato (feature 010)."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"convenções de curadoria inválidas: {reason}")
+
+
+class ConventionsMissingError(PraxisForgeError):
+    """
+    Arquivo de convenções ausente junto do registro (feature 010).
+
+    :param location: local esperado do arquivo (o próprio item com problema).
+    :type location: str
+    """
+
+    def __init__(self, location: str) -> None:
+        self.location = location
+        super().__init__(
+            f"convenções de curadoria ausentes em {location} — crie a partir do exemplo: "
+            f"cp src/data/curation-conventions.example.yaml {location}"
+        )
+
+
+class CurationStateCorruptError(PraxisForgeError):
+    """Estado ou manifesto de curadoria ilegível ou de versão desconhecida; não é sobrescrito."""
+
+    def __init__(self, alias: str, reason: str) -> None:
+        self.alias = alias
+        self.reason = reason
+        super().__init__(f"estado de curadoria de '{alias}' inválido: {reason}")
+
+
+class CurationLockedError(PraxisForgeError):
+    """Outra execução já está inventariando o mesmo alias (feature 010)."""
+
+    def __init__(self, alias: str) -> None:
+        self.alias = alias
+        super().__init__(f"curadoria de '{alias}' já em execução em outro processo")
+
+
+class CurationStorageError(PraxisForgeError):
+    """Falha de I/O ao gravar manifesto/estado; o estado anterior permanece (feature 010)."""
+
+    def __init__(self, alias: str, reason: str) -> None:
+        self.alias = alias
+        self.reason = reason
+        super().__init__(f"falha ao gravar a curadoria de '{alias}': {reason}")

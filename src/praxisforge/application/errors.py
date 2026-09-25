@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 25/09/2026 13:23
+MODIFICADO: 25/09/2026 14:55
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -22,12 +22,18 @@ HISTÓRICO:
     - 25/09/2026 09:57: reexporta ProjectRootNotFoundError
     - 25/09/2026 13:00: reexporta exceções do acervo library/ (T009, feature 009)
     - 25/09/2026 13:23: remove reexportações das exceções da 008 (T049)
+    - 25/09/2026 14:55: reexporta exceções do inventário de curadoria (T007, feature 010)
 STATUS: DEV
 """
 
 from praxisforge.domain.errors import (
     ContentInspectionError,
     ContractValidationError,
+    ConventionsError,
+    ConventionsMissingError,
+    CurationLockedError,
+    CurationStateCorruptError,
+    CurationStorageError,
     ExtractPolicyExceedsLicenseError,
     FolderNotFoundError,
     FolderPathInvalidError,
@@ -36,6 +42,7 @@ from praxisforge.domain.errors import (
     GlobalTargetRemovedError,
     IncompleteAttributionError,
     IndexWriteError,
+    InvalidCurationArtifactError,
     InvalidLibraryItemError,
     InvalidRootPathError,
     LibraryItemNotFoundError,
@@ -60,6 +67,12 @@ from praxisforge.domain.errors import (
 __all__ = [
     "ContentInspectionError",
     "ContractValidationError",
+    "ConventionsError",
+    "ConventionsMissingError",
+    "CurationLockedError",
+    "CurationStateCorruptError",
+    "CurationStorageError",
+    "InvalidCurationArtifactError",
     "ExtractPolicyExceedsLicenseError",
     "FolderNotFoundError",
     "FolderPathInvalidError",

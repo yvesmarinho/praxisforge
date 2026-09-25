@@ -1,0 +1,19 @@
+# Criado em: 25/09/2026 14:50
+# Modificado em: 25/09/2026 14:50
+#
+# Exemplo das convenções de classificação do inventário de curadoria (feature 010).
+# O arquivo real fica fora do repositório, junto do registro de pastas:
+#   cp src/data/curation-conventions.example.yaml ~/.config/praxisforge/curation-conventions.yaml
+# Ordem = prioridade. unit=directory: o pattern casa o diretório (marker precisa existir nele) e o
+# diretório mais externo que casar vira um artefato dono de tudo abaixo dele.
+# Arquivos .md sem regra viram "unknown"; outros textos ficam no manifesto como "uncurated".
+schema_version: "1"
+rules:
+  - {kind: skill, pattern: "**/skills/*", unit: directory, marker: SKILL.md}
+  - {kind: hook, pattern: "**/hooks", unit: directory}
+  - {kind: command, pattern: "**/commands/**/*.md", unit: file}
+  - {kind: agent, pattern: "**/agents/*.md", unit: file}
+  - {kind: rule, pattern: "**/rules/*.md", unit: file}
+  - {kind: reference, pattern: "**/references/*.md", unit: file}
+  - {kind: project_instruction, pattern: "**/CLAUDE.md", unit: file}
+  - {kind: project_instruction, pattern: "**/AGENTS.md", unit: file}
