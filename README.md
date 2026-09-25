@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 25/09/2026 09:52 -->
+<!-- Modificado em: 25/09/2026 13:14 -->
 
 # Praxisforge
 
@@ -117,5 +117,5 @@ licença: MIT/BSD-3-Clause/Apache-2.0 → `verbatim`; GPL-3.0 → `verbatim` só
 - `skills publish <nome>|--all --target global|<pasta> [--mode copy|symlink] [--prune]`: publica
   em `~/.claude/skills/` ou `<pasta>/.claude/skills/`. É idempotente, recusa conteúdo alterado sem
   nova versão e nunca toca skills de terceiros. Atalho: `scripts/publish-skills`.
-- Guia: [docs/guides/criar-publicar-skills.md](docs/guides/criar-publicar-skills.md) ·
+- Guia: [docs/guides/criar-publicar-acervo.md](docs/guides/criar-publicar-acervo.md) ·
   [ADR 0009](docs/decisions/0009-biblioteca-de-skills.md).

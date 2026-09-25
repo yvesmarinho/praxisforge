@@ -8,7 +8,7 @@ relevance: barra de qualidade escrita e verificável que o agente não pode reba
 status: active
 ---
 <!-- Criado em: 25/09/2026 09:45 -->
-<!-- Modificado em: 25/09/2026 13:06 -->
+<!-- Modificado em: 25/09/2026 13:14 -->
 
 # Constraint-driven development (addyosmani/agent-skills)
 
@@ -45,4 +45,4 @@ escritas num arquivo que sobrevive à sessão.
 
 Origem da skill `guarda-barra-qualidade`. A skill segue a estrutura da original passo a passo e
 é tradução adaptada, portanto **obra derivada**: carrega o aviso de copyright e o texto da licença
-MIT (`skills/guarda-barra-qualidade/LICENSE.agent-skills`), não só a citação.
+MIT (`library/skills/guarda-barra-qualidade/LICENSE.agent-skills`), não só a citação.

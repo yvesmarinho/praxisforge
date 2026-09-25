@@ -62,7 +62,7 @@ tarefa incompleta.
 - [X] T018 [US1] Implementar `validate_library` em `src/praxisforge/application/validate_library.py` (sucede `validate_skills.py`; o antigo sai em T049), com índice de fontes carregado uma vez por execução (research R8)
 - [X] T019 [US1] Adicionar o grupo `library validate [--type T] [<nome>]` em `src/praxisforge/presentation/cli.py` usando `root / "library"`
 - [X] T020 [US1] Criar os templates em `library/_templates/` **exceto o de skill** (que chega por `git mv` em T023): `command.md`, `agent.md`, `hook/HOOK.md` + `hook/run.sh` (versionado com `+x`), `rule.md`, `reference.md`, cada um com instruções de preenchimento e sem links de exemplo fora de blocos de código
-- [ ] T021 [US1] Teste de contrato em `tests/contract/test_library_templates.py` (migrando `test_skill_template.py`, depois de T023): uma **cópia** de cada template, preenchida só nos campos marcados, passa em `library validate`
+- [X] T021 [US1] Teste de contrato em `tests/contract/test_library_templates.py` (migrando `test_skill_template.py`, depois de T023): uma **cópia** de cada template, preenchida só nos campos marcados, passa em `library validate`
 
 **Checkpoint**: US1 funcional e testável sozinha.
 
@@ -74,12 +74,12 @@ tarefa incompleta.
 
 **Independent Test**: quickstart §1: 2 skills em `library/skills/`, `git log --follow` alcança a 008, nenhuma referência ao local antigo.
 
-- [ ] T022 [US2] Teste em `tests/integration/test_library_migration.py`: `skills/` não existe; `library/skills/diretrizes-codificacao/SKILL.md` com conteúdo igual ao de `origin/main`; `guarda-barra-qualidade` só difere por `metadata.rewrite_pending: true` e versão `1.0.1`; `library validate` = 2 ok
-- [ ] T023 [US2] Executar `git mv skills/diretrizes-codificacao skills/guarda-barra-qualidade library/skills/` e `git mv skills/_template library/_templates/skill`, num commit só de renomeação; depois ajustar as instruções do template para o acervo
-- [ ] T024 [US2] Em commit separado: acrescentar `rewrite_pending: true` e subir para `1.0.1` a versão em `library/skills/guarda-barra-qualidade/SKILL.md` (FR-025); atualizar o cabeçalho `Modificado em`
-- [ ] T025 [US2] Remover `skills/README.md` (substituído pelo índice na US3) e apagar a pasta `skills/`
-- [ ] T026 [US2] Teste de guarda em `tests/contract/test_no_legacy_skills_dir.py`: nenhum arquivo versionado em `src/`, `scripts/`, `docs/guides/`, `README.md` ou `Makefile` referencia `skills/` do repositório (ignorando `.claude/skills` e `library/skills`)
-- [ ] T027 [US2] Atualizar referências ao local antigo: `README.md`, `docs/architecture/overview.md`, `docs/guides/operar-cli-praxisforge.md`; renomear `docs/guides/criar-publicar-skills.md` → `docs/guides/criar-publicar-acervo.md` e reescrevê-lo para os seis tipos
+- [X] T022 [US2] Teste em `tests/integration/test_library_migration.py`: `skills/` não existe; `library/skills/diretrizes-codificacao/SKILL.md` com conteúdo igual ao de `origin/main`; `guarda-barra-qualidade` só difere por `metadata.rewrite_pending: true` e versão `1.0.1`; `library validate` = 2 ok
+- [X] T023 [US2] Executar `git mv skills/diretrizes-codificacao skills/guarda-barra-qualidade library/skills/` e `git mv skills/_template library/_templates/skill`, num commit só de renomeação; depois ajustar as instruções do template para o acervo
+- [X] T024 [US2] Em commit separado: acrescentar `rewrite_pending: true` e subir para `1.0.1` a versão em `library/skills/guarda-barra-qualidade/SKILL.md` (FR-025); atualizar o cabeçalho `Modificado em`
+- [X] T025 [US2] Remover `skills/README.md` (substituído pelo índice na US3) e apagar a pasta `skills/`
+- [X] T026 [US2] Teste de guarda em `tests/contract/test_no_legacy_skills_dir.py`: nenhum arquivo versionado em `src/`, `scripts/`, `docs/guides/`, `README.md` ou `Makefile` referencia `skills/` do repositório (ignorando `.claude/skills` e `library/skills`)
+- [X] T027 [US2] Atualizar referências ao local antigo: `README.md`, `docs/architecture/overview.md`, `docs/guides/operar-cli-praxisforge.md`; renomear `docs/guides/criar-publicar-skills.md` → `docs/guides/criar-publicar-acervo.md` e reescrevê-lo para os seis tipos
 
 **Checkpoint**: acervo migrado; US1 valida os itens reais.
 
