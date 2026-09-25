@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 13:09
+MODIFICADO: 25/09/2026 13:20
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -24,6 +24,8 @@ HISTÓRICO:
     - 25/09/2026 09:57: schemas/skills/fontes/registro antigo pela raiz do projeto (não pelo cwd)
     - 25/09/2026 13:09: library validate (T019, feature 009)
     - 25/09/2026 13:15: library index (T031, feature 009)
+    - 25/09/2026 13:20: library publish; grupo skills removido (erro de uso com o equivalente) e
+      alvo global removido (T038, feature 009)
 STATUS: DEV
 """
 
@@ -37,19 +39,19 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from praxisforge.application.bootstrap_folders import bootstrap_folders
-from praxisforge.application.build_catalog import build_catalog
 from praxisforge.application.build_index import build_index
 from praxisforge.application.dto import RegisterFolderInput, UpdateFolderInput
 from praxisforge.application.errors import (
-    CatalogWriteError,
     ContentInspectionError,
     ContractValidationError,
     FolderNotFoundError,
     FolderPathInvalidError,
     FolderPathUnreadableError,
+    GlobalTargetRemovedError,
     IndexWriteError,
     InvalidRootPathError,
     LibraryNotFoundError,
+    NotPublishableKindError,
     PraxisForgeError,
     ProjectRootNotFoundError,
     RegistryRelocationError,
@@ -62,7 +64,7 @@ from praxisforge.application.ports import (
     GitContentInspector,
     RootFolderProbe,
 )
-from praxisforge.application.publish_skills import MODES, PublishReport, publish_skills
+from praxisforge.application.publish_items import MODES, PublishReport, publish_items
 from praxisforge.application.query_folders import folder_policy, list_folders, show_folder
 from praxisforge.application.register_folder import register_folder
 from praxisforge.application.relocate_registry import relocate_registry
@@ -74,17 +76,14 @@ from praxisforge.application.scan_folders import scan_all_folders, scan_folder
 from praxisforge.application.update_folder import update_folder
 from praxisforge.application.validate_library import ItemKind, validate_library
 from praxisforge.application.validate_registry import validate_registry
-from praxisforge.application.validate_skills import validate_skills
 from praxisforge.application.validate_sources import validate_sources
 from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSource
-from praxisforge.infrastructure.filesystem_catalog_writer import FilesystemCatalogWriter
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
 from praxisforge.infrastructure.filesystem_index_writer import FilesystemIndexWriter
+from praxisforge.infrastructure.filesystem_item_publisher import FilesystemItemPublisher
 from praxisforge.infrastructure.filesystem_library_repository import FilesystemLibraryRepository
 from praxisforge.infrastructure.filesystem_registry_mover import FilesystemRegistryMover
-from praxisforge.infrastructure.filesystem_skill_publisher import FilesystemSkillPublisher
-from praxisforge.infrastructure.filesystem_skill_repository import FilesystemSkillRepository
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.logging_setup import configure_logging
@@ -105,7 +104,6 @@ _EXIT_AMBIENTE_ERRORS = (
 _SCHEMAS_DIR = Path("schemas")
 _LEGACY_REGISTRY = Path("src/data/folders.yaml")
 _COMANDOS_QUE_CRIAM = ("add", "bootstrap", "relocate")
-_SKILLS_DIR = Path("skills")
 _SOURCES_DIR = Path("src/data/sources")
 _LIBRARY_DIR = Path("library")
 
@@ -184,19 +182,17 @@ def _build_parser() -> argparse.ArgumentParser:
     library_validate_parser.add_argument("--type", dest="tipo", default=None)
     library_validate_parser.add_argument("nome", nargs="?")
     library_sub.add_parser("index")
+    library_publish_parser = library_sub.add_parser("publish")
+    library_publish_parser.add_argument("--type", dest="tipo", default=None)
+    library_publish_parser.add_argument("nome", nargs="?")
+    library_publish_parser.add_argument("--all", action="store_true", dest="todas")
+    library_publish_parser.add_argument("--target", required=True)
+    library_publish_parser.add_argument("--mode", choices=MODES, default="copy")
+    library_publish_parser.add_argument("--prune", action="store_true")
 
     skills = subparsers.add_parser("skills")
-    skills_sub = skills.add_subparsers(dest="subcomando", required=True)
-    skills_validate_parser = skills_sub.add_parser("validate")
-    skills_validate_parser.add_argument("nome", nargs="?")
-    skills_validate_parser.add_argument("--all", action="store_true", dest="todas")
-    skills_sub.add_parser("catalog")
-    skills_publish_parser = skills_sub.add_parser("publish")
-    skills_publish_parser.add_argument("nome", nargs="?")
-    skills_publish_parser.add_argument("--all", action="store_true", dest="todas")
-    skills_publish_parser.add_argument("--target", required=True)
-    skills_publish_parser.add_argument("--mode", choices=MODES, default="copy")
-    skills_publish_parser.add_argument("--prune", action="store_true")
+    skills.add_argument("subcomando", nargs="?", default="")
+    skills.add_argument("resto", nargs=argparse.REMAINDER)
 
     return parser
 
@@ -470,14 +466,6 @@ def _cmd_sources_validate(args: argparse.Namespace, validator: JsonSchemaContrac
     return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
 
 
-def _nomes_pedidos(args: argparse.Namespace) -> list[str] | None | bool:
-    """Nome único, None (= --all) ou False quando o uso é incorreto."""
-    if bool(args.nome) == bool(args.todas):
-        sys.stderr.write("informe o nome de uma skill ou --all (não ambos)\n")
-        return False
-    return None if args.todas else [args.nome]
-
-
 def _fontes(root: Path) -> list[Path]:
     sources_dir = root / _SOURCES_DIR
     return sorted(sources_dir.rglob("*.md")) if sources_dir.is_dir() else []
@@ -544,56 +532,80 @@ def _cmd_library_index(validator: JsonSchemaContractValidator, root: Path) -> in
     return _EXIT_OK if not resultado.omitted else _EXIT_VALIDACAO
 
 
-def _cmd_skills_validate(
+def _projeto_de_publicacao(target: str) -> Path | None:
+    """Pasta de projeto existente (absoluta); `global` e pasta inexistente são erro de uso."""
+    if target == "global":
+        sys.stderr.write(f"{GlobalTargetRemovedError()}\n")
+        return None
+    pasta = Path(target)
+    if not pasta.is_dir():
+        sys.stderr.write(f"pasta de projeto não existe: {target}\n")
+        return None
+    return pasta.absolute()
+
+
+def _item_pedido(args: argparse.Namespace) -> tuple[ItemKind | None, str | None] | None:
+    """(tipo, nome) pedido, (None, None) para --all, ou None quando o uso é incorreto."""
+    if args.todas:
+        if args.tipo or args.nome:
+            sys.stderr.write("use --all ou --type <tipo> <nome>, não os dois\n")
+            return None
+        return None, None
+    if args.prune:
+        sys.stderr.write("--prune só pode ser usado junto de --all\n")
+        return None
+    if not (args.tipo and args.nome):
+        sys.stderr.write("informe --type <tipo> <nome> ou --all\n")
+        return None
+    try:
+        return ItemKind.from_str(args.tipo), args.nome
+    except UnknownItemKindError as error:
+        sys.stderr.write(f"{error}\n")
+        return None
+
+
+def _cmd_library_publish(
     args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
 ) -> int:
-    nomes = _nomes_pedidos(args)
-    if nomes is False:
+    pedido = _item_pedido(args)
+    if pedido is None:
         return _EXIT_USO
-    report = validate_skills(
-        FilesystemSkillRepository(root / _SKILLS_DIR),
-        validator,
-        FrontmatterSourceReader(),
-        _fontes(root),
-        nomes if isinstance(nomes, list) else None,
-    )
-    for falha in report.failures:
-        for motivo in falha.reasons:
-            sys.stdout.write(f"{falha.name}: {motivo}\n")
-    sys.stdout.write(f"{len(report.ok)} ok, {len(report.failures)} com falha\n")
-    return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
-
-
-def _cmd_skills_catalog(validator: JsonSchemaContractValidator, root: Path) -> int:
+    projeto = _projeto_de_publicacao(args.target)
+    if projeto is None:
+        return _EXIT_USO
+    library_dir = root / _LIBRARY_DIR
     try:
-        resultado = build_catalog(
-            FilesystemSkillRepository(root / _SKILLS_DIR),
+        report = publish_items(
+            FilesystemLibraryRepository(library_dir),
             validator,
             FrontmatterSourceReader(),
             _fontes(root),
-            FilesystemCatalogWriter(root / _SKILLS_DIR / "README.md"),
+            FilesystemItemPublisher(library_dir, validator),
+            projeto,
+            kind=pedido[0],
+            name=pedido[1],
+            mode=args.mode,
+            prune=args.prune,
         )
-    except CatalogWriteError as error:
+    except NotPublishableKindError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_USO
+    except LibraryNotFoundError as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_AMBIENTE
-    for falha in resultado.omitted:
-        for motivo in falha.reasons:
-            sys.stdout.write(f"{falha.name}: {motivo}\n")
-    sys.stdout.write(
-        f"catálogo: {len(resultado.skills)} skills ({len(resultado.omitted)} omitidas)\n"
-    )
-    return _EXIT_OK if not resultado.omitted else _EXIT_VALIDACAO
+    _escrever_publicacao(report)
+    if report.environment_failure:
+        return _EXIT_AMBIENTE
+    return _EXIT_VALIDACAO if report.refused else _EXIT_OK
 
 
-def _destino_de_publicacao(target: str) -> Path | None:
-    """`global` → ~/.claude/skills; pasta de projeto existente → <pasta>/.claude/skills."""
-    if target == "global":
-        return Path.home() / ".claude" / "skills"
-    pasta = Path(target)
-    if not pasta.is_dir():
-        sys.stderr.write(f"pasta de projeto inexistente: {target}\n")
-        return None
-    return pasta.absolute() / ".claude" / "skills"
+_SKILLS_REMOVIDOS = {"validate": "validate", "catalog": "index", "publish": "publish"}
+
+
+def _cmd_skills_removido(args: argparse.Namespace) -> int:
+    equivalente = _SKILLS_REMOVIDOS.get(args.subcomando, "validate|index|publish")
+    sys.stderr.write(f"comando removido na feature 009 — use: praxisforge library {equivalente}\n")
+    return _EXIT_USO
 
 
 def _escrever_publicacao(report: PublishReport) -> None:
@@ -601,45 +613,19 @@ def _escrever_publicacao(report: PublishReport) -> None:
         motivo = f" ({outcome.reason})" if outcome.reason else ""
         sys.stdout.write(f"{outcome.name} → {outcome.status}{motivo}\n")
     for orfa in report.orphans:
-        sufixo = " (removida)" if orfa in report.removed else ""
-        sys.stdout.write(f"órfã: {orfa}{sufixo}\n")
-    contagem = {status: 0 for status in ("publicada", "atualizada", "inalterada", "recusada")}
+        sufixo = " (removido)" if orfa in report.removed else ""
+        sys.stdout.write(f"órfão: {orfa}{sufixo}\n")
+    contagem = {
+        status: 0
+        for status in ("publicada", "atualizada", "marcador atualizado", "inalterada", "recusada")
+    }
     for outcome in report.outcomes:
         contagem[outcome.status] += 1
     sys.stdout.write(
         f"{contagem['publicada']} publicadas, {contagem['atualizada']} atualizadas, "
+        f"{contagem['marcador atualizado']} marcadores atualizados, "
         f"{contagem['inalterada']} inalteradas, {contagem['recusada']} recusadas\n"
     )
-
-
-def _cmd_skills_publish(
-    args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
-) -> int:
-    nomes = _nomes_pedidos(args)
-    if nomes is False:
-        return _EXIT_USO
-    if args.prune and not args.todas:
-        sys.stderr.write("--prune só pode ser usado junto de --all\n")
-        return _EXIT_USO
-    destino = _destino_de_publicacao(args.target)
-    if destino is None:
-        return _EXIT_USO
-    skills_dir = root / _SKILLS_DIR
-    report = publish_skills(
-        FilesystemSkillRepository(skills_dir),
-        validator,
-        FrontmatterSourceReader(),
-        _fontes(root),
-        FilesystemSkillPublisher(skills_dir, validator),
-        destino,
-        nomes if isinstance(nomes, list) else None,
-        mode=args.mode,
-        prune=args.prune,
-    )
-    _escrever_publicacao(report)
-    if report.environment_failure:
-        return _EXIT_AMBIENTE
-    return _EXIT_VALIDACAO if report.refused else _EXIT_OK
 
 
 def _cmd_folders_relocate(
@@ -738,12 +724,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.comando == "library" and args.subcomando == "index":
         return _cmd_library_index(validator, root)
 
-    if args.comando == "skills" and args.subcomando == "validate":
-        return _cmd_skills_validate(args, validator, root)
-    if args.comando == "skills" and args.subcomando == "catalog":
-        return _cmd_skills_catalog(validator, root)
-    if args.comando == "skills" and args.subcomando == "publish":
-        return _cmd_skills_publish(args, validator, root)
+    if args.comando == "library" and args.subcomando == "publish":
+        return _cmd_library_publish(args, validator, root)
+
+    if args.comando == "skills":
+        return _cmd_skills_removido(args)
 
     sys.stderr.write("comando desconhecido\n")
     return _EXIT_USO

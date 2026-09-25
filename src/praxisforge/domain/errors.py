@@ -461,7 +461,7 @@ class SkillPublicationError(PraxisForgeError):
     def __init__(self, name: str, reason: str) -> None:
         self.name = name
         self.reason = reason
-        super().__init__(f"falha ao publicar a skill '{name}': {reason}")
+        super().__init__(f"falha ao publicar '{name}': {reason}")
 
 
 class CatalogWriteError(PraxisForgeError):

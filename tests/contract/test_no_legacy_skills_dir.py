@@ -34,7 +34,6 @@ def test_guias_nao_ensinam_o_local_antigo(guia: Path) -> None:
     assert achados == []
 
 
-@pytest.mark.xfail(strict=True, reason="CLI e adapters da 008 saem em T038/T049")
 def test_codigo_nao_monta_o_caminho_antigo() -> None:
     """Nenhum módulo em src/ monta Path("skills")."""
     achados = [

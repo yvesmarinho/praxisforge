@@ -106,17 +106,17 @@ tarefa incompleta.
 
 ### Tests (vermelho primeiro)
 
-- [ ] T032 [P] [US4] Testes em `tests/unit/application/test_publish_items.py` (migrando `test_publish_skills.py`): estados do data-model (ausente, nosso igual, nosso igual com marcador antigo → só regrava o marcador, nosso com versão nova, mesma versão com conteúdo diferente → recusa, terceiro → intocado, órfão só com `--prune`), tipos não publicáveis → `NotPublishableKindError`, alvo global → `GlobalTargetRemovedError`, item com `rewrite_pending` publicável (FR-024a), falha de I/O no meio do lote → itens anteriores ficam publicados e a falha é reportada por item
-- [ ] T033 [P] [US4] Testes em `tests/integration/test_filesystem_item_publisher.py` (migrando `test_filesystem_skill_publisher.py`): destinos por tipo, marcador `.praxisforge-skill.json` (skill) e `.<nome>.md.praxisforge.json` (command/agent/rule), leitura do marcador `skill-publication-v1`, symlink antigo para `skills/` quebrado → recriado para `library/`, references citadas copiadas para `<skill>/references/`, modo symlink para arquivo único
-- [ ] T034 [P] [US4] Testes em `tests/integration/test_cli_library_publish.py` (migrando `test_cli_skills_publish.py`): contrato do `publish` (0/1/2/3), `--prune` sem `--all` → 2, hook/reference → 2, `--target global` → 2, e `skills validate|catalog|publish` → 2 com a mensagem do comando `library` equivalente
-- [ ] T035 [P] [US4] Teste do atalho em `tests/integration/test_publish_library_script.py` (migrando `test_publish_skills_script.py`), rodando de fora da raiz
+- [X] T032 [P] [US4] Testes em `tests/unit/application/test_publish_items.py` (migrando `test_publish_skills.py`): estados do data-model (ausente, nosso igual, nosso igual com marcador antigo → só regrava o marcador, nosso com versão nova, mesma versão com conteúdo diferente → recusa, terceiro → intocado, órfão só com `--prune`), tipos não publicáveis → `NotPublishableKindError`, alvo global → `GlobalTargetRemovedError`, item com `rewrite_pending` publicável (FR-024a), falha de I/O no meio do lote → itens anteriores ficam publicados e a falha é reportada por item
+- [X] T033 [P] [US4] Testes em `tests/integration/test_filesystem_item_publisher.py` (migrando `test_filesystem_skill_publisher.py`): destinos por tipo, marcador `.praxisforge-skill.json` (skill) e `.<nome>.md.praxisforge.json` (command/agent/rule), leitura do marcador `skill-publication-v1`, symlink antigo para `skills/` quebrado → recriado para `library/`, references citadas copiadas para `<skill>/references/`, modo symlink para arquivo único
+- [X] T034 [P] [US4] Testes em `tests/integration/test_cli_library_publish.py` (migrando `test_cli_skills_publish.py`): contrato do `publish` (0/1/2/3), `--prune` sem `--all` → 2, hook/reference → 2, `--target global` → 2, e `skills validate|catalog|publish` → 2 com a mensagem do comando `library` equivalente
+- [X] T035 [P] [US4] Teste do atalho em `tests/integration/test_publish_library_script.py` (migrando `test_publish_skills_script.py`), rodando de fora da raiz
 
 ### Implementation
 
-- [ ] T036 [US4] Implementar `publish_items` em `src/praxisforge/application/publish_items.py` (sucede `publish_skills.py`)
-- [ ] T037 [US4] Implementar `src/praxisforge/infrastructure/filesystem_item_publisher.py` (sucede `filesystem_skill_publisher.py`), com gravação do `library-publication-v1` e leitura do `skill-publication-v1`
-- [ ] T038 [US4] Adicionar `library publish` e substituir o grupo `skills` por uma mensagem de erro de uso em `src/praxisforge/presentation/cli.py`; remover o alvo `global` e `_destino_de_publicacao`
-- [ ] T039 [US4] Renomear `scripts/publish-skills` → `scripts/publish-library` (chama `praxisforge library publish`), com cabeçalho atualizado
+- [X] T036 [US4] Implementar `publish_items` em `src/praxisforge/application/publish_items.py` (sucede `publish_skills.py`)
+- [X] T037 [US4] Implementar `src/praxisforge/infrastructure/filesystem_item_publisher.py` (sucede `filesystem_skill_publisher.py`), com gravação do `library-publication-v1` e leitura do `skill-publication-v1`
+- [X] T038 [US4] Adicionar `library publish` e substituir o grupo `skills` por uma mensagem de erro de uso em `src/praxisforge/presentation/cli.py`; remover o alvo `global` e `_destino_de_publicacao`
+- [X] T039 [US4] Renomear `scripts/publish-skills` → `scripts/publish-library` (chama `praxisforge library publish`), com cabeçalho atualizado
 
 ---
 
@@ -136,7 +136,7 @@ tarefa incompleta.
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-- [ ] T045 [P] Teste de escala em `tests/integration/test_library_scale.py` (sucede `test_skills_scale.py`): 200 itens mistos, validate/index < 5 s (SC-004)
+- [X] T045 [P] Teste de escala em `tests/integration/test_library_scale.py` (sucede `test_skills_scale.py`): 200 itens mistos, validate/index < 5 s (SC-004)
 - [ ] T046 [P] Rodar `tests/architecture/` e ajustar, sem afrouxar a matriz de camadas, se algum módulo novo acusar violação
 - [ ] T047 [P] Atualizar `docs/architecture/overview.md` (fluxos `library validate/index/publish`), `docs/INDEX.md` (linha da 009) e `README.md` (seção da CLI, acrescentando sem apagar)
 - [ ] T048 Registrar em `docs/TODO.md`: revisar a "política máxima" exibida por `folders show/list` (research R6); rever o uso de `domain/license_policy.py`
