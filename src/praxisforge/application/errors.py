@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 25/09/2026 13:00
+MODIFICADO: 25/09/2026 13:23
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -21,11 +21,11 @@ HISTÓRICO:
     - 24/09/2026 16:54: reexporta exceções da biblioteca de skills (T008, feature 008)
     - 25/09/2026 09:57: reexporta ProjectRootNotFoundError
     - 25/09/2026 13:00: reexporta exceções do acervo library/ (T009, feature 009)
+    - 25/09/2026 13:23: remove reexportações das exceções da 008 (T049)
 STATUS: DEV
 """
 
 from praxisforge.domain.errors import (
-    CatalogWriteError,
     ContentInspectionError,
     ContractValidationError,
     ExtractPolicyExceedsLicenseError,
@@ -38,7 +38,6 @@ from praxisforge.domain.errors import (
     IndexWriteError,
     InvalidLibraryItemError,
     InvalidRootPathError,
-    InvalidSkillError,
     LibraryItemNotFoundError,
     LibraryNotFoundError,
     NestedFolderPathError,
@@ -52,7 +51,6 @@ from praxisforge.domain.errors import (
     RegistryMigrationRequiredError,
     RegistryRelocationError,
     RegistryUnavailableError,
-    SkillNotFoundError,
     SkillPublicationError,
     SkillVersionNotBumpedError,
     SourceSchemaMigrationRequiredError,
@@ -60,7 +58,6 @@ from praxisforge.domain.errors import (
 )
 
 __all__ = [
-    "CatalogWriteError",
     "ContentInspectionError",
     "ContractValidationError",
     "ExtractPolicyExceedsLicenseError",
@@ -73,7 +70,6 @@ __all__ = [
     "IndexWriteError",
     "InvalidLibraryItemError",
     "InvalidRootPathError",
-    "InvalidSkillError",
     "LibraryItemNotFoundError",
     "LibraryNotFoundError",
     "NestedFolderPathError",
@@ -87,7 +83,6 @@ __all__ = [
     "RegistryMigrationRequiredError",
     "RegistryRelocationError",
     "RegistryUnavailableError",
-    "SkillNotFoundError",
     "SkillPublicationError",
     "SkillVersionNotBumpedError",
     "SourceSchemaMigrationRequiredError",

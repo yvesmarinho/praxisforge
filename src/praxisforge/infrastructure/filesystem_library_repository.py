@@ -3,7 +3,7 @@
 NOME: filesystem_library_repository.py
 TITULO: Adapter de LibraryRepository sobre o filesystem (library/<tipo>s/...)
 DATA: 25/09/2026 13:03
-MODIFICADO: 25/09/2026 13:03
+MODIFICADO: 25/09/2026 13:23
 VERSÃO: 0.1.0
 DEPEND: pyyaml, praxisforge.domain, praxisforge.application.ports
 HISTÓRICO:
@@ -23,8 +23,7 @@ from praxisforge.domain.errors import (
     LibraryNotFoundError,
     Violation,
 )
-from praxisforge.domain.library_item import ItemKind
-from praxisforge.domain.skill import extract_references
+from praxisforge.domain.library_item import ItemKind, extract_references
 from praxisforge.infrastructure.yaml_loader import NoTimestampSafeLoader
 
 _DELIMITER = "---"

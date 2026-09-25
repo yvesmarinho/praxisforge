@@ -3,7 +3,7 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 13:06
+MODIFICADO: 25/09/2026 13:23
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
@@ -15,6 +15,7 @@ HISTÓRICO:
     - 24/09/2026 14:30: exceções do registro fora do repositório (T002, feature 007)
     - 24/09/2026 16:40: exceções da biblioteca de skills (T003, feature 008)
     - 25/09/2026 13:06: mensagem de migração aponta o v3 (T041, feature 009)
+    - 25/09/2026 13:23: exceções do acervo; removidas as da 008 sem uso (T049)
 STATUS: DEV
 """
 
@@ -226,27 +227,13 @@ def test_excecoes_do_registro_fora_do_repo_feature_007() -> None:
     assert "sem permissão de escrita" in str(falha)
 
 
-def test_excecoes_da_biblioteca_de_skills_feature_008() -> None:
-    """Exceções semânticas de skills (T003, feature 008)."""
+def test_excecoes_de_publicacao_feature_008() -> None:
+    """Exceções de publicação da 008, reaproveitadas pelo acervo (feature 009)."""
     from praxisforge.domain.errors import (
         ForeignSkillDestinationError,
-        InvalidSkillError,
-        SkillNotFoundError,
         SkillPublicationError,
         SkillVersionNotBumpedError,
     )
-
-    violacoes = [Violation("name", "difere da pasta"), Violation("description", "vazia")]
-    invalida = InvalidSkillError("revisar", violacoes)
-    assert isinstance(invalida, PraxisForgeError)
-    assert invalida.name == "revisar"
-    assert invalida.violations == violacoes
-    assert "revisar" in str(invalida)
-    assert "difere da pasta" in str(invalida) and "vazia" in str(invalida)
-
-    ausente = SkillNotFoundError("revisar")
-    assert isinstance(ausente, PraxisForgeError)
-    assert ausente.name == "revisar" and "revisar" in str(ausente)
 
     terceiro = ForeignSkillDestinationError("revisar", "/destino/revisar")
     assert isinstance(terceiro, PraxisForgeError)
@@ -258,15 +245,32 @@ def test_excecoes_da_biblioteca_de_skills_feature_008() -> None:
     assert versao.version == "1.0.0"
     assert "1.0.0" in str(versao) and "versão" in str(versao)
 
-    gravacao = SkillPublicationError("revisar", "sem permissão")
+    gravacao = SkillPublicationError("command/revisar", "sem permissão")
     assert isinstance(gravacao, PraxisForgeError)
-    assert gravacao.reason == "sem permissão" and "sem permissão" in str(gravacao)
+    assert gravacao.reason == "sem permissão" and "command/revisar" in str(gravacao)
 
 
-def test_catalog_write_error_feature_008() -> None:
-    """Falha de gravação do catálogo é semântica e cita o motivo."""
-    from praxisforge.domain.errors import CatalogWriteError
+def test_excecoes_do_acervo_feature_009() -> None:
+    """Exceções semânticas do acervo library/ (T009, feature 009)."""
+    from praxisforge.domain.errors import (
+        GlobalTargetRemovedError,
+        IndexWriteError,
+        InvalidLibraryItemError,
+        LibraryItemNotFoundError,
+        LibraryNotFoundError,
+        NotPublishableKindError,
+        UnknownItemKindError,
+    )
 
-    erro = CatalogWriteError("sem permissão")
-    assert isinstance(erro, PraxisForgeError)
-    assert erro.reason == "sem permissão" and "catálogo" in str(erro)
+    violacoes = [Violation("name", "difere da pasta"), Violation("description", "vazia")]
+    invalido = InvalidLibraryItemError("agent", "revisor", violacoes)
+    assert (invalido.kind, invalido.name, invalido.violations) == ("agent", "revisor", violacoes)
+    assert "agent/revisor" in str(invalido) and "vazia" in str(invalido)
+    assert "prompt" in str(UnknownItemKindError("prompt"))
+    assert "agent/x" in str(LibraryItemNotFoundError("agent", "x"))
+    assert "library/" in str(LibraryNotFoundError())
+    assert "hook" in str(NotPublishableKindError("hook", "motivo"))
+    assert "global" in str(GlobalTargetRemovedError())
+    assert "disco cheio" in str(IndexWriteError("disco cheio"))
+    for erro in (invalido, UnknownItemKindError("x"), IndexWriteError("y")):
+        assert isinstance(erro, PraxisForgeError)

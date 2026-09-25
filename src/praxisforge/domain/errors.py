@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 13:00
+MODIFICADO: 25/09/2026 13:23
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -16,6 +16,7 @@ HISTÓRICO:
     - 24/09/2026 16:54: exceções de skills (T008) e CatalogWriteError (T025), feature 008
     - 25/09/2026 09:56: ProjectRootNotFoundError (CLI independente do cwd)
     - 25/09/2026 13:00: exceções do acervo library/ (T009, feature 009)
+    - 25/09/2026 13:23: remove InvalidSkillError, SkillNotFoundError e CatalogWriteError (T049)
 STATUS: DEV
 """
 
@@ -195,7 +196,6 @@ class InvalidRootPathError(PraxisForgeError):
 
 __all__ = [
     "AliasAlreadyRegisteredError",
-    "CatalogWriteError",
     "ContentInspectionError",
     "ContractValidationError",
     "ExtractPolicyExceedsLicenseError",
@@ -210,7 +210,6 @@ __all__ = [
     "InvalidFolderError",
     "InvalidFolderPathError",
     "InvalidRootPathError",
-    "InvalidSkillError",
     "NestedFolderPathError",
     "NothingToRelocateError",
     "PathAlreadyRegisteredError",
@@ -220,7 +219,6 @@ __all__ = [
     "RegistryMigrationRequiredError",
     "RegistryRelocationError",
     "RegistryUnavailableError",
-    "SkillNotFoundError",
     "SkillPublicationError",
     "SkillVersionNotBumpedError",
     "SourceSchemaMigrationRequiredError",
@@ -385,33 +383,6 @@ class NothingToRelocateError(PraxisForgeError):
         super().__init__("registro de origem sem pastas; nada a mover")
 
 
-class InvalidSkillError(PraxisForgeError):
-    """
-    Skill viola o formato ou a proveniência exigidos (feature 008).
-
-    :param name: nome da skill (pasta) avaliada.
-    :type name: str
-    :param violations: todas as violações encontradas de uma vez.
-    :type violations: list[Violation]
-    """
-
-    def __init__(self, name: str, violations: list[Violation]) -> None:
-        self.name = name
-        self.violations = violations
-        resumo = "; ".join(f"{v.field}: {v.reason}" for v in violations)
-        super().__init__(
-            f"skill '{name}' inválida — {resumo}" if resumo else f"skill '{name}' inválida"
-        )
-
-
-class SkillNotFoundError(PraxisForgeError):
-    """Skill pedida não existe em `skills/` (feature 008)."""
-
-    def __init__(self, name: str) -> None:
-        self.name = name
-        super().__init__(f"skill '{name}' não encontrada")
-
-
 class ForeignSkillDestinationError(PraxisForgeError):
     """
     Destino de mesmo nome não foi publicado pelo praxisforge — nada é alterado (feature 008).
@@ -462,19 +433,6 @@ class SkillPublicationError(PraxisForgeError):
         self.name = name
         self.reason = reason
         super().__init__(f"falha ao publicar '{name}': {reason}")
-
-
-class CatalogWriteError(PraxisForgeError):
-    """
-    Falha ao gravar `skills/README.md`; o catálogo anterior permanece (feature 008).
-
-    :param reason: motivo em pt-BR.
-    :type reason: str
-    """
-
-    def __init__(self, reason: str) -> None:
-        self.reason = reason
-        super().__init__(f"falha ao gravar o catálogo: {reason}")
 
 
 class ProjectRootNotFoundError(PraxisForgeError):

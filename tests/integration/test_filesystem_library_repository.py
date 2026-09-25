@@ -155,16 +155,18 @@ def test_hash_estavel_ao_mover_pasta(root: Path, tmp_path: Path) -> None:
 
 
 def test_hash_skill_igual_ao_da_008(root: Path) -> None:
-    """O hash de skill é o mesmo algoritmo da 008 (publicações antigas continuam iguais)."""
-    from praxisforge.infrastructure.filesystem_skill_repository import FilesystemSkillRepository
+    """Hash de skill = algoritmo da 008 (caminho relativo + bytes, sem marcador): FR-017."""
+    import hashlib
 
-    escrever_item(root, "skill", "alfa", arquivos={"ref/a.md": "a"})
-    (root / "library" / "skills" / "alfa" / ".praxisforge-skill.json").write_text(
-        "{}", encoding="utf-8"
-    )
-    novo = _repo(root).content_hash(ItemKind.SKILL, "alfa")
-    antigo = FilesystemSkillRepository(root / "library" / "skills").content_hash("alfa")
-    assert novo == antigo
+    pasta = escrever_item(root, "skill", "alfa", arquivos={"ref/a.md": "a"})
+    (pasta / ".praxisforge-skill.json").write_text("{}", encoding="utf-8")
+    esperado = hashlib.sha256()
+    for item in sorted(
+        p for p in pasta.rglob("*") if p.is_file() and p.name != ".praxisforge-skill.json"
+    ):
+        esperado.update(item.relative_to(pasta).as_posix().encode("utf-8") + b"\0")
+        esperado.update(item.read_bytes() + b"\0")
+    assert _repo(root).content_hash(ItemKind.SKILL, "alfa") == esperado.hexdigest()
 
 
 def test_hash_arquivo_unico_muda_com_conteudo(root: Path) -> None:

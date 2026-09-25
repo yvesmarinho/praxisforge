@@ -16,7 +16,7 @@ from collections.abc import Mapping
 import pytest
 
 from praxisforge.domain.errors import InvalidLibraryItemError, UnknownItemKindError
-from praxisforge.domain.library_item import ItemKind, ItemName, LibraryItem
+from praxisforge.domain.library_item import ItemKind, ItemName, LibraryItem, extract_references
 
 META: dict[str, object] = {"version": "1.0.0", "sources": ["guia-a"]}
 
@@ -319,3 +319,50 @@ def test_coleta_todas_as_violacoes() -> None:
     )
     assert erro.value.kind == "hook"
     assert erro.value.name == "item-a"
+
+
+# --- casos herdados de test_skill.py (feature 008) ---------------------------------------------
+
+
+def test_versao_semver_com_prerelease_e_build() -> None:
+    """Semver com pré-release e build é aceito."""
+    fm = _fm(ItemKind.COMMAND, metadata={"version": "1.0.0-rc.1+build.5", "authored": True})
+    assert _montar(ItemKind.COMMAND, fm).version == "1.0.0-rc.1+build.5"
+
+
+@pytest.mark.parametrize("sources", ["a", [1], [""]])
+def test_fontes_com_tipo_invalido(sources: object) -> None:
+    """metadata.sources precisa ser lista de slugs não vazios."""
+    with pytest.raises(InvalidLibraryItemError) as erro:
+        _montar(
+            ItemKind.RULE, _fm(ItemKind.RULE, metadata={"version": "1.0.0", "sources": sources})
+        )
+    assert "metadata.sources" in _campos(erro)
+
+
+def test_extract_references_links_e_imagens() -> None:
+    """Coleta alvos de links e imagens, em ordem, sem duplicatas."""
+    corpo = "Veja [guia](ref/guia.md) e ![fig](img/a.png).\nDe novo [guia](ref/guia.md)."
+    assert extract_references(corpo) == ["ref/guia.md", "img/a.png"]
+
+
+def test_extract_references_ignora_externos_e_ancoras() -> None:
+    """Ignora http, https, mailto e âncoras puras; remove #fragmento."""
+    corpo = "[a](https://x.io) [b](http://x.io) [c](mailto:a@b.c) [d](#s) [e](ref/guia.md#passo)"
+    assert extract_references(corpo) == ["ref/guia.md"]
+
+
+def test_extract_references_corpo_vazio() -> None:
+    """Corpo sem links devolve lista vazia."""
+    assert extract_references("") == []
+
+
+def test_extract_references_ignora_codigo_inline_e_blocos() -> None:
+    """Links dentro de `código` ou de blocos cercados são exemplos, não referências (bug T042)."""
+    corpo = (
+        "Cite por link relativo, ex.: `[exemplo](exemplos/a.md)`.\n"
+        "```markdown\n[b](exemplos/b.md)\n```\n"
+        "~~~\n[c](exemplos/c.md)\n~~~\n"
+        "Real: [d](ref/d.md)\n"
+    )
+    assert extract_references(corpo) == ["ref/d.md"]
