@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:15 -->
-<!-- Modificado em: 24/09/2026 16:52 -->
+<!-- Modificado em: 25/09/2026 09:58 -->
 
 # Guia — Operar a CLI `praxisforge` (estado atual: features 001 + 002 + 003)
 
@@ -320,7 +320,8 @@ uv run praxisforge skills publish <nome> | --all --target global|<pasta> [--mode
 scripts/publish-skills ...   # mesmo que `skills publish`, rodável de qualquer diretório
 ```
 
-Os comandos resolvem `skills/`, `src/data/sources/` e `schemas/` a partir do diretório atual e
-precisam rodar na raiz do repositório. O script já entra nela sozinho. Uma pasta de projeto
+Os comandos resolvem `skills/`, `src/data/sources/` e `schemas/` pela raiz do projeto, achada
+subindo a partir do diretório atual (ou por `PRAXISFORGE_ROOT`, caminho absoluto). Fora do
+repositório e sem a variável, saem com código 3. Uma pasta de projeto
 chamada `global` precisa ser passada como `--target ./global`. O passo a passo completo está em
 [criar-publicar-skills.md](criar-publicar-skills.md).

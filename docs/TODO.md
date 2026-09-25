@@ -47,16 +47,17 @@
       `source-schema-v2`, `validate_sources`, política máxima em `folders show/list` (24/09/2026)
 - [x] Feature 007-registro-fora-do-repo: registro de pastas fora do repositório (XDG/`~/.config`,
       `--registry`, `PRAXISFORGE_REGISTRY`), exemplo versionado, `folders relocate` (24/09/2026)
-- [ ] Limitação conhecida (feature 007): a CLI resolve `schemas/` e o registro antigo
+- [x] Limitação conhecida (feature 007): a CLI resolve `schemas/` e o registro antigo
       (`src/data/folders.yaml`) a partir do diretório atual — só funciona na raiz do projeto
+      → raiz por marcador `pyproject.toml` + `PRAXISFORGE_ROOT`, ADR 0010 (25/09/2026)
 - [x] Dívida: `scripts/` com violações de ruff e fora do gate; `ruff format --check` fora do
       `make lint` (ex.: `src/praxisforge/infrastructure/filesystem_folder_probe.py`) → corrigido (25/09/2026)
 - [x] Feature 008-biblioteca-skills: `skills/` versionado com template, `skills validate`,
       `skills catalog` (`skills/README.md` determinístico), `skills publish` (cópia/symlink,
       marcador `.praxisforge-skill.json`, regra de versão, órfãs/`--prune`) e
       `scripts/publish-skills` (24/09/2026)
-- [ ] Limitação conhecida (feature 008): `skills` resolve `skills/` e `src/data/sources/` a partir
-      do diretório atual (mesma da feature 007); `scripts/publish-skills` contorna
+- [x] Limitação conhecida (feature 008): `skills` resolve `skills/` e `src/data/sources/` a partir
+      do diretório atual (mesma da feature 007); `scripts/publish-skills` contorna → ADR 0010 (25/09/2026)
 - [ ] Criar as primeiras skills reais (depende de registros em `src/data/sources/`)
 - [x] Primeira curadoria real: fonte `praticas-agentes/karpathy-guidelines` (MIT declarada no README, `summary`) e skill `diretrizes-codificacao` 1.0.0; pasta `github_forks__andrej_karpathy_skills` reclassificada para MIT e marcada `curated` (24/09/2026)
 - [x] Registro de pastas: descrição de `github_forks__andrej_karpathy_skills` veio errada do bootstrap; `folders update` não tem `--description` → `--description` adicionado (25/09/2026)

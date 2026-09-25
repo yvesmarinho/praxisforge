@@ -3,11 +3,12 @@
 NOME: test_cli_relocate.py
 TITULO: Testes de falha — CLI praxisforge folders relocate e dica de registro antigo
 DATA: 24/09/2026 14:34
-MODIFICADO: 24/09/2026 14:34
+MODIFICADO: 25/09/2026 09:55
 VERSÃO: 0.1.0
 DEPEND: pytest, pyyaml, praxisforge.presentation.cli
 HISTÓRICO:
     - 24/09/2026 14:34: criação (T026/T027, US3, feature 007)
+    - 25/09/2026 09:55: raiz do projeto por marcador; relocate a partir de subpasta
 STATUS: DEV
 """
 
@@ -35,9 +36,10 @@ def _run(argv: list[str], capsys: pytest.CaptureFixture[str]) -> tuple[int, str,
 
 @pytest.fixture
 def projeto(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Diretório de trabalho temporário com schemas/ (a CLI resolve schemas pelo cwd)."""
+    """Projeto temporário (marcador pyproject.toml + schemas/) usado como diretório atual."""
     raiz = tmp_path / "projeto"
     shutil.copytree(_RAIZ_PROJETO / "schemas", raiz / "schemas")
+    (raiz / "pyproject.toml").write_text('[project]\nname = "praxisforge"\n', encoding="utf-8")
     monkeypatch.chdir(raiz)
     return raiz
 
@@ -182,3 +184,20 @@ def test_relocate_60_pastas_em_menos_de_1s(
     assert time.perf_counter() - inicio < 1.0
     assert code == 0, err
     assert "(60 pastas)" in out
+
+
+def test_relocate_a_partir_de_subpasta_usa_legado_da_raiz(
+    projeto: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Sem --from, a origem padrão é src/data/folders.yaml da raiz, não do cwd."""
+    origem = _legado(projeto, 2)
+    sub = projeto / "docs"
+    sub.mkdir()
+    monkeypatch.chdir(sub)
+    code, _, err = _run(["folders", "relocate"], capsys)
+    assert code == 0, err
+    assert not origem.exists()
+    assert _padrao(tmp_path).is_file()

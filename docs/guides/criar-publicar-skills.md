@@ -1,13 +1,13 @@
 <!-- Criado em: 24/09/2026 16:52 -->
-<!-- Modificado em: 24/09/2026 16:52 -->
+<!-- Modificado em: 25/09/2026 09:58 -->
 
 # Criar e publicar skills
 
 Este guia cobre o fluxo completo da biblioteca de skills: criar a partir do template, validar,
 gerar o catálogo e publicar. As decisões estão no
-[ADR 0009](../decisions/0009-biblioteca-de-skills.md). Rode todos os comandos **na raiz do
-repositório**, porque a CLI resolve `skills/`, `src/data/sources/` e `schemas/` a partir do
-diretório atual.
+[ADR 0009](../decisions/0009-biblioteca-de-skills.md). Os comandos rodam de qualquer subpasta do
+repositório: a CLI acha a raiz subindo até o `pyproject.toml` do praxisforge. Fora dele, defina
+`PRAXISFORGE_ROOT` ([ADR 0010](../decisions/0010-raiz-do-projeto-por-marcador.md)).
 
 ## 1. Criar
 
