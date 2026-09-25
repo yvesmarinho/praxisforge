@@ -1,11 +1,11 @@
 <!-- Criado em: 24/09/2026 10:58 -->
-<!-- Modificado em: 24/09/2026 10:58 -->
+<!-- Modificado em: 25/09/2026 12:40 -->
 
 # ADR 0007: Política de extração por licença
 
 ## Status
 
-Aceito (24/09/2026) — feature `006-politica-extracao-licenca`.
+**Substituído** pelo [ADR 0012](0012-fontes-so-ideias.md) em 25/09/2026. Aceito (24/09/2026) — feature `006-politica-extracao-licenca`.
 
 ## Contexto
 
