@@ -8,6 +8,7 @@ VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.inventory_folders
 HISTÓRICO:
     - 25/09/2026 15:05: criação (T014, T029, T030, T034, feature 010)
+    - 25/09/2026 15:45: tipagem para o mypy do make lint (CI)
 STATUS: DEV
 """
 
@@ -16,6 +17,7 @@ import os
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -46,7 +48,7 @@ ROOT = Path(__file__).parents[2]
 AGORA = datetime(2026, 9, 25, 15, 5, tzinfo=ZoneInfo("America/Sao_Paulo"))
 _VALIDATOR = JsonSchemaContractValidator(schemas_dir=ROOT / "schemas")
 
-AGENT_SKILLS = {
+AGENT_SKILLS: dict[str, str | bytes] = {
     "skills/tdd/SKILL.md": "# tdd",
     "skills/tdd/references/apoio.md": "apoio",
     "skills/tdd/CLAUDE.md": "interno da skill",
@@ -125,7 +127,7 @@ class _Ambiente:
     def inventariar_todas(self) -> InventoryReport:
         return inventory_all(**self._deps(), now=AGORA)  # type: ignore[arg-type]
 
-    def manifesto(self, alias: str) -> dict[str, object]:
+    def manifesto(self, alias: str) -> dict[str, Any]:
         return json.loads((self.store_dir(alias) / "manifest.json").read_text("utf-8"))  # type: ignore[no-any-return]
 
     def estado(self, alias: str) -> dict[str, dict[str, object]]:
@@ -148,7 +150,7 @@ def test_agent_skills_classificado_por_completo(amb: _Ambiente) -> None:
     """SC-001: todos os tipos aparecem com o tipo certo; apoio da skill não vira artefato."""
     amb.registrar("agent_skills", AGENT_SKILLS)
     resultado = amb.inventariar("agent_skills")
-    tipos = {a["path"]: a["kind"] for a in amb.manifesto("agent_skills")["artifacts"]}  # type: ignore[index, union-attr]
+    tipos = {a["path"]: a["kind"] for a in amb.manifesto("agent_skills")["artifacts"]}
     assert tipos == {
         "skills/tdd": "skill",
         ".claude/skills/local": "skill",
@@ -164,7 +166,7 @@ def test_agent_skills_classificado_por_completo(amb: _Ambiente) -> None:
         "README.md": "unknown",
         "docs/x.md": "unknown",
     }
-    excluidos = {e["path"]: e["reason"] for e in amb.manifesto("agent_skills")["excluded"]}  # type: ignore[index, union-attr]
+    excluidos = {e["path"]: e["reason"] for e in amb.manifesto("agent_skills")["excluded"]}
     assert excluidos == {
         "app.py": "uncurated",
         "node_modules": "fixed_dir",
@@ -172,7 +174,7 @@ def test_agent_skills_classificado_por_completo(amb: _Ambiente) -> None:
         "logo.png": "binary",
         "grande.md": "too_large",
     }
-    skill = next(a for a in amb.manifesto("agent_skills")["artifacts"] if a["path"] == "skills/tdd")  # type: ignore[union-attr, index]
+    skill = next(a for a in amb.manifesto("agent_skills")["artifacts"] if a["path"] == "skills/tdd")
     assert skill["files"] == 3
     assert resultado.artifacts == 13
     assert resultado.pending == 13
@@ -184,7 +186,7 @@ def test_todo_arquivo_coberto_uma_vez(amb: _Ambiente) -> None:
     pasta = amb.registrar("agent_skills", AGENT_SKILLS)
     amb.inventariar("agent_skills")
     doc = amb.manifesto("agent_skills")
-    raizes = [a["path"] for a in doc["artifacts"]] + [e["path"] for e in doc["excluded"]]  # type: ignore[union-attr, index]
+    raizes = [a["path"] for a in doc["artifacts"]] + [e["path"] for e in doc["excluded"]]
     for arquivo in (p for p in pasta.rglob("*") if p.is_file()):
         rel = arquivo.relative_to(pasta).as_posix()
         donos = [r for r in raizes if rel == r or rel.startswith(f"{r}/")]
