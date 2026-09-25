@@ -4,4 +4,6 @@
 
 Skills versionadas em `skills/`. Para criar uma nova, parta de `skills/_template/`.
 
-Nenhuma skill cadastrada ainda.
+| Skill | Propósito | Versão | Caminho | Fontes |
+|---|---|---|---|---|
+| diretrizes-codificacao | Diretrizes de comportamento para escrever, revisar ou refatorar código sem os erros típicos de LLMs — explicitar premissas, preferir a solução mais simples, fazer mudanças cirúrgicas e trabalhar contra critérios de sucesso verificáveis. Use em qualquer tarefa de código que não seja trivial. | 1.0.0 | `skills/diretrizes-codificacao/` | karpathy-guidelines |

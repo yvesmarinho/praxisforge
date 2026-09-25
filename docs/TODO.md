@@ -58,3 +58,5 @@
 - [ ] Limitação conhecida (feature 008): `skills` resolve `skills/` e `src/data/sources/` a partir
       do diretório atual (mesma da feature 007); `scripts/publish-skills` contorna
 - [ ] Criar as primeiras skills reais (depende de registros em `src/data/sources/`)
+- [x] Primeira curadoria real: fonte `praticas-agentes/karpathy-guidelines` (MIT declarada no README, `summary`) e skill `diretrizes-codificacao` 1.0.0; pasta `github_forks__andrej_karpathy_skills` reclassificada para MIT e marcada `curated` (24/09/2026)
+- [ ] Registro de pastas: descrição de `github_forks__andrej_karpathy_skills` veio errada do bootstrap; `folders update` não tem `--description`

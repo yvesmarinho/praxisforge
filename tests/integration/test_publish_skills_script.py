@@ -3,11 +3,12 @@
 NOME: test_publish_skills_script.py
 TITULO: Testes de integração — scripts/publish-skills repassa para `skills publish` (FR-016)
 DATA: 24/09/2026 16:48
-MODIFICADO: 24/09/2026 16:50
+MODIFICADO: 24/09/2026 17:23
 VERSÃO: 0.1.0
 DEPEND: pytest (subprocess, uv no PATH)
 HISTÓRICO:
     - 24/09/2026 16:48: criação (T031, feature 008)
+    - 24/09/2026 17:23: HOME separado por execução (com skills reais a 2ª via "inalterada")
 STATUS: DEV
 """
 
@@ -46,13 +47,14 @@ def test_script_executavel_com_shebang() -> None:
 )
 def test_script_repassa_argumentos_e_codigo(tmp_path: Path, args: list[str], codigo: int) -> None:
     """Saída e código iguais aos do comando, rodando de outro diretório."""
-    home = tmp_path / "home"
-    home.mkdir()
+    home_direto, home_atalho = tmp_path / "home-direto", tmp_path / "home-atalho"
+    home_direto.mkdir()
+    home_atalho.mkdir()
     uv = shutil.which("uv") or "uv"
     direto = subprocess.run(  # noqa: S603 # nosec B603
         [uv, "run", "praxisforge", "skills", "publish", *args],
         cwd=REPO_ROOT,
-        env=_env(home),
+        env=_env(home_direto),
         capture_output=True,
         text=True,
         timeout=120,
@@ -61,7 +63,7 @@ def test_script_repassa_argumentos_e_codigo(tmp_path: Path, args: list[str], cod
     atalho = subprocess.run(  # noqa: S603 # nosec B603
         [str(SCRIPT), *args],
         cwd=tmp_path,
-        env=_env(home),
+        env=_env(home_atalho),
         capture_output=True,
         text=True,
         timeout=120,
