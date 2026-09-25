@@ -3,7 +3,7 @@
 NOME: test_update_folder.py
 TITULO: Testes de falha — caso de uso update_folder (repositório fake)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:52
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.update_folder
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 22/09/2026 19:00: +caso status ignore (T027, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:08: resolver/inspector + testes de versão curada (T018, T023, feature 004)
     - 23/09/2026 16:52: FolderLocator + path (T020, feature 005)
+    - 25/09/2026 09:52: +casos --description
 STATUS: DEV
 """
 
@@ -20,6 +21,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pytest
+from pydantic import ValidationError
 
 from praxisforge.application.dto import UpdateFolderInput
 from praxisforge.application.ports import (
@@ -393,3 +395,23 @@ def test_update_de_licenca_em_pasta_curada_nao_regrava_versao() -> None:
     )
     assert result.head_recorded is None
     assert result.folder.last_curated_commit == "c" * 40
+
+
+# --- folders update --description -------------------------------------------------------
+
+
+def test_update_description_grava_e_preserva_demais() -> None:
+    """--description troca a descrição, preserva o resto e grava uma vez."""
+    repo = _FakeRepository(_registry())
+    update_folder(repo, UpdateFolderInput(alias="github_forks", description="Forks de agentes"))
+    folder = repo.load().get("github_forks")
+    assert folder.description == "Forks de agentes"
+    assert folder.license == "unknown"
+    assert repo.save_count == 1
+
+
+@pytest.mark.parametrize("descricao", ["", "x" * 501])
+def test_description_fora_do_contrato_recusada_no_dto(descricao: str) -> None:
+    """Descrição vazia ou acima de 500 caracteres falha já na entrada (fail fast)."""
+    with pytest.raises(ValidationError):
+        UpdateFolderInput(alias="github_forks", description=descricao)

@@ -3,7 +3,7 @@
 NOME: test_cli_folders.py
 TITULO: Testes de falha — CLI praxisforge folders add|list|show|update
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 10:56
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
@@ -12,6 +12,7 @@ HISTÓRICO:
     - 23/09/2026 12:08: versão curada em update/show (T019, feature 004)
     - 23/09/2026 16:53: --path obrigatório, caminho em list/show (T022, feature 005)
     - 24/09/2026 10:56: política máxima em show/list (T023, feature 006)
+    - 25/09/2026 09:52: folders update --description
 STATUS: DEV
 """
 
@@ -488,3 +489,36 @@ def test_list_exibe_politica_apos_status_e_caminho_por_ultimo(
     assert colunas[3] == "não varrida"
     assert colunas[4] == "verbatim"
     assert colunas[-1] == str(pasta)
+
+
+# --- folders update --description -------------------------------------------------------
+
+
+def test_update_description_codigo_0_e_show_exibe(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """folders update --description troca a descrição exibida por show."""
+    _registrar(tmp_registry_path, capsys, _pasta(tmp_registry_path))
+    registry_arg = ["--registry", str(tmp_registry_path)]
+    code, _, _ = _run(
+        [*registry_arg, "folders", "update", "fonte", "--description", "Descrição corrigida"],
+        capsys,
+    )
+    assert code == 0
+    _, out, _ = _run([*registry_arg, "folders", "show", "fonte"], capsys)
+    assert "descrição: Descrição corrigida" in out
+
+
+def test_update_description_vazia_codigo_2_sem_alterar(
+    tmp_registry_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """--description vazia é erro de uso (código 2) e não altera o registro."""
+    _registrar(tmp_registry_path, capsys, _pasta(tmp_registry_path))
+    antes = tmp_registry_path.read_bytes()
+    code, _, err = _run(
+        ["--registry", str(tmp_registry_path), "folders", "update", "fonte", "--description", ""],
+        capsys,
+    )
+    assert code == 2
+    assert "argumentos inválidos" in err
+    assert tmp_registry_path.read_bytes() == antes

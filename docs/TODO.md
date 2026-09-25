@@ -59,7 +59,7 @@
       do diretório atual (mesma da feature 007); `scripts/publish-skills` contorna
 - [ ] Criar as primeiras skills reais (depende de registros em `src/data/sources/`)
 - [x] Primeira curadoria real: fonte `praticas-agentes/karpathy-guidelines` (MIT declarada no README, `summary`) e skill `diretrizes-codificacao` 1.0.0; pasta `github_forks__andrej_karpathy_skills` reclassificada para MIT e marcada `curated` (24/09/2026)
-- [ ] Registro de pastas: descrição de `github_forks__andrej_karpathy_skills` veio errada do bootstrap; `folders update` não tem `--description`
+- [x] Registro de pastas: descrição de `github_forks__andrej_karpathy_skills` veio errada do bootstrap; `folders update` não tem `--description` → `--description` adicionado (25/09/2026)
 - [x] Decisão: skill `diretrizes-codificacao` **não** publicada no `~/.claude/skills` global — duplicaria o CLAUDE.md global (25/09/2026)
 - [x] Curadoria `agent_skills`: fonte `praticas-agentes/agent-skills-constraints` (MIT, `summary`) e skill `guarda-barra-qualidade` 1.0.0; pasta `github_forks__agent_skills` marcada `curated` (25/09/2026)
 - [ ] Curadoria automatizada — debate em `docs/debates/curadoria-automatizada.md` (25/09/2026), dividida em 4 features:

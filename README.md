@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 24/09/2026 16:52 -->
+<!-- Modificado em: 25/09/2026 09:52 -->
 
 # Praxisforge
 
@@ -67,7 +67,7 @@ que passará para fora do repositório com a feature 007) e `--log-level NÍVEL`
 | `folders add --alias A --description D --content-type T --license L --path P [--status S]` | Registra uma pasta com caminho absoluto (único, sem aninhamento); cria o registro se não existir |
 | `folders list [--status S]` | Lista alias, tipo, licença, status, política máxima de extração, última varredura e caminho |
 | `folders show A` | Detalhes de uma pasta, incluindo versão curada e política máxima de extração |
-| `folders update A [--status S] [--last-scanned DATA] [--license L] [--path P]` | Atualiza metadados; `--status curated` grava a versão (HEAD do git) curada |
+| `folders update A [--status S] [--last-scanned DATA] [--license L] [--path P] [--description D]` | Atualiza metadados; `--status curated` grava a versão (HEAD do git) curada |
 | `folders resolve A \| --all` | Confere se o caminho registrado existe e é legível (não altera nada) |
 | `folders scan A \| --all` | Varre as pastas: atualiza status/última varredura e reverte `curated` → `in_curation` quando o conteúdo mudou desde a curadoria |
 | `folders bootstrap RAIZ` | Registra as subpastas de 1º nível da raiz ainda ausentes (alias `<raiz>__<subpasta>`, descrição e licença detectadas de README/LICENSE) |

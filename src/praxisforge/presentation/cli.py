@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -20,6 +20,7 @@ HISTÓRICO:
     - 24/09/2026 16:54: skills validate (T019, feature 008)
     - 24/09/2026 16:54: skills catalog (T026, feature 008)
     - 24/09/2026 16:54: skills publish (T036, feature 008)
+    - 25/09/2026 09:52: folders update --description
 STATUS: DEV
 """
 
@@ -136,6 +137,7 @@ def _build_parser() -> argparse.ArgumentParser:
     update_parser.add_argument("--last-scanned", default=None)
     update_parser.add_argument("--license", default=None)
     update_parser.add_argument("--path", default=None)
+    update_parser.add_argument("--description", default=None)
 
     resolve_parser = folders_sub.add_parser("resolve")
     resolve_group = resolve_parser.add_mutually_exclusive_group(required=True)
@@ -259,6 +261,7 @@ def _cmd_folders_update(
             last_scanned=args.last_scanned,
             license=args.license,
             path=args.path,
+            description=args.description,
         )
     except ValidationError as error:
         sys.stderr.write(f"argumentos inválidos: {error}\n")

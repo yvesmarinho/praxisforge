@@ -3,7 +3,7 @@
 NOME: folder_registry.py
 TITULO: Agregado FolderRegistry — coleção de pastas registradas, com invariantes
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 09:37
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.folder, praxisforge.domain.curation_status, praxisforge.domain.errors
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 23/09/2026 12:07: update() aceita last_curated_commit (T013, feature 004)
     - 23/09/2026 16:55: path único e sem aninhamento (T013, feature 005)
     - 24/09/2026 09:37: componentes do caminho em cache (checagem por pares ficava cara em lote)
+    - 25/09/2026 09:52: folders update --description
 STATUS: DEV
 """
 
@@ -122,6 +123,7 @@ class FolderRegistry:
         license: str | None = None,  # noqa: A002 - nome do domínio
         last_curated_commit: str | None = None,
         path: str | None = None,
+        description: str | None = None,
     ) -> "FolderRegistry":
         """
         Atualiza campos informados de uma pasta, atomicamente.
@@ -142,6 +144,8 @@ class FolderRegistry:
         :type last_curated_commit: str | None
         :param path: novo caminho absoluto, se informado (revalida unicidade/aninhamento).
         :type path: str | None
+        :param description: nova descrição, se informada (1 a 500 caracteres).
+        :type description: str | None
         :return: novo agregado com a pasta atualizada.
         :rtype: FolderRegistry
         :raises FolderNotFoundError: alias não registrado.
@@ -158,6 +162,7 @@ class FolderRegistry:
                 else current.last_curated_commit
             ),
             path=path if path is not None else current.path,
+            description=description if description is not None else current.description,
         )
         if path is not None:
             outras = [f for key, f in self.folders.items() if key != alias]
