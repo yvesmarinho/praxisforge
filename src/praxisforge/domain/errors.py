@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 09:56
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -14,6 +14,7 @@ HISTÓRICO:
     - 24/09/2026 14:31: registro fora do repositório: local no erro de ausência + realocação
       (T006, feature 007)
     - 24/09/2026 16:54: exceções de skills (T008) e CatalogWriteError (T025), feature 008
+    - 25/09/2026 09:56: ProjectRootNotFoundError (CLI independente do cwd)
 STATUS: DEV
 """
 
@@ -472,3 +473,16 @@ class CatalogWriteError(PraxisForgeError):
     def __init__(self, reason: str) -> None:
         self.reason = reason
         super().__init__(f"falha ao gravar o catálogo: {reason}")
+
+
+class ProjectRootNotFoundError(PraxisForgeError):
+    """
+    Raiz do projeto praxisforge não encontrada (nem por `PRAXISFORGE_ROOT`, nem subindo do cwd).
+
+    :param reason: motivo em pt-BR.
+    :type reason: str
+    """
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"raiz do projeto não encontrada: {reason}")

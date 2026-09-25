@@ -3,13 +3,14 @@
 NOME: conftest.py
 TITULO: Fixtures compartilhadas entre tests/unit, tests/integration, tests/contract
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 09:55
 VERSÃO: 0.1.0
 DEPEND: pytest
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T002) — tmp_registry_path, env_folder, valid_folder_doc, fixed_now
     - 24/09/2026 14:31: fixture autouse isolando o local do registro do usuário (T008, feature 007)
     - 24/09/2026 16:54: HOME temporário — nenhum teste publica no ~/.claude real (T010, feature 008)
+    - 25/09/2026 09:55: remove PRAXISFORGE_ROOT do ambiente dos testes
 STATUS: DEV
 """
 
@@ -35,6 +36,7 @@ def _isolar_config_do_usuario(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
     """
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.delenv("PRAXISFORGE_REGISTRY", raising=False)
+    monkeypatch.delenv("PRAXISFORGE_ROOT", raising=False)
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
 
 

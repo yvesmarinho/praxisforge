@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 09:52
+MODIFICADO: 25/09/2026 09:57
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -21,6 +21,7 @@ HISTÓRICO:
     - 24/09/2026 16:54: skills catalog (T026, feature 008)
     - 24/09/2026 16:54: skills publish (T036, feature 008)
     - 25/09/2026 09:52: folders update --description
+    - 25/09/2026 09:57: schemas/skills/fontes/registro antigo pela raiz do projeto (não pelo cwd)
 STATUS: DEV
 """
 
@@ -45,6 +46,7 @@ from praxisforge.application.errors import (
     FolderPathUnreadableError,
     InvalidRootPathError,
     PraxisForgeError,
+    ProjectRootNotFoundError,
     RegistryRelocationError,
 )
 from praxisforge.application.migrate_registry import migrate_registry
@@ -77,6 +79,7 @@ from praxisforge.infrastructure.filesystem_skill_repository import FilesystemSki
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.logging_setup import configure_logging
+from praxisforge.infrastructure.project_root import find_project_root
 from praxisforge.infrastructure.registry_location import (
     find_legacy_registry,
     resolve_registry_path,
@@ -158,7 +161,7 @@ def _build_parser() -> argparse.ArgumentParser:
     migrate_parser.add_argument("--root", type=Path, default=None)
 
     relocate_parser = folders_sub.add_parser("relocate")
-    relocate_parser.add_argument("--from", dest="source", type=Path, default=_LEGACY_REGISTRY)
+    relocate_parser.add_argument("--from", dest="source", type=Path, default=None)
 
     sources = subparsers.add_parser("sources")
     sources_sub = sources.add_subparsers(dest="subcomando", required=True)
@@ -458,19 +461,22 @@ def _nomes_pedidos(args: argparse.Namespace) -> list[str] | None | bool:
     return None if args.todas else [args.nome]
 
 
-def _fontes() -> list[Path]:
-    return sorted(_SOURCES_DIR.rglob("*.md")) if _SOURCES_DIR.is_dir() else []
+def _fontes(root: Path) -> list[Path]:
+    sources_dir = root / _SOURCES_DIR
+    return sorted(sources_dir.rglob("*.md")) if sources_dir.is_dir() else []
 
 
-def _cmd_skills_validate(args: argparse.Namespace, validator: JsonSchemaContractValidator) -> int:
+def _cmd_skills_validate(
+    args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
+) -> int:
     nomes = _nomes_pedidos(args)
     if nomes is False:
         return _EXIT_USO
     report = validate_skills(
-        FilesystemSkillRepository(_SKILLS_DIR),
+        FilesystemSkillRepository(root / _SKILLS_DIR),
         validator,
         FrontmatterSourceReader(),
-        _fontes(),
+        _fontes(root),
         nomes if isinstance(nomes, list) else None,
     )
     for falha in report.failures:
@@ -480,14 +486,14 @@ def _cmd_skills_validate(args: argparse.Namespace, validator: JsonSchemaContract
     return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
 
 
-def _cmd_skills_catalog(validator: JsonSchemaContractValidator) -> int:
+def _cmd_skills_catalog(validator: JsonSchemaContractValidator, root: Path) -> int:
     try:
         resultado = build_catalog(
-            FilesystemSkillRepository(_SKILLS_DIR),
+            FilesystemSkillRepository(root / _SKILLS_DIR),
             validator,
             FrontmatterSourceReader(),
-            _fontes(),
-            FilesystemCatalogWriter(_SKILLS_DIR / "README.md"),
+            _fontes(root),
+            FilesystemCatalogWriter(root / _SKILLS_DIR / "README.md"),
         )
     except CatalogWriteError as error:
         sys.stderr.write(f"{error}\n")
@@ -528,7 +534,9 @@ def _escrever_publicacao(report: PublishReport) -> None:
     )
 
 
-def _cmd_skills_publish(args: argparse.Namespace, validator: JsonSchemaContractValidator) -> int:
+def _cmd_skills_publish(
+    args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
+) -> int:
     nomes = _nomes_pedidos(args)
     if nomes is False:
         return _EXIT_USO
@@ -538,12 +546,12 @@ def _cmd_skills_publish(args: argparse.Namespace, validator: JsonSchemaContractV
     destino = _destino_de_publicacao(args.target)
     if destino is None:
         return _EXIT_USO
-    skills_dir = Path.cwd() / _SKILLS_DIR
+    skills_dir = root / _SKILLS_DIR
     report = publish_skills(
         FilesystemSkillRepository(skills_dir),
         validator,
         FrontmatterSourceReader(),
-        _fontes(),
+        _fontes(root),
         FilesystemSkillPublisher(skills_dir, validator),
         destino,
         nomes if isinstance(nomes, list) else None,
@@ -561,8 +569,14 @@ def _cmd_folders_relocate(
     repository: FolderRegistryRepository,
     registry_path: Path,
     validator: JsonSchemaContractValidator,
+    root: Path,
 ) -> int:
-    source_path = args.source if args.source.is_absolute() else Path.cwd() / args.source
+    if args.source is None:
+        source_path = root / _LEGACY_REGISTRY
+    elif args.source.is_absolute():
+        source_path = args.source
+    else:
+        source_path = Path.cwd() / args.source
     source = YamlFolderRegistryRepository(source_path, validator)
     try:
         resultado = relocate_registry(
@@ -594,7 +608,12 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging()
     parser = _build_parser()
     args = parser.parse_args(argv)
-    validator = JsonSchemaContractValidator(schemas_dir=_SCHEMAS_DIR)
+    try:
+        root = find_project_root(Path.cwd(), os.environ)
+    except ProjectRootNotFoundError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    validator = JsonSchemaContractValidator(schemas_dir=root / _SCHEMAS_DIR)
     registry_path = resolve_registry_path(args.registry, os.environ, Path.home(), Path.cwd())
     if args.comando == "folders" and registry_path.is_dir():
         sys.stderr.write(f"local do registro é um diretório: {registry_path}\n")
@@ -606,14 +625,14 @@ def main(argv: list[str] | None = None) -> int:
         if (
             args.subcomando not in _COMANDOS_QUE_CRIAM
             and not repository.exists()
-            and find_legacy_registry(Path.cwd()) is not None
+            and find_legacy_registry(root) is not None
         ):
             sys.stderr.write(
                 "registro antigo encontrado em src/data/folders.yaml — "
                 "execute: praxisforge folders relocate\n"
             )
         if args.subcomando == "relocate":
-            return _cmd_folders_relocate(args, repository, registry_path, validator)
+            return _cmd_folders_relocate(args, repository, registry_path, validator, root)
         if args.subcomando == "add":
             return _cmd_folders_add(args, repository, locator)
         if args.subcomando == "list":
@@ -637,11 +656,11 @@ def main(argv: list[str] | None = None) -> int:
         return _cmd_sources_validate(args, validator)
 
     if args.comando == "skills" and args.subcomando == "validate":
-        return _cmd_skills_validate(args, validator)
+        return _cmd_skills_validate(args, validator, root)
     if args.comando == "skills" and args.subcomando == "catalog":
-        return _cmd_skills_catalog(validator)
+        return _cmd_skills_catalog(validator, root)
     if args.comando == "skills" and args.subcomando == "publish":
-        return _cmd_skills_publish(args, validator)
+        return _cmd_skills_publish(args, validator, root)
 
     sys.stderr.write("comando desconhecido\n")
     return _EXIT_USO

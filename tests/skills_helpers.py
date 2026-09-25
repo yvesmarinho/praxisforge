@@ -3,11 +3,12 @@
 NOME: skills_helpers.py
 TITULO: Auxiliares de teste — projeto temporário com skills/, fontes e schemas (feature 008)
 DATA: 24/09/2026 16:54
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 09:55
 VERSÃO: 0.1.0
 DEPEND: (stdlib)
 HISTÓRICO:
     - 24/09/2026 16:54: criação (T012–T014, feature 008)
+    - 25/09/2026 09:55: marcador pyproject.toml (raiz do projeto)
 STATUS: DEV
 """
 
@@ -18,8 +19,9 @@ REPO_ROOT = Path(__file__).parents[1]
 
 
 def criar_projeto(root: Path) -> Path:
-    """Cria projeto mínimo com schemas/ reais, skills/ e src/data/sources/ vazios."""
+    """Cria projeto mínimo: marcador pyproject.toml, schemas/ reais, skills/ e fontes vazios."""
     shutil.copytree(REPO_ROOT / "schemas", root / "schemas")
+    (root / "pyproject.toml").write_text('[project]\nname = "praxisforge"\n', encoding="utf-8")
     (root / "skills").mkdir(parents=True)
     (root / "src" / "data" / "sources").mkdir(parents=True)
     return root

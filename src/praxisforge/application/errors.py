@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 09:57
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -19,6 +19,7 @@ HISTÓRICO:
     - 24/09/2026 10:52: reexporta exceções da política de extração (T009, feature 006)
     - 24/09/2026 14:31: reexporta exceções da realocação do registro (T006, feature 007)
     - 24/09/2026 16:54: reexporta exceções da biblioteca de skills (T008, feature 008)
+    - 25/09/2026 09:57: reexporta ProjectRootNotFoundError
 STATUS: DEV
 """
 
@@ -38,6 +39,7 @@ from praxisforge.domain.errors import (
     NothingToRelocateError,
     PathAlreadyRegisteredError,
     PraxisForgeError,
+    ProjectRootNotFoundError,
     RegistryAlreadyExistsError,
     RegistryFileNotFoundError,
     RegistryMigrationRequiredError,
@@ -65,6 +67,7 @@ __all__ = [
     "NothingToRelocateError",
     "PathAlreadyRegisteredError",
     "PraxisForgeError",
+    "ProjectRootNotFoundError",
     "RegistryAlreadyExistsError",
     "RegistryFileNotFoundError",
     "RegistryMigrationRequiredError",
