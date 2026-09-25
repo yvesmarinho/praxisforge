@@ -3,11 +3,12 @@
 NOME: test_validate_skills.py
 TITULO: Testes de falha — caso de uso validate_skills (forma + proveniência, em lote)
 DATA: 24/09/2026 16:54
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 13:07
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.validate_skills
 HISTÓRICO:
     - 24/09/2026 16:54: criação (T013, feature 008)
+    - 25/09/2026 13:07: fontes v3 só ideias; FR-007a substituído (T041, feature 009)
 STATUS: DEV
 """
 
@@ -74,16 +75,15 @@ def _doc(
 
 
 def _fonte(policy: str, **campos: object) -> dict[str, object]:
+    del policy  # só ideias (feature 009): nível de extração não existe mais
     documento: dict[str, object] = {
-        "schema_version": "2",
+        "schema_version": "3",
         "origin": "https://x.io/repo",
         "author": "Fulano",
         "date": "2026-09-20",
         "license": "MIT",
         "relevance": "r",
         "status": "active",
-        "extract_policy": policy,
-        "notice_preserved": True,
     }
     documento.update(campos)
     return documento
@@ -94,7 +94,7 @@ FONTES = {
     Path("src/data/sources/a/link.md"): _fonte("link"),
     Path("src/data/sources/a/dup.md"): _fonte("summary"),
     Path("src/data/sources/b/dup.md"): _fonte("summary"),
-    Path("src/data/sources/a/ruim.md"): _fonte("verbatim", license="Elastic-2.0"),
+    Path("src/data/sources/a/ruim.md"): _fonte("verbatim", license="unknown"),
 }
 
 
@@ -123,15 +123,15 @@ def test_slug_ambiguo() -> None:
 
 
 def test_fonte_invalida() -> None:
-    """Fonte citada que falha na validação de fontes (política acima da licença) é falha."""
+    """Fonte citada que falha na validação de fontes (unknown sem pending) é falha."""
     report = _validar(_FakeRepo({"s": _doc("s", sources=["ruim"])}))
     assert "ruim" in _motivos(report, "s") and "inválida" in _motivos(report, "s")
 
 
-def test_so_fontes_link_e_nao_autoral() -> None:
-    """Skill não autoral cujas fontes são todas link falha (FR-007a)."""
+def test_qualquer_fonte_valida_basta() -> None:
+    """Só ideias (feature 009): qualquer fonte válida sustenta skill não autoral."""
     report = _validar(_FakeRepo({"s": _doc("s", sources=["link"])}))
-    assert "summary" in _motivos(report, "s") and "verbatim" in _motivos(report, "s")
+    assert report.failures == []
 
 
 def test_summary_mais_link_ok() -> None:

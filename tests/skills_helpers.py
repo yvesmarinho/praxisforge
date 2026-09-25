@@ -3,12 +3,13 @@
 NOME: skills_helpers.py
 TITULO: Auxiliares de teste — projeto temporário com skills/, fontes e schemas (feature 008)
 DATA: 24/09/2026 16:54
-MODIFICADO: 25/09/2026 09:55
+MODIFICADO: 25/09/2026 13:05
 VERSÃO: 0.1.0
 DEPEND: (stdlib)
 HISTÓRICO:
     - 24/09/2026 16:54: criação (T012–T014, feature 008)
     - 25/09/2026 09:55: marcador pyproject.toml (raiz do projeto)
+    - 25/09/2026 13:05: fontes no source-schema-v3 (T042, feature 009)
 STATUS: DEV
 """
 
@@ -63,22 +64,20 @@ def escrever_skill(
 
 
 def escrever_fonte(root: Path, categoria: str, slug: str, policy: str = "summary") -> Path:
-    """Grava src/data/sources/<categoria>/<slug>.md válido no source-schema-v2."""
+    """Grava src/data/sources/<categoria>/<slug>.md válido no source-schema-v3 (policy ignorado)."""
+    del policy  # só ideias (feature 009): não há mais nível de extração
     pasta = root / "src" / "data" / "sources" / categoria
     pasta.mkdir(parents=True, exist_ok=True)
-    extra = "notice_preserved: true\n" if policy == "verbatim" else ""
     arquivo = pasta / f"{slug}.md"
     arquivo.write_text(
         "---\n"
-        "schema_version: '2'\n"
+        "schema_version: '3'\n"
         "origin: https://github.com/exemplo/repo\n"
         "author: Fulano\n"
         "date: '2026-09-20'\n"
         "license: MIT\n"
         "relevance: padrões\n"
         "status: active\n"
-        f"extract_policy: {policy}\n"
-        f"{extra}"
         "---\n"
         "Resumo.\n",
         encoding="utf-8",

@@ -337,15 +337,16 @@ class IncompleteAttributionError(PraxisForgeError):
 
 
 class SourceSchemaMigrationRequiredError(ContractValidationError):
-    """Registro de fonte no formato v1 (extract_allowed) — não é mais aceito."""
+    """Registro de fonte v1 ou v2 — não é mais aceito (source-schema-v3, feature 009)."""
 
     def __init__(self) -> None:
         super().__init__(
             [
                 Violation(
                     field="schema_version",
-                    reason="source-schema-v1 não é mais aceito — use extract_policy "
-                    "(source-schema-v2)",
+                    reason="registro de fonte v1/v2 não é mais aceito — remova extract_policy, "
+                    "extract_scope, notice_preserved e modified e declare schema_version: '3' "
+                    "(só ideias, ADR 0012)",
                 )
             ]
         )

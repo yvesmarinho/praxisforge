@@ -3,11 +3,12 @@
 NOME: validate_skills.py
 TITULO: Caso de uso — validar skills (forma do SKILL.md + proveniência das fontes), em lote
 DATA: 24/09/2026 16:54
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 13:05
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain, praxisforge.application.ports, praxisforge.application.validate_sources
 HISTÓRICO:
     - 24/09/2026 16:54: criação (T018, feature 008) — faz test_validate_skills.py passar
+    - 25/09/2026 13:05: fontes v3 só ideias — qualquer fonte válida serve (T042, feature 009)
 STATUS: DEV
 """
 
@@ -30,7 +31,6 @@ from praxisforge.domain.skill import Skill
 logger = logging.getLogger(__name__)
 
 _SCHEMA = "skill-frontmatter-v1"
-_POLITICAS_DE_CONTEUDO = ("summary", "verbatim")
 
 
 @dataclass(frozen=True)
@@ -76,29 +76,16 @@ class _IndiceDeFontes:
             return Violation(
                 "metadata.sources", f"fonte '{slug}' inválida: {report.failures[0].message}"
             )
-        return str(self.reader.read(arquivos[0]).get("extract_policy"))
+        return "ok"
 
 
 def _violacoes_de_proveniencia(skill: Skill, indice: _IndiceDeFontes) -> list[Violation]:
+    # só ideias (feature 009): toda fonte válida serve; não há mais nível de extração
     violacoes: list[Violation] = []
-    politicas: list[str] = []
     for slug in skill.sources:
         resultado = indice.politica(slug)
         if isinstance(resultado, Violation):
             violacoes.append(resultado)
-        else:
-            politicas.append(resultado)
-    if (
-        not skill.authored
-        and not violacoes
-        and not any(p in _POLITICAS_DE_CONTEUDO for p in politicas)
-    ):
-        violacoes.append(
-            Violation(
-                "metadata.sources",
-                "skill não autoral exige ao menos uma fonte summary ou verbatim",
-            )
-        )
     return violacoes
 
 

@@ -1,16 +1,14 @@
 ---
-schema_version: "2"
+schema_version: "3"
 origin: https://github.com/addyosmani/agent-skills
 author: Addy Osmani
 date: "2026-09-25"
 license: MIT
 relevance: barra de qualidade escrita e verificável que o agente não pode rebaixar para chegar ao verde (supressões, testes pulados, limites editados)
 status: active
-extract_policy: summary
-extract_scope: docs
 ---
 <!-- Criado em: 25/09/2026 09:45 -->
-<!-- Modificado em: 25/09/2026 10:47 -->
+<!-- Modificado em: 25/09/2026 13:06 -->
 
 # Constraint-driven development (addyosmani/agent-skills)
 

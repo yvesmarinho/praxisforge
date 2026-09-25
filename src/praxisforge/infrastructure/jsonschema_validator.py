@@ -3,12 +3,13 @@
 NOME: jsonschema_validator.py
 TITULO: Adapter do ContractValidator — validação via jsonschema (Draft 2020-12)
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 13:06
 VERSÃO: 0.1.0
 DEPEND: jsonschema, praxisforge.application.ports, praxisforge.domain.errors
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T024) — faz tests/integration/test_jsonschema_validator.py passar
     - 24/09/2026 16:54: schema_version só é exigido quando o schema o declara (T017, feature 008)
+    - 25/09/2026 13:06: aceita schema_version 3 (source-schema-v3, T042, feature 009)
 STATUS: DEV
 """
 
@@ -27,7 +28,7 @@ from praxisforge.domain.errors import (
     Violation,
 )
 
-_SUPPORTED_SCHEMA_VERSIONS = ("1", "2")
+_SUPPORTED_SCHEMA_VERSIONS = ("1", "2", "3")
 
 logger = logging.getLogger(__name__)
 

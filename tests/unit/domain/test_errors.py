@@ -3,7 +3,7 @@
 NOME: test_errors.py
 TITULO: Testes de falha — hierarquia de exceções semânticas do Domain
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:40
+MODIFICADO: 25/09/2026 13:06
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.errors
 HISTÓRICO:
@@ -14,6 +14,7 @@ HISTÓRICO:
     - 24/09/2026 10:51: exceções da política de extração (T003, feature 006)
     - 24/09/2026 14:30: exceções do registro fora do repositório (T002, feature 007)
     - 24/09/2026 16:40: exceções da biblioteca de skills (T003, feature 008)
+    - 25/09/2026 13:06: mensagem de migração aponta o v3 (T041, feature 009)
 STATUS: DEV
 """
 
@@ -198,7 +199,7 @@ def test_excecoes_da_politica_de_extracao_feature_006() -> None:
 
     migracao = SourceSchemaMigrationRequiredError()
     assert isinstance(migracao, ContractValidationError)
-    assert "extract_policy" in str(migracao) and "source-schema-v2" in str(migracao)
+    assert "extract_policy" in str(migracao) and "'3'" in str(migracao)
 
 
 def test_excecoes_do_registro_fora_do_repo_feature_007() -> None:

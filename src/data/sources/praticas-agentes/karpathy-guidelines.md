@@ -1,16 +1,14 @@
 ---
-schema_version: "2"
+schema_version: "3"
 origin: https://github.com/forrestchang/andrej-karpathy-skills
 author: forrestchang
 date: "2026-09-24"
 license: MIT
 relevance: diretrizes de comportamento que reduzem erros comuns de LLMs ao codificar (suposições ocultas, excesso de complexidade, mudanças fora do escopo, critérios de sucesso fracos)
 status: active
-extract_policy: summary
-extract_scope: docs
 ---
 <!-- Criado em: 24/09/2026 17:22 -->
-<!-- Modificado em: 24/09/2026 17:22 -->
+<!-- Modificado em: 25/09/2026 13:06 -->
 
 # Karpathy guidelines (forrestchang/andrej-karpathy-skills)
 

@@ -126,11 +126,11 @@ tarefa incompleta.
 
 **Independent Test**: quickstart §5: `sources validate` = 2 ok; um registro v2 é recusado com instrução de conversão.
 
-- [ ] T040 [P] [US5] Testes em `tests/unit/domain/test_source_record.py` e `tests/contract/test_source_schema_v3.py`: v3 válido; v1 e v2 → `SourceSchemaMigrationRequiredError` com instrução (remover `extract_policy`/`extract_scope`/`notice_preserved`/`modified`, declarar `schema_version: "3"`); `license` ausente → falha
-- [ ] T041 [P] [US5] Ajustar `tests/unit/application/test_validate_sources.py` e `tests/integration/test_validate_sources_scale.py` para v3; remover as regras de política por licença dos testes de fonte
-- [ ] T042 [US5] Atualizar `src/praxisforge/domain/source_record.py` e `src/praxisforge/application/validate_sources.py` para v3 e remover da validação de fontes a política por licença (a regra "≥ 1 fonte válida" já está em T018)
-- [ ] T043 [US5] Converter à mão `src/data/sources/praticas-agentes/karpathy-guidelines.md` e `src/data/sources/praticas-agentes/agent-skills-constraints.md` para v3, conferindo antes e depois que origem, autor, data, licença, relevância e status não mudaram
-- [ ] T044 [US5] Atualizar `docs/reference/sources-frontmatter.md` para v3
+- [X] T040 [P] [US5] Testes em `tests/unit/domain/test_source_record.py` e `tests/contract/test_source_schema_v3.py`: v3 válido; v1 e v2 → `SourceSchemaMigrationRequiredError` com instrução (remover `extract_policy`/`extract_scope`/`notice_preserved`/`modified`, declarar `schema_version: "3"`); `license` ausente → falha
+- [X] T041 [P] [US5] Ajustar `tests/unit/application/test_validate_sources.py` e `tests/integration/test_validate_sources_scale.py` para v3; remover as regras de política por licença dos testes de fonte
+- [X] T042 [US5] Atualizar `src/praxisforge/domain/source_record.py` e `src/praxisforge/application/validate_sources.py` para v3 e remover da validação de fontes a política por licença (a regra "≥ 1 fonte válida" já está em T018)
+- [X] T043 [US5] Converter à mão `src/data/sources/praticas-agentes/karpathy-guidelines.md` e `src/data/sources/praticas-agentes/agent-skills-constraints.md` para v3, conferindo antes e depois que origem, autor, data, licença, relevância e status não mudaram
+- [X] T044 [US5] Atualizar `docs/reference/sources-frontmatter.md` para v3
 
 ---
 
