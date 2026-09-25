@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 24/09/2026 14:36 -->
+<!-- Modificado em: 25/09/2026 10:15 -->
 
 # Referência — `src/data/folders.yaml`
 
@@ -64,7 +64,7 @@ schema_version: "2"
 
 | Campo | Tipo | Obrigatório | Descrição |
 |---|---|---|---|
-| `description` | string (1-500 caracteres) | sim | Texto livre descrevendo o conteúdo da pasta. |
+| `description` | string (1-500 caracteres) | sim | Texto livre descrevendo o conteúdo da pasta. Corrigível com `folders update --description`. |
 | `content_type` | string, padrão `^[a-z][a-z0-9_-]{1,62}$` | sim | Slug do tipo de conteúdo (ex.: `repository_forks`, `documents`). Livre, sem lista fechada de valores no schema atual. |
 | `license` | string, mínimo 1 caractere | sim | Identificador de licença (ex.: `MIT`, `Apache-2.0`) ou o valor especial `unknown` quando ainda não determinada. |
 | `last_scanned` | string ISO 8601 *com* timezone, ou `null` | sim (pode ser `null`) | Data/hora da última varredura bem-sucedida (`folders scan`). `null` até a primeira varredura. |

@@ -3,12 +3,13 @@
 NOME: dto.py
 TITULO: DTOs pydantic de entrada dos casos de uso (fronteira Application/CLI)
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:54
+MODIFICADO: 25/09/2026 10:10
 VERSÃO: 0.1.0
 DEPEND: pydantic
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T025) — faz tests/unit/application/test_dto.py passar
     - 23/09/2026 16:54: path em RegisterFolderInput/UpdateFolderInput (T024, feature 005)
+    - 25/09/2026 10:10: folders update --description
 STATUS: DEV
 """
 
@@ -59,6 +60,8 @@ class UpdateFolderInput(BaseModel):
     :type license: str | None
     :param path: novo caminho da pasta, se informado (pasta movida — FR-016).
     :type path: str | None
+    :param description: nova descrição, se informada (1 a 500 caracteres).
+    :type description: str | None
     """
 
     model_config = ConfigDict(strict=True)
@@ -68,3 +71,4 @@ class UpdateFolderInput(BaseModel):
     last_scanned: str | None = None
     license: str | None = None  # noqa: A003
     path: str | None = Field(default=None, min_length=1)
+    description: str | None = Field(default=None, min_length=1, max_length=500)

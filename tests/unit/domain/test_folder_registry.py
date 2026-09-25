@@ -3,13 +3,14 @@
 NOME: test_folder_registry.py
 TITULO: Testes de falha — agregado FolderRegistry
 DATA: 22/09/2026 09:45
-MODIFICADO: 23/09/2026 16:47
+MODIFICADO: 25/09/2026 10:05
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.folder_registry
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T009)
     - 23/09/2026 12:04: +update(last_curated_commit) (T005, feature 004)
     - 23/09/2026 16:47: unicidade/aninhamento de path (T005, feature 005)
+    - 25/09/2026 10:05: update(description)
 STATUS: DEV
 """
 
@@ -24,6 +25,7 @@ from praxisforge.domain.errors import (
     AliasAlreadyRegisteredError,
     FolderNotFoundError,
     InvalidCommitHashError,
+    InvalidFolderError,
     NestedFolderPathError,
     PathAlreadyRegisteredError,
     UnsupportedSchemaVersionError,
@@ -246,3 +248,31 @@ def test_construir_registro_com_paths_duplicados_levanta_erro() -> None:
     b = _folder("pasta_b", path="/srv/x")
     with pytest.raises(PathAlreadyRegisteredError):
         FolderRegistry(schema_version="2", folders={"pasta_a": a, "pasta_b": b})
+
+
+# --- folders update --description -------------------------------------------------------
+
+
+def test_update_description_preserva_demais_campos() -> None:
+    """update(description=...) troca só a descrição."""
+    registry = FolderRegistry(schema_version="2", folders={}).add(_folder())
+    folder = registry.update("github_forks", description="Nova descrição").get("github_forks")
+    assert folder.description == "Nova descrição"
+    assert folder.license == "unknown"
+    assert folder.status is CurationStatus.PENDING
+
+
+@pytest.mark.parametrize("descricao", ["", "x" * 501])
+def test_update_description_invalida_nao_altera_nada(descricao: str) -> None:
+    """Descrição vazia ou acima de 500 caracteres é recusada sem alterar o agregado."""
+    registry = FolderRegistry(schema_version="2", folders={}).add(_folder())
+    with pytest.raises(InvalidFolderError):
+        registry.update("github_forks", description=descricao)
+    assert registry.get("github_forks").description == "Forks de repositórios de referência"
+
+
+def test_update_description_no_limite_de_500_aceita() -> None:
+    """Exatamente 500 caracteres é o limite aceito."""
+    registry = FolderRegistry(schema_version="2", folders={}).add(_folder())
+    folder = registry.update("github_forks", description="x" * 500).get("github_forks")
+    assert len(folder.description) == 500
