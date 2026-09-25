@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 25/09/2026 13:14 -->
+<!-- Modificado em: 25/09/2026 13:24 -->
 
 # Praxisforge
 
@@ -119,3 +119,18 @@ licença: MIT/BSD-3-Clause/Apache-2.0 → `verbatim`; GPL-3.0 → `verbatim` só
   nova versão e nunca toca skills de terceiros. Atalho: `scripts/publish-skills`.
 - Guia: [docs/guides/criar-publicar-acervo.md](docs/guides/criar-publicar-acervo.md) ·
   [ADR 0009](docs/decisions/0009-biblioteca-de-skills.md).
+
+### Atualização — acervo `library/` (feature 009)
+
+- O acervo passa a ser `library/`, com seis tipos: `skills/`, `commands/`, `agents/`, `hooks/`,
+  `rules/` e `references/`, mais `library/INDEX.md` (gerado) e `library/_templates/`. As skills da
+  008 foram movidas para `library/skills/` com o histórico preservado.
+- `library validate [--type T] [<nome>]`, `library index` e
+  `library publish (--type T <nome> | --all) --target <pasta-do-projeto> [--mode copy|symlink] [--prune]`.
+  Atalho: `scripts/publish-library`.
+- **Publicação só em pastas de projeto**: o alvo `global` foi removido. Hooks e references não são
+  publicados.
+- Os comandos `skills validate|catalog|publish` foram removidos e respondem com o equivalente.
+- Fontes no `source-schema-v3`: **só ideias**, sem níveis de extração (a licença é só informativa).
+- Guia: [docs/guides/criar-publicar-acervo.md](docs/guides/criar-publicar-acervo.md) ·
+  [ADR 0011](docs/decisions/0011-acervo-library.md) · [ADR 0012](docs/decisions/0012-fontes-so-ideias.md).

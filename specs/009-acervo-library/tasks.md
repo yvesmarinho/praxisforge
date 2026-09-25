@@ -138,10 +138,10 @@ tarefa incompleta.
 
 - [X] T045 [P] Teste de escala em `tests/integration/test_library_scale.py` (sucede `test_skills_scale.py`): 200 itens mistos, validate/index < 5 s (SC-004)
 - [X] T046 [P] Rodar `tests/architecture/` e ajustar, sem afrouxar a matriz de camadas, se algum módulo novo acusar violação
-- [ ] T047 [P] Atualizar `docs/architecture/overview.md` (fluxos `library validate/index/publish`), `docs/INDEX.md` (linha da 009) e `README.md` (seção da CLI, acrescentando sem apagar)
-- [ ] T048 Registrar em `docs/TODO.md`: revisar a "política máxima" exibida por `folders show/list` (research R6); rever o uso de `domain/license_policy.py`
+- [X] T047 [P] Atualizar `docs/architecture/overview.md` (fluxos `library validate/index/publish`), `docs/INDEX.md` (linha da 009) e `README.md` (seção da CLI, acrescentando sem apagar)
+- [X] T048 Registrar em `docs/TODO.md`: revisar a "política máxima" exibida por `folders show/list` (research R6); rever o uso de `domain/license_policy.py`
 - [X] T049 Remover o código da 008 substituído (`domain/skill.py`, portas `Skill*`/`CatalogWriter`, `validate_skills.py`, `build_catalog.py`, `publish_skills.py`, `filesystem_skill_*`, `filesystem_catalog_writer.py`) e seus testes antigos, depois imports órfãos e `_SKILLS_DIR`; rodar `graphify update .`
-- [ ] T050 Rodar o [quickstart.md](quickstart.md) inteiro e `make lint && make test`; registrar desvios em `docs/bugs/` se houver
+- [X] T050 Rodar o [quickstart.md](quickstart.md) inteiro e `make lint && make test`; registrar desvios em `docs/bugs/` se houver
 
 ---
 
