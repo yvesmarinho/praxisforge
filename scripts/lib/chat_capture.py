@@ -13,7 +13,6 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import yaml
 
@@ -29,9 +28,9 @@ class ChatMessage:
     content: str
     timestamp: datetime
     message_id: str
-    parent_id: Optional[str] = None
-    tool_requests: List[Dict] = field(default_factory=list)
-    reasoning_text: Optional[str] = None
+    parent_id: str | None = None
+    tool_requests: list[dict] = field(default_factory=list)
+    reasoning_text: str | None = None
 
     def to_markdown(self) -> str:
         """Converte mensagem para formato markdown"""
@@ -41,7 +40,9 @@ class ChatMessage:
         md = f"## {time_str} — {role_upper}\n\n"
 
         if self.reasoning_text and len(self.reasoning_text) > 50:
-            md += f"<details>\n<summary>Reasoning</summary>\n\n{self.reasoning_text}\n</details>\n\n"
+            md += (
+                f"<details>\n<summary>Reasoning</summary>\n\n{self.reasoning_text}\n</details>\n\n"
+            )
 
         md += f"{self.content}\n"
 
@@ -61,11 +62,11 @@ class ChatMetadata:
 
     session_id: str
     start_time: datetime
-    end_time: Optional[datetime] = None
-    participants: List[Dict] = field(default_factory=list)
-    topics: List[str] = field(default_factory=list)
-    related_sessions: List[str] = field(default_factory=list)
-    related_specs: List[str] = field(default_factory=list)
+    end_time: datetime | None = None
+    participants: list[dict] = field(default_factory=list)
+    topics: list[str] = field(default_factory=list)
+    related_sessions: list[str] = field(default_factory=list)
+    related_specs: list[str] = field(default_factory=list)
     template_version: str = "1.0.0"
 
     @property
@@ -123,7 +124,7 @@ class ChatCapture:
             else None
         )
 
-    def _detect_workspace_storage(self) -> Optional[Path]:
+    def _detect_workspace_storage(self) -> Path | None:
         """
         Detecta o diretório workspace storage do VS Code.
 
@@ -157,27 +158,25 @@ class ChatCapture:
         log.info("Workspace storage detectado: %s", workspace_path)
         return workspace_path
 
-    def list_transcripts(self) -> List[Path]:
+    def list_transcripts(self) -> list[Path]:
         """Lista todos os transcripts disponíveis"""
         if not self.transcripts_dir or not self.transcripts_dir.exists():
             log.warning("Transcripts directory não encontrado")
             return []
 
         transcripts = sorted(
-            self.transcripts_dir.glob("*.jsonl"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True
+            self.transcripts_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True
         )
 
         log.info("Encontrados %d transcripts", len(transcripts))
         return transcripts
 
-    def get_latest_transcript(self) -> Optional[Path]:
+    def get_latest_transcript(self) -> Path | None:
         """Retorna o transcript mais recente"""
         transcripts = self.list_transcripts()
         return transcripts[0] if transcripts else None
 
-    def parse_transcript(self, transcript_path: Path) -> tuple[ChatMetadata, List[ChatMessage]]:
+    def parse_transcript(self, transcript_path: Path) -> tuple[ChatMetadata, list[ChatMessage]]:
         """
         Parse transcript JSONL → ChatMetadata + ChatMessage[]
 
@@ -196,7 +195,7 @@ class ChatCapture:
 
         log.info("Parsing transcript: %s", transcript_path)
 
-        with open(transcript_path, "r", encoding="utf-8") as f:
+        with open(transcript_path, encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
                 try:
                     entry = json.loads(line.strip())
@@ -247,14 +246,18 @@ class ChatCapture:
                         reasoning_text=reasoning_text,
                     )
                     messages.append(msg)
-                    log.debug("Assistant message: %s chars, %d tools", len(content), len(tool_requests))
+                    log.debug(
+                        "Assistant message: %s chars, %d tools", len(content), len(tool_requests)
+                    )
 
                 # Update end_time for every entry
                 end_time = timestamp
 
         # Create metadata
         if not session_id or not start_time:
-            raise ValueError(f"Invalid transcript: missing session_id or start_time in {transcript_path}")
+            raise ValueError(
+                f"Invalid transcript: missing session_id or start_time in {transcript_path}"
+            )
 
         metadata = ChatMetadata(
             session_id=session_id,
@@ -269,7 +272,7 @@ class ChatCapture:
         log.info("Parsed %d messages (duration: %s)", len(messages), metadata.duration_formatted)
         return metadata, messages
 
-    def extract_topics(self, messages: List[ChatMessage]) -> List[str]:
+    def extract_topics(self, messages: list[ChatMessage]) -> list[str]:
         """
         Extrai topics da conversa usando keyword extraction simples.
 
@@ -298,9 +301,22 @@ class ChatCapture:
 
         # Keywords técnicas (simplificado - pode melhorar com TF-IDF)
         keywords = [
-            "database", "search", "validation", "testing", "implementation",
-            "spec", "plan", "tasks", "session", "chat", "capture",
-            "docker", "git", "python", "makefile", "ansible",
+            "database",
+            "search",
+            "validation",
+            "testing",
+            "implementation",
+            "spec",
+            "plan",
+            "tasks",
+            "session",
+            "chat",
+            "capture",
+            "docker",
+            "git",
+            "python",
+            "makefile",
+            "ansible",
         ]
         for keyword in keywords:
             if keyword.lower() in all_content.lower():
@@ -312,7 +328,7 @@ class ChatCapture:
     def capture_to_markdown(
         self,
         transcript_path: Path,
-        session_date: Optional[str] = None,
+        session_date: str | None = None,
     ) -> Path:
         """
         Captura transcript e salva em CHAT-YYYY-MM-DD-HHmm.md
@@ -350,12 +366,16 @@ class ChatCapture:
         with open(chat_path, "w", encoding="utf-8") as f:
             f.write(md_content)
 
-        log.info("✅ Chat captured: %s (%d messages, %s)",
-                 chat_path, len(messages), metadata.duration_formatted)
+        log.info(
+            "✅ Chat captured: %s (%d messages, %s)",
+            chat_path,
+            len(messages),
+            metadata.duration_formatted,
+        )
 
         return chat_path
 
-    def _generate_markdown(self, metadata: ChatMetadata, messages: List[ChatMessage]) -> str:
+    def _generate_markdown(self, metadata: ChatMetadata, messages: list[ChatMessage]) -> str:
         """Gera conteúdo markdown completo"""
         md = metadata.to_yaml_frontmatter()
         md += "\n"
@@ -425,4 +445,5 @@ def main():
 
 if __name__ == "__main__":
     import sys
+
     sys.exit(main())

@@ -177,7 +177,7 @@ def main():
     query = args.query if args.query else args.query
     if not query:
         log.error("❌ ERROR: Query is required")
-        log.error("Usage: python scripts/mem_search.py \"search query\"")
+        log.error('Usage: python scripts/mem_search.py "search query"')
         sys.exit(1)
 
     # Parse tags

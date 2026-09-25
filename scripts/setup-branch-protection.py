@@ -34,7 +34,6 @@ import argparse
 import os
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 try:
@@ -53,6 +52,7 @@ console = Console()
 @dataclass
 class BranchProtectionConfig:
     """Configuração de proteção de branch."""
+
     level: str
     require_pull_request: bool = True
     required_approving_review_count: int = 1
@@ -74,40 +74,40 @@ class BranchProtectionConfig:
 
 # Níveis de proteção pré-configurados
 PROTECTION_LEVELS = {
-    'minimum': BranchProtectionConfig(
-        level='minimum',
+    "minimum": BranchProtectionConfig(
+        level="minimum",
         require_pull_request=True,
         required_approving_review_count=1,
         dismiss_stale_reviews=False,
         require_code_owner_reviews=False,
         enforce_admins=False,
-        required_status_checks=['build', 'test'],
+        required_status_checks=["build", "test"],
         strict_status_checks=True,
         allow_force_pushes=False,
         allow_deletions=False,
     ),
-    'recommended': BranchProtectionConfig(
-        level='recommended',
+    "recommended": BranchProtectionConfig(
+        level="recommended",
         require_pull_request=True,
         required_approving_review_count=1,
         dismiss_stale_reviews=True,
         require_code_owner_reviews=True,
         enforce_admins=True,
-        required_status_checks=['build', 'test', 'lint', 'validate-git'],
+        required_status_checks=["build", "test", "lint", "validate-git"],
         strict_status_checks=True,
         allow_force_pushes=False,
         allow_deletions=False,
         required_conversation_resolution=True,
     ),
-    'maximum': BranchProtectionConfig(
-        level='maximum',
+    "maximum": BranchProtectionConfig(
+        level="maximum",
         require_pull_request=True,
         required_approving_review_count=2,
         dismiss_stale_reviews=True,
         require_code_owner_reviews=True,
         require_last_push_approval=True,
         enforce_admins=True,
-        required_status_checks=['build', 'test', 'lint', 'validate-git', 'security-scan'],
+        required_status_checks=["build", "test", "lint", "validate-git", "security-scan"],
         strict_status_checks=True,
         allow_force_pushes=False,
         allow_deletions=False,
@@ -151,7 +151,8 @@ def build_protection_payload(config: BranchProtectionConfig) -> dict[str, Any]:
         }
 
     # Configurações adicionais (não via branch protection, mas via separate API)
-    # required_signatures - via /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures
+    # required_signatures - via
+    # /repos/{owner}/{repo}/branches/{branch}/protection/required_signatures
     # required_linear_history - via branch settings
 
     return payload
@@ -181,12 +182,12 @@ def setup_branch_protection(
     payload = build_protection_payload(config)
 
     if dry_run:
-        console.print(f"\n[yellow]🔍 DRY RUN - Configuração que seria aplicada:[/yellow]")
+        console.print("\n[yellow]🔍 DRY RUN - Configuração que seria aplicada:[/yellow]")
         console.print(payload)
         return True
 
     # Aplicar proteção
-    response = requests.put(url, headers=headers, json=payload)
+    response = requests.put(url, headers=headers, json=payload, timeout=30)
 
     if response.status_code in (200, 201):
         console.print(f"[green]✅ Proteção aplicada em {branch}[/green]")
@@ -194,13 +195,13 @@ def setup_branch_protection(
         # Aplicar required_signatures se necessário
         if config.required_signatures:
             sig_url = f"{url}/required_signatures"
-            sig_response = requests.post(sig_url, headers=headers)
+            sig_response = requests.post(sig_url, headers=headers, timeout=30)
             if sig_response.status_code in (200, 201):
-                console.print(f"[green]✅ Commits assinados habilitados[/green]")
+                console.print("[green]✅ Commits assinados habilitados[/green]")
 
         return True
     else:
-        console.print(f"[red]❌ Erro ao aplicar proteção:[/red]")
+        console.print("[red]❌ Erro ao aplicar proteção:[/red]")
         console.print(f"   Status: {response.status_code}")
         console.print(f"   Resposta: {response.text}")
         return False
@@ -215,12 +216,18 @@ def show_protection_summary(config: BranchProtectionConfig):
     table.add_row("Requer Pull Request", "✅" if config.require_pull_request else "❌")
     table.add_row("Aprovações necessárias", str(config.required_approving_review_count))
     table.add_row("Invalidar aprovações antigas", "✅" if config.dismiss_stale_reviews else "❌")
-    table.add_row("Requer revisão de Code Owners", "✅" if config.require_code_owner_reviews else "❌")
-    table.add_row("Requer aprovação do último push", "✅" if config.require_last_push_approval else "❌")
+    table.add_row(
+        "Requer revisão de Code Owners", "✅" if config.require_code_owner_reviews else "❌"
+    )
+    table.add_row(
+        "Requer aprovação do último push", "✅" if config.require_last_push_approval else "❌"
+    )
     table.add_row("Forçar para admins", "✅" if config.enforce_admins else "❌")
     table.add_row("Permitir force push", "✅" if config.allow_force_pushes else "❌")
     table.add_row("Permitir deletions", "✅" if config.allow_deletions else "❌")
-    table.add_row("Requer resolução de conversas", "✅" if config.required_conversation_resolution else "❌")
+    table.add_row(
+        "Requer resolução de conversas", "✅" if config.required_conversation_resolution else "❌"
+    )
     table.add_row("Commits assinados", "✅" if config.required_signatures else "❌")
     table.add_row("Histórico linear", "✅" if config.required_linear_history else "❌")
 
@@ -282,7 +289,7 @@ def main():
     config = PROTECTION_LEVELS[args.level]
 
     # Mostrar resumo
-    console.print(f"\n[bold]Configurando proteção para:[/bold]")
+    console.print("\n[bold]Configurando proteção para:[/bold]")
     console.print(f"  Repository: {owner}/{repo}")
     console.print(f"  Branch: {args.branch}")
     console.print(f"  Nível: {args.level}")

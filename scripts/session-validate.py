@@ -19,7 +19,6 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Optional, Dict, Tuple
 
 # ANSI color codes
 GREEN = "\033[92m"
@@ -35,9 +34,9 @@ class ActivityBlock:
 
     raw_content: str
     start_line: int
-    title: Optional[str] = None
-    timestamp: Optional[str] = None
-    status_marker: Optional[str] = None
+    title: str | None = None
+    timestamp: str | None = None
+    status_marker: str | None = None
     has_objetivo: bool = False
     has_contexto: bool = False
     has_passos: bool = False
@@ -51,10 +50,10 @@ class ValidationResult:
     """Result of validating one DAILY_ACTIVITIES file."""
 
     file_path: Path
-    blocks: List[ActivityBlock]
-    errors: List[str]
-    warnings: List[str]
-    suspicious_patterns: List[Tuple[int, str, str]]  # (line_num, pattern, matched_text)
+    blocks: list[ActivityBlock]
+    errors: list[str]
+    warnings: list[str]
+    suspicious_patterns: list[tuple[int, str, str]]  # (line_num, pattern, matched_text)
 
 
 class SessionValidator:
@@ -73,12 +72,18 @@ class SessionValidator:
 
     # Suspicious patterns (potential sensitive data)
     SUSPICIOUS_PATTERNS = {
-        "api_key": re.compile(r"(?i)(api[_-]?key|apikey)\s*[:=]\s*['\"]?[0-9a-zA-Z\-_]{20,}", re.IGNORECASE),
+        "api_key": re.compile(
+            r"(?i)(api[_-]?key|apikey)\s*[:=]\s*['\"]?[0-9a-zA-Z\-_]{20,}", re.IGNORECASE
+        ),
         "bearer_token": re.compile(r"Bearer\s+[A-Za-z0-9\-_\.]{20,}"),
         "jwt": re.compile(r"eyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}"),
-        "password": re.compile(r"(?i)(password|passwd|pwd)\s*[:=]\s*['\"]?[^\s'\"\n]{8,}", re.IGNORECASE),
+        "password": re.compile(
+            r"(?i)(password|passwd|pwd)\s*[:=]\s*['\"]?[^\s'\"\n]{8,}", re.IGNORECASE
+        ),
         "private_ip_10": re.compile(r"(?<!\.)10\.(\d{1,3}\.){2}\d{1,3}(?!\.)"),
-        "private_ip_172": re.compile(r"(?<!\.)172\.(1[6-9]|2[0-9]|3[01])\.(\d{1,3}\.)\d{1,3}(?!\.)"),
+        "private_ip_172": re.compile(
+            r"(?<!\.)172\.(1[6-9]|2[0-9]|3[01])\.(\d{1,3}\.)\d{1,3}(?!\.)"
+        ),
         "private_ip_192": re.compile(r"(?<!\.)192\.168\.(\d{1,3}\.)\d{1,3}(?!\.)"),
         "github_token": re.compile(r"ghp_[0-9a-zA-Z]{36}"),
     }
@@ -100,7 +105,7 @@ class SessionValidator:
         self.files_validated = 0
         self.blocks_validated = 0
 
-    def parse_activity_blocks(self, content: str) -> List[ActivityBlock]:
+    def parse_activity_blocks(self, content: str) -> list[ActivityBlock]:
         """Parse DAILY_ACTIVITIES content into individual blocks."""
         blocks = []
         lines = content.split("\n")
@@ -148,7 +153,7 @@ class SessionValidator:
 
         return block
 
-    def validate_block(self, block: ActivityBlock, file_path: Path) -> Tuple[List[str], List[str]]:
+    def validate_block(self, block: ActivityBlock, file_path: Path) -> tuple[list[str], list[str]]:
         """Validate a single activity block. Returns (errors, warnings)."""
         errors = []
         warnings = []
@@ -157,13 +162,19 @@ class SessionValidator:
         if not block.title:
             errors.append(f"[Line {block.start_line}] Missing title (### Title format)")
         elif len(block.title) > 100:
-            warnings.append(f"[Line {block.start_line}] Title too long ({len(block.title)} chars, recommended ≤70)")
+            warnings.append(
+                f"[Line {block.start_line}] Title too long "
+                f"({len(block.title)} chars, recommended ≤70)"
+            )
 
         # Check timestamp
         if not block.timestamp:
             errors.append(f"[Line {block.start_line}] Missing timestamp (HH:MM format)")
         elif not re.match(r"^\d{2}:\d{2}$", block.timestamp):
-            errors.append(f"[Line {block.start_line}] Invalid timestamp format: {block.timestamp} (should be HH:MM)")
+            errors.append(
+                f"[Line {block.start_line}] Invalid timestamp format: "
+                f"{block.timestamp} (should be HH:MM)"
+            )
 
         # Check required fields
         for field in ["objetivo", "contexto", "passos", "resultado", "status"]:
@@ -187,7 +198,7 @@ class SessionValidator:
 
     def scan_for_suspicious_patterns(
         self, content: str, file_path: Path
-    ) -> List[Tuple[int, str, str]]:
+    ) -> list[tuple[int, str, str]]:
         """Scan content for potentially sensitive data."""
         findings = []
         lines = content.split("\n")
@@ -269,7 +280,7 @@ class SessionValidator:
         self.files_validated += 1
         self.blocks_validated += len(result.blocks)
 
-    def validate_directory(self, directory: Path, verbose: bool = False) -> List[ValidationResult]:
+    def validate_directory(self, directory: Path, verbose: bool = False) -> list[ValidationResult]:
         """Validate all DAILY_ACTIVITIES files in a directory."""
         files = sorted(directory.glob("DAILY_ACTIVITIES_*.md"))
 
@@ -347,7 +358,8 @@ Examples:
         help="Validate all DAILY_ACTIVITIES files in docs/SESSIONS/",
     )
     parser.add_argument(
-        "-v", "--verbose",
+        "-v",
+        "--verbose",
         action="store_true",
         help="Verbose output",
     )

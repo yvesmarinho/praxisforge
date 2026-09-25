@@ -39,8 +39,6 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-# scripts/ são utilitários do scaffold (usam print); fora do gate até serem refatorados
-extend-exclude = ["scripts"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "N", "S", "T20"]
@@ -49,6 +47,8 @@ ignore = ["UP009"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+# scripts/ são CLIs interativas: print() é a própria saída para o usuário, não log
+"scripts/**" = ["T201"]
 
 [tool.mypy]
 python_version = "3.12"

@@ -16,8 +16,8 @@ def _run_git(
     *args: str,
     check: bool = False,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        ["git", *args],
+    return subprocess.run(  # noqa: S603 - argumentos montados pelo próprio script
+        ["git", *args],  # noqa: S607 - git resolvido pelo PATH
         cwd=root,
         capture_output=True,
         text=True,

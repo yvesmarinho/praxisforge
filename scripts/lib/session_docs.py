@@ -88,11 +88,7 @@ def _build_recovery_content(
 
 
 def _build_daily_content(session_date: str) -> str:
-    return (
-        f"# 📅 Daily Activities — {session_date}\n\n"
-        f"**Data**: {session_date}\n\n"
-        "---\n"
-    )
+    return f"# 📅 Daily Activities — {session_date}\n\n**Data**: {session_date}\n\n---\n"
 
 
 def _build_report_content(session_date: str) -> str:
@@ -196,9 +192,7 @@ def write_end_of_session_docs(
     git_status_lines = git_summary.get("status_lines", [])
     branch = git_summary.get("branch") or "(não disponível)"
     security_clean = "🟢 LIMPO" if security_summary.get("clean") else "🔴 ATENÇÃO"
-    docs_security_clean = (
-        "🟢 PASSED" if session_docs_security.get("clean") else "🔴 ATENÇÃO"
-    )
+    docs_security_clean = "🟢 PASSED" if session_docs_security.get("clean") else "🔴 ATENÇÃO"
 
     report_body = (
         f"- Branch: {branch}\n"

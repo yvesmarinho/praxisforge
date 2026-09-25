@@ -82,8 +82,7 @@ def _print_human(payload: dict[str, Any]) -> int:
     daily_validation = payload.get("daily_validation")
     if daily_validation:
         print(
-            "DAILY_ACTIVITIES: "
-            + ("válido ✅" if daily_validation.get("valid") else "inválido ❌")
+            "DAILY_ACTIVITIES: " + ("válido ✅" if daily_validation.get("valid") else "inválido ❌")
         )
 
     if payload.get("ready") is not None:
@@ -110,7 +109,9 @@ def _print_human(payload: dict[str, Any]) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Workflow unificado de sessão para start, recover, status, security-scan e end.",
+        description=(
+            "Workflow unificado de sessão para start, recover, status, security-scan e end."
+        ),
     )
     parser.add_argument(
         "--root",
