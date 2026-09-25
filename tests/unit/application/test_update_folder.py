@@ -3,7 +3,7 @@
 NOME: test_update_folder.py
 TITULO: Testes de falha — caso de uso update_folder (repositório fake)
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 10:05
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.update_folder
 HISTÓRICO:
@@ -11,7 +11,7 @@ HISTÓRICO:
     - 22/09/2026 19:00: +caso status ignore (T027, feature 003-bootstrap-registro-pastas)
     - 23/09/2026 12:08: resolver/inspector + testes de versão curada (T018, T023, feature 004)
     - 23/09/2026 16:52: FolderLocator + path (T020, feature 005)
-    - 25/09/2026 10:05: +casos --description
+    - 25/09/2026 09:52: +casos --description
 STATUS: DEV
 """
 

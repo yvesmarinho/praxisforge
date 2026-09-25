@@ -3,7 +3,7 @@
 NOME: folder_registry.py
 TITULO: Agregado FolderRegistry — coleção de pastas registradas, com invariantes
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 10:10
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.folder, praxisforge.domain.curation_status, praxisforge.domain.errors
 HISTÓRICO:
@@ -11,7 +11,7 @@ HISTÓRICO:
     - 23/09/2026 12:07: update() aceita last_curated_commit (T013, feature 004)
     - 23/09/2026 16:55: path único e sem aninhamento (T013, feature 005)
     - 24/09/2026 09:37: componentes do caminho em cache (checagem por pares ficava cara em lote)
-    - 25/09/2026 10:10: folders update --description
+    - 25/09/2026 09:52: folders update --description
 STATUS: DEV
 """
 

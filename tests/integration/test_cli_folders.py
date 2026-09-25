@@ -3,7 +3,7 @@
 NOME: test_cli_folders.py
 TITULO: Testes de falha — CLI praxisforge folders add|list|show|update
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 10:05
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
@@ -12,7 +12,7 @@ HISTÓRICO:
     - 23/09/2026 12:08: versão curada em update/show (T019, feature 004)
     - 23/09/2026 16:53: --path obrigatório, caminho em list/show (T022, feature 005)
     - 24/09/2026 10:56: política máxima em show/list (T023, feature 006)
-    - 25/09/2026 10:05: folders update --description
+    - 25/09/2026 09:52: folders update --description
 STATUS: DEV
 """
 

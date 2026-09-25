@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 10:10
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -20,7 +20,7 @@ HISTÓRICO:
     - 24/09/2026 16:54: skills validate (T019, feature 008)
     - 24/09/2026 16:54: skills catalog (T026, feature 008)
     - 24/09/2026 16:54: skills publish (T036, feature 008)
-    - 25/09/2026 10:10: folders update --description
+    - 25/09/2026 09:52: folders update --description
 STATUS: DEV
 """
 

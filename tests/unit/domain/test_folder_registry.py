@@ -3,14 +3,14 @@
 NOME: test_folder_registry.py
 TITULO: Testes de falha — agregado FolderRegistry
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 10:05
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.domain.folder_registry
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T009)
     - 23/09/2026 12:04: +update(last_curated_commit) (T005, feature 004)
     - 23/09/2026 16:47: unicidade/aninhamento de path (T005, feature 005)
-    - 25/09/2026 10:05: update(description)
+    - 25/09/2026 09:52: update(description)
 STATUS: DEV
 """
 

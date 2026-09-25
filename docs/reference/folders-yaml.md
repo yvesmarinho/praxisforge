@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 16:40 -->
-<!-- Modificado em: 25/09/2026 10:15 -->
+<!-- Modificado em: 25/09/2026 09:52 -->
 
 # Referência — `src/data/folders.yaml`
 

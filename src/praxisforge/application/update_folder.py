@@ -3,14 +3,14 @@
 NOME: update_folder.py
 TITULO: Caso de uso — atualizar status, última varredura e/ou licença (atômico)
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 10:10
+MODIFICADO: 25/09/2026 09:52
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain, praxisforge.application.dto, praxisforge.application.ports
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T037) — faz tests/unit/application/test_update_folder.py passar
     - 23/09/2026 12:08: grava last_curated_commit ao marcar curated (T021, feature 004)
     - 23/09/2026 16:55: FolderLocator; --path (T024, feature 005)
-    - 25/09/2026 10:10: --description
+    - 25/09/2026 09:52: --description
 STATUS: DEV
 """
 
