@@ -1,16 +1,14 @@
 ---
-schema_version: "2"
+schema_version: "3"
 origin: https://github.com/addyosmani/agent-skills
 author: Addy Osmani
 date: "2026-09-25"
 license: MIT
 relevance: barra de qualidade escrita e verificável que o agente não pode rebaixar para chegar ao verde (supressões, testes pulados, limites editados)
 status: active
-extract_policy: summary
-extract_scope: docs
 ---
 <!-- Criado em: 25/09/2026 09:45 -->
-<!-- Modificado em: 25/09/2026 10:47 -->
+<!-- Modificado em: 25/09/2026 13:14 -->
 
 # Constraint-driven development (addyosmani/agent-skills)
 
@@ -47,4 +45,4 @@ escritas num arquivo que sobrevive à sessão.
 
 Origem da skill `guarda-barra-qualidade`. A skill segue a estrutura da original passo a passo e
 é tradução adaptada, portanto **obra derivada**: carrega o aviso de copyright e o texto da licença
-MIT (`skills/guarda-barra-qualidade/LICENSE.agent-skills`), não só a citação.
+MIT (`library/skills/guarda-barra-qualidade/LICENSE.agent-skills`), não só a citação.

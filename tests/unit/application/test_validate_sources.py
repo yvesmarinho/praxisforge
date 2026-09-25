@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 NOME: test_validate_sources.py
-TITULO: Testes de falha — caso de uso validate_sources (lote, schema v2 + domínio)
+TITULO: Testes de falha — caso de uso validate_sources (lote, schema v3 + domínio)
 DATA: 24/09/2026 10:53
-MODIFICADO: 24/09/2026 10:53
+MODIFICADO: 25/09/2026 13:04
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.validate_sources
 HISTÓRICO:
     - 24/09/2026 10:53: criação (T012, feature 006)
+    - 25/09/2026 13:04: v3 só ideias; v1/v2 pedem conversão (T041, feature 009)
 STATUS: DEV
 """
 
@@ -45,15 +46,13 @@ class _FakeValidator(ContractValidator):
 
 def _fonte(**campos: object) -> dict[str, object]:
     documento: dict[str, object] = {
-        "schema_version": "2",
+        "schema_version": "3",
         "origin": "https://github.com/exemplo/repo",
         "author": "Fulano",
         "date": "2026-09-20",
         "license": "MIT",
         "relevance": "padrões",
         "status": "active",
-        "extract_policy": "verbatim",
-        "notice_preserved": True,
     }
     documento.update(campos)
     return documento
@@ -74,31 +73,33 @@ def test_lote_misto_avalia_todos_e_agrega_falhas() -> None:
         {
             ok: _fonte(),
             forma: _fonte(_invalido=True),
-            dominio: _fonte(license="Elastic-2.0"),
+            dominio: _fonte(license="unknown"),
         }
     )
     assert report.ok == [ok]
     falhas = {f.path: f for f in report.failures}
     assert set(falhas) == {forma, dominio}
     assert falhas[forma].error_type == "ContractValidationError"
-    assert falhas[dominio].error_type == "ExtractPolicyExceedsLicenseError"
-    assert "máxima 'summary'" in falhas[dominio].message
-    assert set(validator.schemas) == {"source-schema-v2"}
+    assert falhas[dominio].error_type == "InvalidFolderError"
+    assert "pending" in falhas[dominio].message
+    assert set(validator.schemas) == {"source-schema-v3"}
 
 
-def test_registro_v1_pede_extract_policy() -> None:
-    """schema_version 1 ou extract_allowed → SourceSchemaMigrationRequiredError (FR-014)."""
-    v1, antigo = Path("v1.md"), Path("antigo.md")
+def test_registros_v1_e_v2_pedem_conversao_para_v3() -> None:
+    """schema_version 1/2 → SourceSchemaMigrationRequiredError com instrução (FR-023)."""
+    v1, v2 = Path("v1.md"), Path("v2.md")
     report, validator = _validar(
         {
             v1: {"schema_version": "1", "extract_allowed": True},
-            antigo: _fonte(extract_allowed=False),
+            v2: _fonte(schema_version="2", extract_policy="summary"),
         }
     )
     assert report.ok == []
+    assert len(report.failures) == 2
     for falha in report.failures:
         assert falha.error_type == "SourceSchemaMigrationRequiredError"
         assert "extract_policy" in falha.message
+        assert "'3'" in falha.message
     assert validator.schemas == []
 
 
@@ -124,9 +125,9 @@ def test_lista_vazia_devolve_relatorio_vazio() -> None:
     assert report.ok == [] and report.failures == []
 
 
-def test_licenca_nao_classificada_com_link_passa_sem_aviso() -> None:
-    """MPL-2.0 com link é válido e não gera falha (Clarificação Q3)."""
-    report, _ = _validar({Path("m.md"): _fonte(license="MPL-2.0", extract_policy="link")})
+def test_licenca_nao_classificada_passa_sem_aviso() -> None:
+    """MPL-2.0 é aceita: a licença só informa (só ideias, feature 009)."""
+    report, _ = _validar({Path("m.md"): _fonte(license="MPL-2.0")})
     assert len(report.ok) == 1 and report.failures == []
 
 

@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 24/09/2026 16:52 -->
+<!-- Modificado em: 25/09/2026 13:24 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -155,17 +155,20 @@ A CLI resolve o arquivo do registro com `registry_location.resolve_registry_path
 o repositório YAML ([ADR 0008](../decisions/0008-registro-fora-do-repositorio.md)). O registro real
 vive fora do repositório; `src/data/folders.example.yaml` é o único registro versionado.
 
-## Biblioteca de skills (feature 008)
+## Acervo `library/` (feature 009, sucede a biblioteca de skills da 008)
 
 | Camada | Módulo | Papel |
 |---|---|---|
-| Domain | `domain/skill.py` | `SkillName`, `Skill.from_parts` (forma, semver, referências) e `extract_references` |
-| Application | `application/validate_skills.py` | Forma e proveniência (reaproveita `validate_sources`), em lote |
-| Application | `application/build_catalog.py` | `render_catalog` determinístico e gravação pela porta `CatalogWriter` |
-| Application | `application/publish_skills.py` | Idempotência, regra de versão, terceiros, órfãs e `--prune` |
-| Infrastructure | `infrastructure/filesystem_skill_repository.py` | Lê `skills/<nome>/SKILL.md` e calcula o hash de conteúdo |
-| Infrastructure | `infrastructure/filesystem_skill_publisher.py` | Cópia atômica com `.praxisforge-skill.json`, symlink e remoção segura |
-| Infrastructure | `infrastructure/filesystem_catalog_writer.py` | Escrita atômica de `skills/README.md` |
+| Domain | `domain/library_item.py` | `ItemKind` (6 tipos: layout, nome, publicável), `ItemName`, `LibraryItem.from_parts` (todas as violações de uma vez) e `extract_references` |
+| Domain | `domain/source_record.py` | Fonte v3 "só ideias": licença obrigatória e informativa |
+| Application | `application/validate_library.py` | Forma por tipo (`<tipo>-frontmatter-v1`), fontes e references citadas; falha por item |
+| Application | `application/build_index.py` | `render_index` determinístico (seção por tipo, sem data) via porta `IndexWriter` |
+| Application | `application/publish_items.py` | Só projetos; idempotência, regra de versão, terceiros, órfãos, `--prune`, marcador da 008 regravado |
+| Infrastructure | `infrastructure/filesystem_library_repository.py` | Lê `library/<tipo>s/`, entradas desconhecidas e hash (igual ao da 008 para skills) |
+| Infrastructure | `infrastructure/filesystem_item_publisher.py` | `<projeto>/.claude/<tipo>s/`, marcador `library-publication-v1`, symlinks, leitura do marcador e dos links da 008 |
+| Infrastructure | `infrastructure/filesystem_index_writer.py` | Escrita atômica de `library/INDEX.md` |
 
-As portas novas em `application/ports.py` são `SkillRepository`, `SkillPublisher` e
-`CatalogWriter`. Decisões: [ADR 0009](../decisions/0009-biblioteca-de-skills.md).
+Fluxos: `library validate` → `validate_library`; `library index` → `build_index` → `IndexWriter`;
+`library publish` → `publish_items` → `ItemPublisher`. Portas em `application/ports.py`:
+`LibraryRepository`, `IndexWriter` e `ItemPublisher`. Decisões:
+[ADR 0011](../decisions/0011-acervo-library.md) e [ADR 0012](../decisions/0012-fontes-so-ideias.md).

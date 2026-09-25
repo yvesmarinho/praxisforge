@@ -3,7 +3,7 @@
 NOME: test_cli_validate.py
 TITULO: Testes de falha — CLI praxisforge folders validate / sources validate
 DATA: 22/09/2026 10:30
-MODIFICADO: 24/09/2026 10:54
+MODIFICADO: 25/09/2026 13:04
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
@@ -11,6 +11,7 @@ HISTÓRICO:
     - 23/09/2026 16:54: registro v2 com path (T022, feature 005)
     - 24/09/2026 10:54: sources validate com source-schema-v2 e política de extração
       (T014, feature 006)
+    - 25/09/2026 13:04: sources validate no v3 só ideias (T041, feature 009)
 STATUS: DEV
 """
 
@@ -70,20 +71,15 @@ def test_folders_validate_lista_violacoes_e_resumo_codigo_1(
 
 
 _FONTE = (
-    "---\nschema_version: '2'\norigin: https://x\nauthor: Fulano\ndate: 2026-09-21\n"
-    "license: {licenca}\nrelevance: y\nstatus: active\nextract_policy: {politica}\n"
-    "notice_preserved: true\n{extra}---\ncorpo\n"
+    "---\nschema_version: '3'\norigin: https://x\nauthor: Fulano\ndate: 2026-09-21\n"
+    "license: {licenca}\nrelevance: y\nstatus: active\n---\ncorpo\n"
 )
 
 
-def _fonte(
-    pasta: Path, nome: str, licenca: str = "MIT", politica: str = "verbatim", extra: str = ""
-) -> Path:
+def _fonte(pasta: Path, nome: str, licenca: str = "MIT") -> Path:
     arquivo = pasta / nome
     arquivo.parent.mkdir(parents=True, exist_ok=True)
-    arquivo.write_text(
-        _FONTE.format(licenca=licenca, politica=politica, extra=extra), encoding="utf-8"
-    )
+    arquivo.write_text(_FONTE.format(licenca=licenca), encoding="utf-8")
     return arquivo
 
 
@@ -115,33 +111,37 @@ def test_sources_validate_varre_subpastas_de_categoria(
     assert "2 ok, 0 com falha" in out
 
 
-def test_sources_validate_politica_acima_da_maxima_codigo_1(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+@pytest.mark.parametrize("licenca", ["Elastic-2.0", "GPL-3.0", "MPL-2.0"])
+def test_sources_validate_qualquer_licenca_conhecida_passa(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], licenca: str
 ) -> None:
-    """Elastic-2.0 verbatim → mensagem com licença, declarada, máxima e escopo (SC-003)."""
-    arquivo = _fonte(tmp_path, "elastic.md", licenca="Elastic-2.0")
+    """Só ideias: a licença não gradua a extração; qualquer licença conhecida passa."""
+    arquivo = _fonte(tmp_path, "f.md", licenca=licenca)
     code, out, _ = _run(["sources", "validate", str(arquivo)], capsys)
-    assert code == 1
-    assert (
-        "política 'verbatim' excede a máxima 'summary' para a licença Elastic-2.0 (escopo: code)"
-        in out
-    )
-    assert "0 ok, 1 com falha" in out
+    assert code == 0
+    assert "1 ok, 0 com falha" in out
 
 
-def test_sources_validate_registro_v1_pede_extract_policy(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    """Frontmatter v1 → falha pedindo extract_policy (FR-014)."""
-    arquivo = tmp_path / "v1.md"
-    arquivo.write_text(
+@pytest.mark.parametrize(
+    "conteudo",
+    [
         "---\nschema_version: '1'\norigin: https://x\ndate: 2026-09-21\nlicense: MIT\n"
         "relevance: y\nstatus: active\nextract_allowed: true\n---\n",
-        encoding="utf-8",
-    )
+        "---\nschema_version: '2'\norigin: https://x\ndate: 2026-09-21\nlicense: MIT\n"
+        "relevance: y\nstatus: active\nextract_policy: summary\n---\n",
+    ],
+    ids=["v1", "v2"],
+)
+def test_sources_validate_registro_antigo_pede_conversao(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], conteudo: str
+) -> None:
+    """Frontmatter v1/v2 → falha com instrução de conversão para v3 (FR-023)."""
+    arquivo = tmp_path / "antigo.md"
+    arquivo.write_text(conteudo, encoding="utf-8")
     code, out, _ = _run(["sources", "validate", str(arquivo)], capsys)
     assert code == 1
-    assert "extract_policy" in out
+    assert "schema_version" in out
+    assert "'3'" in out
 
 
 def test_sources_validate_diretorio_vazio_codigo_0(
@@ -151,21 +151,3 @@ def test_sources_validate_diretorio_vazio_codigo_0(
     code, out, _ = _run(["sources", "validate", str(tmp_path)], capsys)
     assert code == 0
     assert "0 ok, 0 com falha" in out
-
-
-@pytest.mark.parametrize(
-    ("extra", "codigo", "trecho"),
-    [
-        ("", 1, "(escopo: code)"),
-        ("extract_scope: code\n", 1, "(escopo: code)"),
-        ("extract_scope: docs\n", 0, "1 ok, 0 com falha"),
-    ],
-)
-def test_sources_validate_gpl_por_escopo(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str], extra: str, codigo: int, trecho: str
-) -> None:
-    """GPL-3.0 verbatim: só documentação passa (FR-010)."""
-    arquivo = _fonte(tmp_path, "gpl.md", licenca="GPL-3.0", extra=extra)
-    code, out, _ = _run(["sources", "validate", str(arquivo)], capsys)
-    assert code == codigo
-    assert trecho in out

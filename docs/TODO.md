@@ -68,3 +68,8 @@
 - [ ] Reescrever `guarda-barra-qualidade` só pelas ideias (hoje é derivada, MIT com aviso) — na refação da 012
 - [ ] `scripts/session-manager.py` quebrado: `lib/session_docs.py` importa `lib.session`, que não existe (pré-existente)
 - [ ] Scripts de `scripts/` (scaffold) sem o cabeçalho padrão (`NOME`/`MODIFICADO`...)
+- [x] Feature 009-acervo-library: acervo `library/` (6 tipos), `library validate|index|publish`, publicação só em projetos, fontes v3 "só ideias", migração de `skills/`, constituição v4.0.0 (25/09/2026)
+- [ ] Revisar a "política máxima" exibida por `folders show/list` (feature 006): perdeu sentido com "só ideias" (ADR 0012); decidir remover ou trocar o rótulo, e o uso de `domain/license_policy.py`
+- [ ] Exceções `ExtractPolicyExceedsLicenseError` e `IncompleteAttributionError` ficaram sem uso após o `source-schema-v3` — remover junto da revisão acima
+- [ ] Nomes `ForeignSkillDestinationError`, `SkillVersionNotBumpedError` e `SkillPublicationError` servem a todos os tipos do acervo — avaliar renomear
+- [ ] Features seguintes da curadoria automatizada: 010-inventario-curadoria → 011-triagem-llm → 012-revisao-promocao

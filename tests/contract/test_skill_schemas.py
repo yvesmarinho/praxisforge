@@ -3,11 +3,12 @@
 NOME: test_skill_schemas.py
 TITULO: Testes de contrato — skill-frontmatter-v1 e skill-publication-v1 (feature 008)
 DATA: 24/09/2026 16:40
-MODIFICADO: 24/09/2026 16:40
+MODIFICADO: 25/09/2026 12:59
 VERSÃO: 0.1.0
 DEPEND: pytest, jsonschema
 HISTÓRICO:
     - 24/09/2026 16:40: criação (T002, feature 008)
+    - 25/09/2026 12:59: skill-frontmatter-v1 passa a ser comparado com o contrato da 009
 STATUS: DEV
 """
 
@@ -20,7 +21,9 @@ from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).parents[2]
 CONTRATOS = ROOT / "specs" / "008-biblioteca-skills" / "contracts"
-NOMES = ("skill-frontmatter-v1.json", "skill-publication-v1.json")
+# skill-frontmatter-v1 evoluiu (aditivo) na 009 e é comparado com o contrato da 009
+# em test_library_schemas.py
+NOMES = ("skill-publication-v1.json",)
 
 
 def _carregar(path: Path) -> dict[str, object]:

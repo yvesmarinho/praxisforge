@@ -3,13 +3,14 @@
 NOME: test_jsonschema_validator.py
 TITULO: Testes de falha — adapter JsonSchemaContractValidator (Infrastructure)
 DATA: 22/09/2026 09:45
-MODIFICADO: 24/09/2026 16:54
+MODIFICADO: 25/09/2026 13:07
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.infrastructure.jsonschema_validator
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T013)
     - 24/09/2026 16:54: schema sem schema_version (frontmatter de skill) não exige o campo
       (T017, feature 008)
+    - 25/09/2026 13:07: versão 3 passa a ser suportada (feature 009)
 STATUS: DEV
 """
 
@@ -50,11 +51,11 @@ def test_versao_ausente_levanta_unsupported_schema_version() -> None:
         validator.validate({"folders": {}}, schema_name="folders-schema-v1")
 
 
-def test_versao_3_levanta_unsupported_schema_version() -> None:
-    """Versão fora de ("1", "2") levanta UnsupportedSchemaVersionError (v2: feature 005)."""
+def test_versao_desconhecida_levanta_unsupported_schema_version() -> None:
+    """Versão fora de ("1", "2", "3") levanta UnsupportedSchemaVersionError (v3: feature 009)."""
     validator = JsonSchemaContractValidator(schemas_dir=SCHEMAS_DIR)
     with pytest.raises(UnsupportedSchemaVersionError):
-        validator.validate({"schema_version": "3", "folders": {}}, schema_name="folders-schema-v2")
+        validator.validate({"schema_version": "4", "folders": {}}, schema_name="folders-schema-v2")
 
 
 def test_versao_2_contra_schema_v1_viola_contrato() -> None:
