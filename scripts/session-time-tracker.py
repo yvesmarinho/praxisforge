@@ -38,11 +38,12 @@ from typing import Any
 
 # Local imports
 sys.path.insert(0, str(Path(__file__).parent))
-from lib.git_validators import validate_branch_name, format_validation_errors
+from lib.git_validators import format_validation_errors, validate_branch_name
 
 try:
     from rich.console import Console
     from rich.table import Table
+
     HAS_RICH = True
 except ImportError:
     HAS_RICH = False
@@ -63,11 +64,11 @@ def _get_current_branch() -> str | None:
     """Retorna nome da branch Git atual, ou None se não estiver em repo Git."""
     try:
         result = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],  # noqa: S607 - git resolvido pelo PATH
             capture_output=True,
             text=True,
             check=True,
-            cwd=Path.cwd()
+            cwd=Path.cwd(),
         )
         return result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
@@ -129,7 +130,7 @@ def cmd_start():
 
     # Verificar se há sessão em andamento
     if STATE_FILE.exists():
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
+        with open(STATE_FILE, encoding="utf-8") as f:
             state = json.load(f)
 
         current_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -137,7 +138,10 @@ def cmd_start():
 
         # Detectar sessão órfã (de outro dia)
         if session_date and session_date != current_date:
-            print(f"⚠️  Sessão órfã detectada de {session_date} (hoje: {current_date})", file=sys.stderr)
+            print(
+                f"⚠️  Sessão órfã detectada de {session_date} (hoje: {current_date})",
+                file=sys.stderr,
+            )
             print(f"   Iniciada em: {state.get('start_time', 'desconhecido')}", file=sys.stderr)
             print(f"   Status: {state.get('status', 'unknown')}", file=sys.stderr)
             print("\n🔧 Auto-finalizando sessão órfã...", file=sys.stderr)
@@ -147,11 +151,17 @@ def cmd_start():
             print("✅ Sessão órfã finalizada. Iniciando nova sessão...\n")
         else:
             # Sessão do mesmo dia ainda ativa
-            print("❌ Sessão já em andamento. Use 'stop' para finalizar antes de iniciar nova.", file=sys.stderr)
+            print(
+                "❌ Sessão já em andamento. Use 'stop' para finalizar antes de iniciar nova.",
+                file=sys.stderr,
+            )
             print(f"   Data: {session_date}", file=sys.stderr)
             print(f"   Início: {state.get('start_time', 'desconhecido')}", file=sys.stderr)
             print(f"   Status: {state.get('status', 'unknown')}", file=sys.stderr)
-            print("\n💡 Use 'python scripts/session-time-tracker.py cleanup' para forçar limpeza.", file=sys.stderr)
+            print(
+                "\n💡 Use 'python scripts/session-time-tracker.py cleanup' para forçar limpeza.",
+                file=sys.stderr,
+            )
             return 1
 
     # Validar nome da branch Git (melhores práticas GitHub)
@@ -160,7 +170,9 @@ def cmd_start():
         validation = validate_branch_name(current_branch)
 
         if not validation.is_valid:
-            print(f"\n⚠️  Branch '{current_branch}' não segue convenções do projeto:", file=sys.stderr)
+            print(
+                f"\n⚠️  Branch '{current_branch}' não segue convenções do projeto:", file=sys.stderr
+            )
             print(format_validation_errors(validation), file=sys.stderr)
             print("\n💡 Dicas:", file=sys.stderr)
             print("   - Use formato: feature/NNN-descricao, fix/descricao, etc.", file=sys.stderr)
@@ -188,7 +200,7 @@ def cmd_start():
         "start_time": now,
         "pauses": [],
         "current_pause": None,
-        "status": "active"
+        "status": "active",
     }
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
@@ -205,7 +217,7 @@ def cmd_pause(reason: str = "break"):
         print("❌ Nenhuma sessão ativa. Use 'start' primeiro.", file=sys.stderr)
         return 1
 
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
+    with open(STATE_FILE, encoding="utf-8") as f:
         state = json.load(f)
 
     if state.get("current_pause"):
@@ -213,10 +225,7 @@ def cmd_pause(reason: str = "break"):
         return 1
 
     now = _iso_now()
-    state["current_pause"] = {
-        "start": now,
-        "reason": reason
-    }
+    state["current_pause"] = {"start": now, "reason": reason}
     state["status"] = "paused"
 
     with open(STATE_FILE, "w", encoding="utf-8") as f:
@@ -233,7 +242,7 @@ def cmd_resume():
         print("❌ Nenhuma sessão ativa.", file=sys.stderr)
         return 1
 
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
+    with open(STATE_FILE, encoding="utf-8") as f:
         state = json.load(f)
 
     if not state.get("current_pause"):
@@ -268,13 +277,13 @@ def cmd_stop():
         print("❌ Nenhuma sessão ativa.", file=sys.stderr)
         return 1
 
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
+    with open(STATE_FILE, encoding="utf-8") as f:
         state = json.load(f)
 
     if state.get("current_pause"):
         print("⚠️  Sessão ainda pausada. Retomando automaticamente antes de finalizar.")
         cmd_resume()
-        with open(STATE_FILE, "r", encoding="utf-8") as f:
+        with open(STATE_FILE, encoding="utf-8") as f:
             state = json.load(f)
 
     now = _iso_now()
@@ -301,8 +310,7 @@ def cmd_stop():
 
     print(f"🏁 Sessão finalizada: {now}")
     print(f"   Duração total: {_format_duration(total_seconds)}")
-    print(
-        f"   Pausas: {_format_duration(pause_seconds)} ({len(state['pauses'])} pausa(s))")
+    print(f"   Pausas: {_format_duration(pause_seconds)} ({len(state['pauses'])} pausa(s))")
     print(f"   Tempo líquido: {_format_duration(net_seconds)}")
     return 0
 
@@ -315,30 +323,43 @@ def _save_to_csv(state: dict[str, Any]):
     file_exists = HISTORY_CSV.exists()
 
     with open(HISTORY_CSV, "a", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=[
-            "session_date", "start_time", "end_time",
-            "total_duration", "pause_duration", "net_duration",
-            "num_pauses", "pause_details"
-        ])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "session_date",
+                "start_time",
+                "end_time",
+                "total_duration",
+                "pause_duration",
+                "net_duration",
+                "num_pauses",
+                "pause_details",
+            ],
+        )
 
         if not file_exists:
             writer.writeheader()
 
-        pause_details = "; ".join(
-            f"{p['reason']}:{_format_duration(p.get('duration_seconds', 0))}"
-            for p in state.get("pauses", [])
-        ) or "none"
+        pause_details = (
+            "; ".join(
+                f"{p['reason']}:{_format_duration(p.get('duration_seconds', 0))}"
+                for p in state.get("pauses", [])
+            )
+            or "none"
+        )
 
-        writer.writerow({
-            "session_date": state["session_date"],
-            "start_time": state["start_time"],
-            "end_time": state["end_time"],
-            "total_duration": _format_duration(state["total_duration_seconds"]),
-            "pause_duration": _format_duration(state["pause_duration_seconds"]),
-            "net_duration": _format_duration(state["net_duration_seconds"]),
-            "num_pauses": len(state.get("pauses", [])),
-            "pause_details": pause_details
-        })
+        writer.writerow(
+            {
+                "session_date": state["session_date"],
+                "start_time": state["start_time"],
+                "end_time": state["end_time"],
+                "total_duration": _format_duration(state["total_duration_seconds"]),
+                "pause_duration": _format_duration(state["pause_duration_seconds"]),
+                "net_duration": _format_duration(state["net_duration_seconds"]),
+                "num_pauses": len(state.get("pauses", [])),
+                "pause_details": pause_details,
+            }
+        )
 
 
 def cmd_stats(date: str | None = None):
@@ -348,15 +369,14 @@ def cmd_stats(date: str | None = None):
         return 1
 
     sessions = []
-    with open(HISTORY_CSV, "r", encoding="utf-8") as f:
+    with open(HISTORY_CSV, encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             if date is None or row["session_date"] == date:
                 sessions.append(row)
 
     if not sessions:
-        print(
-            f"❌ Nenhuma sessão encontrada{f' para {date}' if date else ''}.", file=sys.stderr)
+        print(f"❌ Nenhuma sessão encontrada{f' para {date}' if date else ''}.", file=sys.stderr)
         return 1
 
     if HAS_RICH:
@@ -392,7 +412,7 @@ def _print_stats_rich(sessions: list[dict], date_filter: str | None):
             s["total_duration"],
             s["pause_duration"],
             s["net_duration"],
-            s["num_pauses"]
+            s["num_pauses"],
         )
 
     console.print(table)
@@ -424,6 +444,7 @@ def cmd_export(output: str | None = None):
     dest = Path(output) if output else Path.cwd() / "session-time-history.csv"
 
     import shutil
+
     shutil.copy(HISTORY_CSV, dest)
 
     print(f"✅ Histórico exportado: {dest}")
@@ -436,7 +457,7 @@ def cmd_status():
         print("📊 Status: Nenhuma sessão ativa")
         return 0
 
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
+    with open(STATE_FILE, encoding="utf-8") as f:
         state = json.load(f)
 
     current_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -449,7 +470,7 @@ def cmd_status():
     print(f"Data atual:     {current_date}")
 
     if is_orphan:
-        print(f"⚠️  Status:        ÓRFÃ (sessão de outro dia)")
+        print("⚠️  Status:        ÓRFÃ (sessão de outro dia)")
     else:
         print(f"✅ Status:        {state.get('status', 'unknown').upper()}")
 
@@ -484,7 +505,7 @@ def cmd_cleanup(force: bool = False):
         print("✅ Nenhuma sessão órfã encontrada.")
         return 0
 
-    with open(STATE_FILE, "r", encoding="utf-8") as f:
+    with open(STATE_FILE, encoding="utf-8") as f:
         state = json.load(f)
 
     current_date = datetime.utcnow().strftime("%Y-%m-%d")
@@ -513,7 +534,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Session Time Tracker — Rastreamento de tempo com pausas",
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog=__doc__
+        epilog=__doc__,
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Comando")
@@ -523,8 +544,7 @@ def main():
 
     # pause
     pause_parser = subparsers.add_parser("pause", help="Pausar sessão")
-    pause_parser.add_argument(
-        "reason", nargs="?", default="break", help="Motivo da pausa")
+    pause_parser.add_argument("reason", nargs="?", default="break", help="Motivo da pausa")
 
     # resume
     subparsers.add_parser("resume", help="Retomar sessão")
@@ -545,8 +565,9 @@ def main():
 
     # cleanup
     cleanup_parser = subparsers.add_parser("cleanup", help="Limpar sessão órfã")
-    cleanup_parser.add_argument("--force", action="store_true",
-                                help="Forçar limpeza mesmo se for sessão do dia atual")
+    cleanup_parser.add_argument(
+        "--force", action="store_true", help="Forçar limpeza mesmo se for sessão do dia atual"
+    )
 
     args = parser.parse_args()
 

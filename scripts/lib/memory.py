@@ -36,7 +36,6 @@ import sqlite3
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 # ============================================================================
 # Configuration
@@ -64,11 +63,11 @@ class Memory:
     title: str
     content: str
     category: str = "project"  # project, team, sessions
-    tags: List[str] = field(default_factory=list)
-    file_path: Optional[Path] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
-    memory_id: Optional[int] = None
+    tags: list[str] = field(default_factory=list)
+    file_path: Path | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    memory_id: int | None = None
 
     def __post_init__(self):
         """Validate and normalize fields."""
@@ -120,7 +119,7 @@ class SearchResult:
     file_path: Path
     title: str
     category: str
-    tags: List[str]
+    tags: list[str]
     updated_at: datetime
     score: float  # FTS5 BM25 rank
     snippet: str = ""  # Relevant text excerpt
@@ -267,10 +266,10 @@ class MemoryStore:
     def search(
         self,
         query: str,
-        category: Optional[str] = None,
-        tags: Optional[List[str]] = None,
+        category: str | None = None,
+        tags: list[str] | None = None,
         limit: int = 10,
-    ) -> List[SearchResult]:
+    ) -> list[SearchResult]:
         """Search memories with FTS5 ranking.
 
         Args:
@@ -398,7 +397,7 @@ class MemoryStore:
         return count
 
     @staticmethod
-    def _parse_markdown(content: str) -> Tuple[Dict[str, str], str]:
+    def _parse_markdown(content: str) -> tuple[dict[str, str], str]:
         """Parse frontmatter and body from markdown."""
         frontmatter = {}
         body = content
@@ -418,7 +417,7 @@ class MemoryStore:
 
         return frontmatter, body
 
-    def get_stats(self) -> Dict[str, int]:
+    def get_stats(self) -> dict[str, int]:
         """Get memory statistics."""
         stats = {}
 

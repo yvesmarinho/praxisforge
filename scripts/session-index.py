@@ -161,7 +161,9 @@ def main():
             except Exception as e:
                 print(f"{RED}✗{RESET} {file_path.name}: {e}")
 
-        print(f"\n{CYAN}Summary:{RESET} {len(activity_files)} file(s), {total_blocks} blocks indexed")
+        print(
+            f"\n{CYAN}Summary:{RESET} {len(activity_files)} file(s), {total_blocks} blocks indexed"
+        )
         indexer.close()
         sys.exit(0)
 
@@ -184,11 +186,15 @@ def main():
         print(f"  Scope: {args.scope}")
         print(f"  Files: {files_indexed}")
         print(f"  Blocks/Sections: {blocks_indexed}")
-        print(f"\n{BLUE}💡 Tip:{RESET} Use 'python scripts/session-search.py --scope {args.scope}' to search indexed content\n")
+        print(
+            f"\n{BLUE}💡 Tip:{RESET} Use 'python scripts/session-search.py --scope {args.scope}' "
+            "to search indexed content\n"
+        )
 
     except Exception as e:
         print(f"\n{RED}✗ Error during indexing:{RESET} {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

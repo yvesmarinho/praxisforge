@@ -84,7 +84,7 @@ def format_snippet(snippet: str) -> str:
     return snippet
 
 
-def print_result(result, show_context: bool = False, searcher = None):
+def print_result(result, show_context: bool = False, searcher=None):
     """Print a single search result."""
     # Document type badge
     doc_type_badge = ""
@@ -96,7 +96,10 @@ def print_result(result, show_context: bool = False, searcher = None):
         doc_type_badge = f"[{CYAN}SESSION{RESET}] "
 
     # Header: date + timestamp + title
-    print(f"{doc_type_badge}{CYAN}{result.session_date}{RESET} {DIM}{result.timestamp}{RESET} — {BOLD}{result.title}{RESET}")
+    print(
+        f"{doc_type_badge}{CYAN}{result.session_date}{RESET} {DIM}{result.timestamp}{RESET} — "
+        f"{BOLD}{result.title}{RESET}"
+    )
 
     # Snippet with highlighted matches
     snippet = format_snippet(result.snippet)
@@ -179,7 +182,7 @@ def main():
     if not args.index_path.exists():
         print(f"{RED}✗ Error:{RESET} Index database not found: {args.index_path}")
         print(f"\n{BLUE}💡 Tip:{RESET} Build the index first:")
-        print(f"  python scripts/session-index.py\n")
+        print("  python scripts/session-index.py\n")
         sys.exit(1)
 
     # Initialize searcher
@@ -216,10 +219,10 @@ def main():
         if not results:
             print(f"{YELLOW}No results found{RESET}\n")
             print(f"{BLUE}💡 Tips:{RESET}")
-            print(f"  - Try different keywords")
-            print(f"  - Use broader search terms")
-            print(f"  - Check spelling")
-            print(f"  - Use FTS5 syntax (see --help for examples)\n")
+            print("  - Try different keywords")
+            print("  - Use broader search terms")
+            print("  - Check spelling")
+            print("  - Use FTS5 syntax (see --help for examples)\n")
         else:
             for i, result in enumerate(results, 1):
                 if args.stats:
@@ -236,18 +239,19 @@ def main():
     except ValueError as e:
         print(f"{RED}✗ Invalid query:{RESET} {e}")
         print(f"\n{BLUE}💡 FTS5 query syntax:{RESET}")
-        print(f"  Simple:      python fastapi")
-        print(f"  Phrase:      \"bug fix\"")
-        print(f"  Boolean AND: python AND fastapi")
-        print(f"  Boolean OR:  IMP-47 OR IMP-48")
-        print(f"  Exclude:     python NOT test")
-        print(f"  Near:        migration NEAR/3 script")
-        print(f"\nSee --help for more examples\n")
+        print("  Simple:      python fastapi")
+        print('  Phrase:      "bug fix"')
+        print("  Boolean AND: python AND fastapi")
+        print("  Boolean OR:  IMP-47 OR IMP-48")
+        print("  Exclude:     python NOT test")
+        print("  Near:        migration NEAR/3 script")
+        print("\nSee --help for more examples\n")
         sys.exit(1)
 
     except Exception as e:
         print(f"{RED}✗ Error during search:{RESET} {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

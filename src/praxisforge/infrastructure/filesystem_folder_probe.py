@@ -3,7 +3,7 @@
 NOME: filesystem_folder_probe.py
 TITULO: Adapter do RootFolderProbe — lista subpastas e extrai description/license via filesystem
 DATA: 22/09/2026 18:10
-MODIFICADO: 24/09/2026 10:17
+MODIFICADO: 25/09/2026 09:51
 VERSÃO: 0.1.0
 DEPEND: os, re, praxisforge.application.ports, praxisforge.domain.errors
 HISTÓRICO:
@@ -49,19 +49,28 @@ class FilesystemFolderProbe(RootFolderProbe):
         """Ver RootFolderProbe.list_subfolders."""
         if not root.exists():
             log_event(
-                logger, event="bootstrap_list_subfolders", alias="*", outcome="falha",
+                logger,
+                event="bootstrap_list_subfolders",
+                alias="*",
+                outcome="falha",
                 error_type="InvalidRootPathError",
             )
             raise InvalidRootPathError(str(root), reason="não existe")
         if not root.is_dir():
             log_event(
-                logger, event="bootstrap_list_subfolders", alias="*", outcome="falha",
+                logger,
+                event="bootstrap_list_subfolders",
+                alias="*",
+                outcome="falha",
                 error_type="InvalidRootPathError",
             )
             raise InvalidRootPathError(str(root), reason="não é um diretório")
         if not os.access(root, os.R_OK | os.X_OK):
             log_event(
-                logger, event="bootstrap_list_subfolders", alias="*", outcome="falha",
+                logger,
+                event="bootstrap_list_subfolders",
+                alias="*",
+                outcome="falha",
                 error_type="InvalidRootPathError",
             )
             raise InvalidRootPathError(str(root), reason="sem permissão de leitura")
@@ -90,9 +99,7 @@ class FilesystemFolderProbe(RootFolderProbe):
             return None
         texto = conteudo.lower()
         reconhecidas = [
-            nome
-            for nome, frases in _ASSINATURAS.items()
-            if all(frase in texto for frase in frases)
+            nome for nome, frases in _ASSINATURAS.items() if all(frase in texto for frase in frases)
         ]
         if len(reconhecidas) == 1:
             return reconhecidas[0]

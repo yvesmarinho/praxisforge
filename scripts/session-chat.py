@@ -61,6 +61,7 @@ def cmd_capture(args):
     except Exception as e:
         print(f"❌ Capture failed: {e}")
         import traceback
+
         traceback.print_exc()
         return 1
 
@@ -84,7 +85,9 @@ def cmd_list(args):
         chat_files = sorted(session_dir.glob("CHAT-*.md"))
     else:
         # List all chats
-        chat_files = sorted(sessions_dir.glob("*/CHAT-*.md"), key=lambda p: p.stat().st_mtime, reverse=True)
+        chat_files = sorted(
+            sessions_dir.glob("*/CHAT-*.md"), key=lambda p: p.stat().st_mtime, reverse=True
+        )
 
     if not chat_files:
         print("❌ No CHAT files found")
@@ -94,14 +97,19 @@ def cmd_list(args):
 
     for chat_path in chat_files:
         # Read frontmatter to get metadata
-        with open(chat_path, "r", encoding="utf-8") as f:
+        with open(chat_path, encoding="utf-8") as f:
             content = f.read()
 
             # Extract session_id and duration from frontmatter
             import re
+
             session_id_match = re.search(r'^session_id:\s*["\']?([^"\'\n]+)', content, re.MULTILINE)
-            duration_match = re.search(r'^start_time:\s*["\']?([^"\'\n]+).*?end_time:\s*["\']?([^"\'\n]+)', content, re.MULTILINE | re.DOTALL)
-            topics_match = re.search(r'^topics:\s*\n((?:^-\s+.+\n?)+)', content, re.MULTILINE)
+            duration_match = re.search(
+                r'^start_time:\s*["\']?([^"\'\n]+).*?end_time:\s*["\']?([^"\'\n]+)',
+                content,
+                re.MULTILINE | re.DOTALL,
+            )
+            topics_match = re.search(r"^topics:\s*\n((?:^-\s+.+\n?)+)", content, re.MULTILINE)
 
             session_id = session_id_match.group(1) if session_id_match else "unknown"
             start_time = duration_match.group(1) if duration_match else "unknown"
@@ -110,7 +118,7 @@ def cmd_list(args):
             topics = []
             if topics_match:
                 topics_text = topics_match.group(1)
-                topics = [line.strip('- \n') for line in topics_text.split('\n') if line.strip()]
+                topics = [line.strip("- \n") for line in topics_text.split("\n") if line.strip()]
 
         # Get file size
         size_kb = chat_path.stat().st_size / 1024
@@ -136,7 +144,8 @@ def cmd_search(args):
     cmd = [
         "python",
         "scripts/session-search.py",
-        "--scope", "chats",
+        "--scope",
+        "chats",
     ]
 
     if args.limit:
@@ -151,7 +160,7 @@ def cmd_search(args):
     cmd.append(args.query)
 
     print(f"🔍 Searching chats: {args.query}\n")
-    result = subprocess.run(cmd, cwd=args.workspace)
+    result = subprocess.run(cmd, cwd=args.workspace)  # noqa: S603 - argumentos montados pelo próprio script
     return result.returncode
 
 
@@ -175,7 +184,7 @@ def cmd_export(args):
             return 1
 
     # Read chat content
-    with open(chat_path, "r", encoding="utf-8") as f:
+    with open(chat_path, encoding="utf-8") as f:
         content = f.read()
 
     # Export to output file
@@ -214,16 +223,23 @@ Examples:
 
   # Export chat to context file
   ./scripts/session-chat.py export --chat CHAT-2026-04-14-1317.md --output context.md
-"""
+""",
     )
 
-    parser.add_argument("--workspace", type=Path, default=Path.cwd(), help="Workspace root (default: current directory)")
+    parser.add_argument(
+        "--workspace",
+        type=Path,
+        default=Path.cwd(),
+        help="Workspace root (default: current directory)",
+    )
 
     subparsers = parser.add_subparsers(dest="command", help="Command to execute")
 
     # Capture command
     capture_parser = subparsers.add_parser("capture", help="Capture a conversation to CHAT-*.md")
-    capture_parser.add_argument("--latest", action="store_true", help="Capture the latest transcript")
+    capture_parser.add_argument(
+        "--latest", action="store_true", help="Capture the latest transcript"
+    )
     capture_parser.add_argument("--transcript-id", help="Transcript ID to capture")
     capture_parser.add_argument("--transcript", type=Path, help="Path to specific transcript file")
     capture_parser.add_argument("--session-date", help="Session date (YYYY-MM-DD), default = today")

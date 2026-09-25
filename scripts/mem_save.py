@@ -41,7 +41,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from scripts.lib.memory import Memory, MemoryStore
-from scripts.lib.sanitize import detect_secrets, sanitize, get_security_report
+from scripts.lib.sanitize import detect_secrets, get_security_report, sanitize
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 log = logging.getLogger(__name__)
@@ -319,7 +319,7 @@ def main():
             log.info("   File: %s", memory.file_path)
             log.info("   ID: %d", memory_id)
             log.info("")
-            log.info("Search: python scripts/mem_search.py \"%s\"", title[:50])
+            log.info('Search: python scripts/mem_search.py "%s"', title[:50])
 
     except Exception as e:
         if args.json:

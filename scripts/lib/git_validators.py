@@ -21,14 +21,15 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Optional, Tuple
 
 # =============================================================================
 # Tipos e Enums
 # =============================================================================
 
+
 class BranchType(Enum):
     """Tipos de branch permitidos."""
+
     FEATURE = "feature"
     FIX = "fix"
     HOTFIX = "hotfix"
@@ -40,6 +41,7 @@ class BranchType(Enum):
 
 class CommitType(Enum):
     """Tipos de commit do Conventional Commits."""
+
     FEAT = "feat"
     FIX = "fix"
     DOCS = "docs"
@@ -55,10 +57,11 @@ class CommitType(Enum):
 @dataclass
 class BranchValidation:
     """Resultado de validação de branch."""
+
     is_valid: bool
     branch_name: str
-    branch_type: Optional[BranchType]
-    issue_number: Optional[int]
+    branch_type: BranchType | None
+    issue_number: int | None
     description: str
     errors: list[str]
     warnings: list[str]
@@ -67,13 +70,14 @@ class BranchValidation:
 @dataclass
 class CommitValidation:
     """Resultado de validação de commit."""
+
     is_valid: bool
     commit_message: str
-    commit_type: Optional[CommitType]
-    scope: Optional[str]
+    commit_type: CommitType | None
+    scope: str | None
     subject: str
-    body: Optional[str]
-    footer: Optional[str]
+    body: str | None
+    footer: str | None
     is_breaking: bool
     errors: list[str]
     warnings: list[str]
@@ -100,12 +104,13 @@ COMMIT_PATTERN = re.compile(
     r"(?P<breaking>!)?"
     r": "
     r"(?P<subject>.+)$",
-    re.IGNORECASE
+    re.IGNORECASE,
 )
 
 # =============================================================================
 # Validadores de Branch
 # =============================================================================
+
 
 def validate_branch_name(branch_name: str) -> BranchValidation:
     """
@@ -159,7 +164,7 @@ def validate_branch_name(branch_name: str) -> BranchValidation:
             issue_number=None,
             description="protected branch",
             errors=[],
-            warnings=[]
+            warnings=[],
         )
 
     # Verificar lowercase
@@ -218,7 +223,7 @@ def validate_branch_name(branch_name: str) -> BranchValidation:
         issue_number=issue_number,
         description=description,
         errors=errors,
-        warnings=warnings
+        warnings=warnings,
     )
 
 
@@ -239,6 +244,7 @@ def is_protected_branch(branch_name: str) -> bool:
 # =============================================================================
 # Validadores de Commit
 # =============================================================================
+
 
 def validate_commit_message(message: str) -> CommitValidation:
     """
@@ -336,9 +342,7 @@ def validate_commit_message(message: str) -> CommitValidation:
         vague_words = {"update", "change", "fix", "misc", "stuff", "things"}
         subject_words = set(subject.lower().split())
         if subject_words.intersection(vague_words) and len(subject_words) <= 2:
-            warnings.append(
-                f"Evite mensagens vagas: {', '.join(vague_words)}"
-            )
+            warnings.append(f"Evite mensagens vagas: {', '.join(vague_words)}")
 
         is_valid = len(errors) == 0
 
@@ -358,7 +362,7 @@ def validate_commit_message(message: str) -> CommitValidation:
         footer=footer,
         is_breaking=is_breaking,
         errors=errors,
-        warnings=warnings
+        warnings=warnings,
     )
 
 
@@ -366,7 +370,8 @@ def validate_commit_message(message: str) -> CommitValidation:
 # Validações de PR Readiness
 # =============================================================================
 
-def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict:
+
+def check_pr_readiness(branch_name: str, current_dir: Path | None = None) -> dict:
     """
     Verifica se branch está pronta para abrir PR.
 
@@ -379,7 +384,7 @@ def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict
 
     Args:
         branch_name: Nome da branch atual
-        current_dir: Diretório do repositório
+        current_dir: Diretório do repositório (padrão: diretório atual na chamada)
 
     Returns:
         Dict com status e checklist
@@ -391,6 +396,7 @@ def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict
         >>> status["checks"]["branch_name_valid"]
         True
     """
+    current_dir = current_dir if current_dir is not None else Path.cwd()
     import subprocess
 
     checks = {}
@@ -401,12 +407,12 @@ def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict
 
     # 2. Verificar se há commits
     try:
-        result = subprocess.run(
-            ["git", "rev-list", "--count", f"origin/main..{branch_name}"],
+        result = subprocess.run(  # noqa: S603 - argumentos montados pelo próprio script
+            ["git", "rev-list", "--count", f"origin/main..{branch_name}"],  # noqa: S607 - git resolvido pelo PATH
             cwd=current_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
         commit_count = int(result.stdout.strip() or "0")
         checks["has_commits"] = commit_count > 0
@@ -418,11 +424,11 @@ def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict
     # 3. Verificar working directory limpo
     try:
         result = subprocess.run(
-            ["git", "status", "--porcelain"],
+            ["git", "status", "--porcelain"],  # noqa: S607 - git resolvido pelo PATH
             cwd=current_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
         checks["working_dir_clean"] = len(result.stdout.strip()) == 0
     except Exception:
@@ -430,13 +436,18 @@ def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict
 
     # 4. Verificar se branch está atualizada com main
     try:
-        subprocess.run(["git", "fetch", "origin", "main"], cwd=current_dir, check=False, capture_output=True)
-        result = subprocess.run(
-            ["git", "rev-list", "--count", f"{branch_name}..origin/main"],
+        subprocess.run(
+            ["git", "fetch", "origin", "main"],  # noqa: S607 - git resolvido pelo PATH
+            cwd=current_dir,
+            check=False,
+            capture_output=True,
+        )
+        result = subprocess.run(  # noqa: S603 - argumentos montados pelo próprio script
+            ["git", "rev-list", "--count", f"{branch_name}..origin/main"],  # noqa: S607 - git resolvido pelo PATH
             cwd=current_dir,
             capture_output=True,
             text=True,
-            check=False
+            check=False,
         )
         behind_count = int(result.stdout.strip() or "0")
         checks["up_to_date_with_main"] = behind_count == 0
@@ -449,16 +460,13 @@ def check_pr_readiness(branch_name: str, current_dir: Path = Path.cwd()) -> dict
     required_checks = ["branch_name_valid", "has_commits", "working_dir_clean"]
     ready = all(checks.get(check) for check in required_checks)
 
-    return {
-        "ready": ready,
-        "checks": checks,
-        "branch_validation": branch_validation
-    }
+    return {"ready": ready, "checks": checks, "branch_validation": branch_validation}
 
 
 # =============================================================================
 # Helpers
 # =============================================================================
+
 
 def format_validation_errors(validation: BranchValidation | CommitValidation) -> str:
     """
@@ -485,7 +493,7 @@ def format_validation_errors(validation: BranchValidation | CommitValidation) ->
     return "\n".join(lines) if lines else "✅ Validação passou"
 
 
-def suggest_branch_name(description: str, issue_number: Optional[int] = None) -> str:
+def suggest_branch_name(description: str, issue_number: int | None = None) -> str:
     """
     Sugere nome de branch a partir de descrição.
 

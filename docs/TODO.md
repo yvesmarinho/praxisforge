@@ -21,7 +21,7 @@
       `last_curated_commit_hash`) e nova versão do schema. Ver
       `docs/reference/folders-yaml.md` ("Limitação conhecida"). Ainda sem número/spec formal —
       candidata a próxima feature depois da 003 (bootstrap, já concluída).
-- [ ] `scripts/` fora do gate do ruff (`extend-exclude` em `pyproject.toml`) — refatorar e incluir no lint quando houver tempo
+- [x] `scripts/` fora do gate do ruff (`extend-exclude` em `pyproject.toml`) — refatorar e incluir no lint quando houver tempo → incluído; só `T201` liberado em `scripts/` (25/09/2026)
 
 - [ ] Detecção de aliases duplicados em `folders scan --all` (feature 002) ficou inalcançável com a
       unicidade de caminho da feature 005 — avaliar remoção do código morto
@@ -49,8 +49,8 @@
       `--registry`, `PRAXISFORGE_REGISTRY`), exemplo versionado, `folders relocate` (24/09/2026)
 - [ ] Limitação conhecida (feature 007): a CLI resolve `schemas/` e o registro antigo
       (`src/data/folders.yaml`) a partir do diretório atual — só funciona na raiz do projeto
-- [ ] Dívida: `scripts/` com violações de ruff e fora do gate; `ruff format --check` fora do
-      `make lint` (ex.: `src/praxisforge/infrastructure/filesystem_folder_probe.py`)
+- [x] Dívida: `scripts/` com violações de ruff e fora do gate; `ruff format --check` fora do
+      `make lint` (ex.: `src/praxisforge/infrastructure/filesystem_folder_probe.py`) → corrigido (25/09/2026)
 - [x] Feature 008-biblioteca-skills: `skills/` versionado com template, `skills validate`,
       `skills catalog` (`skills/README.md` determinístico), `skills publish` (cópia/symlink,
       marcador `.praxisforge-skill.json`, regra de versão, órfãs/`--prune`) e
@@ -65,3 +65,5 @@
 - [ ] Curadoria automatizada — debate em `docs/debates/curadoria-automatizada.md` (25/09/2026), dividida em 4 features:
       009-acervo-library → 010-inventario-curadoria → 011-triagem-llm → 012-revisao-promocao
 - [ ] Reescrever `guarda-barra-qualidade` só pelas ideias (hoje é derivada, MIT com aviso) — na refação da 012
+- [ ] `scripts/session-manager.py` quebrado: `lib/session_docs.py` importa `lib.session`, que não existe (pré-existente)
+- [ ] Scripts de `scripts/` (scaffold) sem o cabeçalho padrão (`NOME`/`MODIFICADO`...)

@@ -141,6 +141,7 @@ def main():
         except Exception as e:
             log.error("❌ Test '%s' failed with exception: %s", name, e)
             import traceback
+
             traceback.print_exc()
             failed += 1
 

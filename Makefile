@@ -33,11 +33,11 @@ test:
 
 ## Lint do código
 lint:
-	@uv run ruff check . && uv run mypy
+	@uv run ruff check . && uv run ruff format --check src tests scripts && uv run mypy
 
 ## Formata código
 format:
-	@uv run ruff format src tests
+	@uv run ruff format src tests scripts
 
 ## Remove arquivos gerados
 clean:

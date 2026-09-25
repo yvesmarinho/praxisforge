@@ -28,7 +28,6 @@ import sqlite3
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 # ANSI colors
 GREEN = "\033[92m"
@@ -47,16 +46,16 @@ class ActivityBlock:
     session_date: str  # YYYY-MM-DD
     timestamp: str  # HH:MM or full datetime
     title: str
-    objective: Optional[str] = None
-    context: Optional[str] = None
-    steps: Optional[str] = None
-    result: Optional[str] = None
-    decisions: Optional[str] = None
-    files: Optional[str] = None
-    commits: Optional[str] = None
-    observations: Optional[str] = None
-    status:Optional[str] = None
-    raw_content: Optional[str] = None  # Full block text
+    objective: str | None = None
+    context: str | None = None
+    steps: str | None = None
+    result: str | None = None
+    decisions: str | None = None
+    files: str | None = None
+    commits: str | None = None
+    observations: str | None = None
+    status: str | None = None
+    raw_content: str | None = None  # Full block text
 
     @property
     def searchable_text(self) -> str:
@@ -142,7 +141,7 @@ class SessionIndexer:
         self.conn.executescript(self.SCHEMA)
         self.conn.commit()
 
-    def parse_daily_activities(self, file_path: Path) -> List[ActivityBlock]:
+    def parse_daily_activities(self, file_path: Path) -> list[ActivityBlock]:
         """Parse DAILY_ACTIVITIES file and extract activity blocks."""
         try:
             content = file_path.read_text(encoding="utf-8")
@@ -151,7 +150,7 @@ class SessionIndexer:
             return []
 
         # Extract session date from filename or path
-        date_match = re.search(r'(\d{4}-\d{2}-\d{2})', str(file_path))
+        date_match = re.search(r"(\d{4}-\d{2}-\d{2})", str(file_path))
         session_date = date_match.group(1) if date_match else "unknown"
 
         # Split by separator (---) to get blocks
@@ -160,20 +159,20 @@ class SessionIndexer:
 
         if "---\n\n###" in content:
             # Canonical format with separators
-            parts = re.split(r'\n---\n\n### ', content)
+            parts = re.split(r"\n---\n\n### ", content)
 
             for part in parts:
                 if not part.strip():
                     continue  # Skip empty parts
 
                 # Skip document-level headers (# or ##), but NOT activity headers (###)
-                if part.startswith('# ') or part.startswith('## '):
+                if part.startswith("# ") or part.startswith("## "):
                     continue
 
                 # Ensure part starts with title (remove leading ---)
-                part = part.lstrip('-\n')
-                if not part.startswith('###'):
-                    part = '### ' + part
+                part = part.lstrip("-\n")
+                if not part.startswith("###"):
+                    part = "### " + part
 
                 block = self._parse_canonical_block(part, session_date, str(file_path))
                 if block:
@@ -181,7 +180,7 @@ class SessionIndexer:
         else:
             # Legacy format - try to extract activities
             # Look for ### headers as activity boundaries (including at start of file)
-            activity_pattern = r'(?:^|\n)(### [^\n]+)'
+            activity_pattern = r"(?:^|\n)(### [^\n]+)"
             matches = list(re.finditer(activity_pattern, content, re.MULTILINE))
 
             for i, match in enumerate(matches):
@@ -195,18 +194,20 @@ class SessionIndexer:
 
         return blocks
 
-    def _parse_canonical_block(self, block_text: str, session_date: str, file_path: str) -> Optional[ActivityBlock]:
+    def _parse_canonical_block(
+        self, block_text: str, session_date: str, file_path: str
+    ) -> ActivityBlock | None:
         """Parse a canonical format activity block."""
-        lines = block_text.split('\n')
+        lines = block_text.split("\n")
 
         # Extract title (first line after ###)
-        title_match = re.match(r'###\s+(.+)', lines[0] if lines else "")
+        title_match = re.match(r"###\s+(.+)", lines[0] if lines else "")
         title = title_match.group(1).strip() if title_match else "Untitled Activity"
 
         # Extract timestamp from first few lines (search for **HH:MM** pattern)
         timestamp = "[time]"
         for line in lines[:5]:  # Check first 5 lines
-            timestamp_match = re.search(r'\*\*(\d{1,2}:\d{2})\*\*', line)
+            timestamp_match = re.search(r"\*\*(\d{1,2}:\d{2})\*\*", line)
             if timestamp_match:
                 timestamp = timestamp_match.group(1)
                 break
@@ -240,17 +241,19 @@ class SessionIndexer:
             raw_content=block_text,
         )
 
-    def _parse_legacy_block(self, block_text: str, session_date: str, file_path: str) -> Optional[ActivityBlock]:
+    def _parse_legacy_block(
+        self, block_text: str, session_date: str, file_path: str
+    ) -> ActivityBlock | None:
         """Parse a legacy format activity block."""
         # Extract title from first line (should be ### Title)
-        title_match = re.search(r'###\s+([^\n]+)', block_text)
+        title_match = re.search(r"###\s+([^\n]+)", block_text)
         title = title_match.group(1).strip() if title_match else "Untitled Activity"
 
         # Try to extract timestamp
         timestamp = "[legacy]"
-        lines = block_text.split('\n')
+        lines = block_text.split("\n")
         for line in lines[:10]:  # Search first 10 lines
-            time_match = re.search(r'\b(\d{1,2}:\d{2})\b', line)
+            time_match = re.search(r"\b(\d{1,2}:\d{2})\b", line)
             if time_match:
                 timestamp = time_match.group(1)
                 break
@@ -263,15 +266,15 @@ class SessionIndexer:
             raw_content=block_text,
         )
 
-    def _extract_field(self, text: str, field_name: str) -> Optional[str]:
+    def _extract_field(self, text: str, field_name: str) -> str | None:
         """Extract single-line field value."""
-        pattern = rf'\*\*{re.escape(field_name)}\*\*:\s*([^\n]+)'
+        pattern = rf"\*\*{re.escape(field_name)}\*\*:\s*([^\n]+)"
         match = re.search(pattern, text)
         return match.group(1).strip() if match else None
 
-    def _extract_list(self, text: str, header: str) -> Optional[str]:
+    def _extract_list(self, text: str, header: str) -> str | None:
         """Extract list items under a header."""
-        pattern = rf'\*\*{re.escape(header)}\*\*:\s*\n((?:[\d\-\*]\s*[^\n]+\n?)+)'
+        pattern = rf"\*\*{re.escape(header)}\*\*:\s*\n((?:[\d\-\*]\s*[^\n]+\n?)+)"
         match = re.search(pattern, text, re.MULTILINE)
         return match.group(1).strip() if match else None
 
@@ -285,19 +288,32 @@ class SessionIndexer:
         blocks = self.parse_daily_activities(file_path)
 
         for block in blocks:
-            self.conn.execute("""
+            self.conn.execute(
+                """
                 INSERT INTO activities (
                     session_date, timestamp, title, objective, context,
                     steps, result, decisions, files, commits, observations,
                     status, searchable_text, file_path, document_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                block.session_date, block.timestamp, block.title,
-                block.objective, block.context, block.steps,
-                block.result, block.decisions, block.files,
-                block.commits, block.observations, block.status,
-                block.searchable_text, str(file_path), document_type
-            ))
+            """,
+                (
+                    block.session_date,
+                    block.timestamp,
+                    block.title,
+                    block.objective,
+                    block.context,
+                    block.steps,
+                    block.result,
+                    block.decisions,
+                    block.files,
+                    block.commits,
+                    block.observations,
+                    block.status,
+                    block.searchable_text,
+                    str(file_path),
+                    document_type,
+                ),
+            )
 
         self.conn.commit()
         return len(blocks)
@@ -319,7 +335,7 @@ class SessionIndexer:
             return 0
 
         # Extract date from filename or use current date
-        date_match = re.search(r'(\d{4}-\d{2}-\d{2})', str(file_path))
+        date_match = re.search(r"(\d{4}-\d{2}-\d{2})", str(file_path))
         doc_date = date_match.group(1) if date_match else datetime.now().strftime("%Y-%m-%d")
 
         # Parse document by sections (## headers)
@@ -327,35 +343,38 @@ class SessionIndexer:
 
         blocks_indexed = 0
         for section in sections:
-            self.conn.execute("""
+            self.conn.execute(
+                """
                 INSERT INTO activities (
                     session_date, timestamp, title, objective, context,
                     steps, result, decisions, files, commits, observations,
                     status, searchable_text, file_path, document_type
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                doc_date,
-                "[doc]",
-                section["title"],
-                None,  # No structured fields for generic docs
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                None,
-                section["content"],  # Full text goes to searchable_text
-                str(file_path),
-                document_type
-            ))
+            """,
+                (
+                    doc_date,
+                    "[doc]",
+                    section["title"],
+                    None,  # No structured fields for generic docs
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    section["content"],  # Full text goes to searchable_text
+                    str(file_path),
+                    document_type,
+                ),
+            )
             blocks_indexed += 1
 
         self.conn.commit()
         return blocks_indexed
 
-    def _split_into_sections(self, content: str, filename: str) -> List[dict]:
+    def _split_into_sections(self, content: str, filename: str) -> list[dict]:
         """Split markdown document into searchable sections by ## headers.
 
         Returns list of dicts with 'title' and 'content' keys.
@@ -363,19 +382,16 @@ class SessionIndexer:
         sections = []
 
         # Split by ## headers (but not ### or #)
-        header_pattern = r'\n## ([^\n]+)'
+        header_pattern = r"\n## ([^\n]+)"
         matches = list(re.finditer(header_pattern, content))
 
         if not matches:
             # No sections found - index entire document
             # Use first # header or filename as title
-            title_match = re.search(r'^#\s+([^\n]+)', content, re.MULTILINE)
+            title_match = re.search(r"^#\s+([^\n]+)", content, re.MULTILINE)
             title = title_match.group(1).strip() if title_match else filename
 
-            sections.append({
-                "title": title,
-                "content": content.strip()
-            })
+            sections.append({"title": title, "content": content.strip()})
         else:
             # Index each section separately
             for i, match in enumerate(matches):
@@ -384,14 +400,13 @@ class SessionIndexer:
                 section_content = content[start:end].strip()
                 section_title = match.group(1).strip()
 
-                sections.append({
-                    "title": section_title,
-                    "content": section_content
-                })
+                sections.append({"title": section_title, "content": section_content})
 
         return sections
 
-    def index_all_sessions(self, sessions_dir: Path | str, force_rebuild: bool = False) -> Tuple[int, int]:
+    def index_all_sessions(
+        self, sessions_dir: Path | str, force_rebuild: bool = False
+    ) -> tuple[int, int]:
         """
         Index all DAILY_ACTIVITIES files in sessions directory.
 
@@ -421,7 +436,10 @@ class SessionIndexer:
                 blocks_count = self.index_file(file_path, document_type="sessions")
                 files_indexed += 1
                 blocks_indexed += blocks_count
-                print(f"{GREEN}✓{RESET} {file_path.parent.name}/{file_path.name} ({blocks_count} blocks)")
+                print(
+                    f"{GREEN}✓{RESET} {file_path.parent.name}/{file_path.name} "
+                    f"({blocks_count} blocks)"
+                )
             except Exception as e:
                 print(f"{RED}✗{RESET} {file_path}: {e}")
 
@@ -431,7 +449,7 @@ class SessionIndexer:
         print(f"\n{CYAN}Summary:{RESET} {files_indexed} files, {blocks_indexed} blocks indexed")
         return (files_indexed, blocks_indexed)
 
-    def index_docs(self, docs_dir: Path | str = "docs") -> Tuple[int, int]:
+    def index_docs(self, docs_dir: Path | str = "docs") -> tuple[int, int]:
         """Index documentation markdown files (README, TODO, guides, etc.).
 
         Args:
@@ -464,7 +482,10 @@ class SessionIndexer:
                 sections_count = self.index_markdown_document(file_path, document_type="docs")
                 files_indexed += 1
                 sections_indexed += sections_count
-                print(f"{GREEN}✓{RESET} {file_path.relative_to(docs_dir.parent)} ({sections_count} sections)")
+                print(
+                    f"{GREEN}✓{RESET} {file_path.relative_to(docs_dir.parent)} "
+                    f"({sections_count} sections)"
+                )
             except Exception as e:
                 print(f"{RED}✗{RESET} {file_path}: {e}")
 
@@ -473,7 +494,7 @@ class SessionIndexer:
         print(f"\n{CYAN}Summary:{RESET} {files_indexed} files, {sections_indexed} sections indexed")
         return (files_indexed, sections_indexed)
 
-    def index_specs(self, specify_dir: Path | str = ".specify") -> Tuple[int, int]:
+    def index_specs(self, specify_dir: Path | str = ".specify") -> tuple[int, int]:
         """Index SpecKit specification files (spec.md, plan.md, tasks.md).
 
         Args:
@@ -507,7 +528,10 @@ class SessionIndexer:
                 sections_count = self.index_markdown_document(file_path, document_type="specs")
                 files_indexed += 1
                 sections_indexed += sections_count
-                print(f"{GREEN}✓{RESET} {file_path.relative_to(specify_dir.parent)} ({sections_count} sections)")
+                print(
+                    f"{GREEN}✓{RESET} {file_path.relative_to(specify_dir.parent)} "
+                    f"({sections_count} sections)"
+                )
             except Exception as e:
                 print(f"{RED}✗{RESET} {file_path}: {e}")
 
@@ -516,7 +540,7 @@ class SessionIndexer:
         print(f"\n{CYAN}Summary:{RESET} {files_indexed} files, {sections_indexed} sections indexed")
         return (files_indexed, sections_indexed)
 
-    def index_chats(self, sessions_dir: Path | str = "docs/SESSIONS") -> Tuple[int, int]:
+    def index_chats(self, sessions_dir: Path | str = "docs/SESSIONS") -> tuple[int, int]:
         """Index CHAT-*.md conversation files (IMP-55).
 
         Args:
@@ -540,7 +564,10 @@ class SessionIndexer:
                 sections_count = self.index_markdown_document(file_path, document_type="chats")
                 files_indexed += 1
                 messages_indexed += sections_count
-                print(f"{GREEN}✓{RESET} {file_path.parent.name}/{file_path.name} ({sections_count} messages)")
+                print(
+                    f"{GREEN}✓{RESET} {file_path.parent.name}/{file_path.name} "
+                    f"({sections_count} messages)"
+                )
             except Exception as e:
                 print(f"{RED}✗{RESET} {file_path}: {e}")
 
@@ -549,7 +576,7 @@ class SessionIndexer:
         print(f"\n{CYAN}Summary:{RESET} {files_indexed} files, {messages_indexed} messages indexed")
         return (files_indexed, messages_indexed)
 
-    def index_by_scope(self, scope: str = "all", force_rebuild: bool = False) -> Tuple[int, int]:
+    def index_by_scope(self, scope: str = "all", force_rebuild: bool = False) -> tuple[int, int]:
         """Index documents by scope.
 
         Args:
@@ -586,7 +613,10 @@ class SessionIndexer:
             total_blocks += blocks
 
         if scope == "all":
-            print(f"\n{BOLD}{CYAN}Grand Total:{RESET} {total_files} files, {total_blocks} blocks/sections indexed")
+            print(
+                f"\n{BOLD}{CYAN}Grand Total:{RESET} {total_files} files, "
+                f"{total_blocks} blocks/sections indexed"
+            )
 
         return (total_files, total_blocks)
 
@@ -594,7 +624,7 @@ class SessionIndexer:
         """Update metadata with indexing statistics."""
         self.conn.execute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES ('last_indexed', ?)",
-            (datetime.now().isoformat(),)
+            (datetime.now().isoformat(),),
         )
         # Increment cumulative counts (for statistics display)
         cursor = self.conn.execute("SELECT value FROM metadata WHERE key = 'total_files'")
@@ -609,11 +639,11 @@ class SessionIndexer:
 
         self.conn.execute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES ('total_files', ?)",
-            (str(total_files),)
+            (str(total_files),),
         )
         self.conn.execute(
             "INSERT OR REPLACE INTO metadata (key, value) VALUES ('total_blocks', ?)",
-            (str(total_blocks),)
+            (str(total_blocks),),
         )
         self.conn.commit()
 
@@ -670,10 +700,10 @@ class SessionSearcher:
         self,
         query: str,
         limit: int = 20,
-        date_from: Optional[str] = None,
-        date_to: Optional[str] = None,
-        scope: Optional[str] = None,
-    ) -> List[SearchResult]:
+        date_from: str | None = None,
+        date_to: str | None = None,
+        scope: str | None = None,
+    ) -> list[SearchResult]:
         """
         Search indexed activities using FTS5 query syntax.
 
@@ -731,22 +761,24 @@ class SessionSearcher:
             results = []
 
             for row in cursor.fetchall():
-                results.append(SearchResult(
-                    session_date=row["session_date"],
-                    timestamp=row["timestamp"],
-                    title=row["title"],
-                    snippet=row["snippet"],
-                    rank=row["rank"],
-                    file_path=row["file_path"],
-                    document_type=row["document_type"],
-                ))
+                results.append(
+                    SearchResult(
+                        session_date=row["session_date"],
+                        timestamp=row["timestamp"],
+                        title=row["title"],
+                        snippet=row["snippet"],
+                        rank=row["rank"],
+                        file_path=row["file_path"],
+                        document_type=row["document_type"],
+                    )
+                )
 
             return results
 
         except sqlite3.OperationalError as e:
-            raise ValueError(f"Invalid FTS5 query: {e}")
+            raise ValueError(f"Invalid FTS5 query: {e}") from e
 
-    def get_activity_context(self, session_date: str, title: str) -> Optional[str]:
+    def get_activity_context(self, session_date: str, title: str) -> str | None:
         """Retrieve full activity block content by session date and title."""
         cursor = self.conn.execute(
             """
@@ -757,7 +789,7 @@ class SessionSearcher:
             WHERE session_date = ? AND title = ?
             LIMIT 1
             """,
-            (session_date, title)
+            (session_date, title),
         )
 
         row = cursor.fetchone()

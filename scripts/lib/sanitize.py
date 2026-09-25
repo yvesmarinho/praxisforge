@@ -8,7 +8,6 @@ Used by mem_save.py to prevent accidental storage of secrets in committed memori
 """
 
 import re
-from typing import List, Tuple
 
 # Patterns de detecção de secrets/PII
 PATTERNS = {
@@ -25,7 +24,7 @@ PATTERNS = {
 }
 
 
-def detect_secrets(text: str) -> List[Tuple[str, str]]:
+def detect_secrets(text: str) -> list[tuple[str, str]]:
     """Detect potential secrets/PII in text.
 
     Scans text for common patterns of sensitive information including:
@@ -56,7 +55,7 @@ def detect_secrets(text: str) -> List[Tuple[str, str]]:
     return findings
 
 
-def sanitize(text: str, redact: bool = True) -> Tuple[str, List[str]]:
+def sanitize(text: str, redact: bool = True) -> tuple[str, list[str]]:
     """Sanitize text by removing/redacting secrets.
 
     Replaces or removes detected secrets from text to prevent accidental
@@ -93,12 +92,14 @@ def sanitize(text: str, redact: bool = True) -> Tuple[str, List[str]]:
                 else:
                     replacement = ""
 
-                sanitized = sanitized[:match.start()] + replacement + sanitized[match.end():]
+                sanitized = sanitized[: match.start()] + replacement + sanitized[match.end() :]
 
     return sanitized, warnings
 
 
-def validate_safe(text: str, allow_emails: bool = False, allow_ips: bool = False) -> Tuple[bool, List[str]]:
+def validate_safe(
+    text: str, allow_emails: bool = False, allow_ips: bool = False
+) -> tuple[bool, list[str]]:
     """Validate that text is safe to store (no secrets detected).
 
     Args:
@@ -123,7 +124,7 @@ def validate_safe(text: str, allow_emails: bool = False, allow_ips: bool = False
 
     # Filter out allowed types
     filtered_findings = []
-    for pattern_name, value in findings:
+    for pattern_name, _value in findings:
         if allow_emails and pattern_name == "email":
             continue
         if allow_ips and pattern_name == "ip_address":
