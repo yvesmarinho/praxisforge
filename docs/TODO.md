@@ -73,3 +73,6 @@
 - [ ] Exceções `ExtractPolicyExceedsLicenseError` e `IncompleteAttributionError` ficaram sem uso após o `source-schema-v3` — remover junto da revisão acima
 - [ ] Nomes `ForeignSkillDestinationError`, `SkillVersionNotBumpedError` e `SkillPublicationError` servem a todos os tipos do acervo — avaliar renomear
 - [ ] Features seguintes da curadoria automatizada: 010-inventario-curadoria → 011-triagem-llm → 012-revisao-promocao
+- [x] Feature 010-inventario-curadoria: `curation inventory|status`, convenções em `~/.config/praxisforge/curation-conventions.yaml`, manifesto/estado por alias (25/09/2026)
+- [ ] Rodar `curation inventory --all` nas 55 pastas reais e revisar os `unknown` para ampliar as convenções
+- [ ] `ruff format .` reformata blocos de código dentro de `.md` (ex.: `SESSION_DOCS_STYLE_GUIDE.md`) — avaliar `extend-exclude` para docs
