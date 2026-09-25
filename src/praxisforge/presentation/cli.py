@@ -23,6 +23,7 @@ HISTÓRICO:
     - 25/09/2026 09:52: folders update --description
     - 25/09/2026 09:57: schemas/skills/fontes/registro antigo pela raiz do projeto (não pelo cwd)
     - 25/09/2026 13:09: library validate (T019, feature 009)
+    - 25/09/2026 13:15: library index (T031, feature 009)
 STATUS: DEV
 """
 
@@ -37,6 +38,7 @@ from pydantic import ValidationError
 
 from praxisforge.application.bootstrap_folders import bootstrap_folders
 from praxisforge.application.build_catalog import build_catalog
+from praxisforge.application.build_index import build_index
 from praxisforge.application.dto import RegisterFolderInput, UpdateFolderInput
 from praxisforge.application.errors import (
     CatalogWriteError,
@@ -45,6 +47,7 @@ from praxisforge.application.errors import (
     FolderNotFoundError,
     FolderPathInvalidError,
     FolderPathUnreadableError,
+    IndexWriteError,
     InvalidRootPathError,
     LibraryNotFoundError,
     PraxisForgeError,
@@ -77,6 +80,7 @@ from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSourc
 from praxisforge.infrastructure.filesystem_catalog_writer import FilesystemCatalogWriter
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
+from praxisforge.infrastructure.filesystem_index_writer import FilesystemIndexWriter
 from praxisforge.infrastructure.filesystem_library_repository import FilesystemLibraryRepository
 from praxisforge.infrastructure.filesystem_registry_mover import FilesystemRegistryMover
 from praxisforge.infrastructure.filesystem_skill_publisher import FilesystemSkillPublisher
@@ -179,6 +183,7 @@ def _build_parser() -> argparse.ArgumentParser:
     library_validate_parser = library_sub.add_parser("validate")
     library_validate_parser.add_argument("--type", dest="tipo", default=None)
     library_validate_parser.add_argument("nome", nargs="?")
+    library_sub.add_parser("index")
 
     skills = subparsers.add_parser("skills")
     skills_sub = skills.add_subparsers(dest="subcomando", required=True)
@@ -519,6 +524,26 @@ def _cmd_library_validate(
     return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
 
 
+def _cmd_library_index(validator: JsonSchemaContractValidator, root: Path) -> int:
+    library_dir = root / _LIBRARY_DIR
+    try:
+        resultado = build_index(
+            FilesystemLibraryRepository(library_dir),
+            validator,
+            FrontmatterSourceReader(),
+            _fontes(root),
+            FilesystemIndexWriter(library_dir / "INDEX.md"),
+        )
+    except (IndexWriteError, LibraryNotFoundError) as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    for falha in resultado.omitted:
+        for motivo in falha.reasons:
+            sys.stdout.write(f"{falha.kind}/{falha.name}: {motivo}\n")
+    sys.stdout.write(f"índice: {len(resultado.items)} itens ({len(resultado.omitted)} omitidos)\n")
+    return _EXIT_OK if not resultado.omitted else _EXIT_VALIDACAO
+
+
 def _cmd_skills_validate(
     args: argparse.Namespace, validator: JsonSchemaContractValidator, root: Path
 ) -> int:
@@ -710,6 +735,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.comando == "library" and args.subcomando == "validate":
         return _cmd_library_validate(args, validator, root)
+    if args.comando == "library" and args.subcomando == "index":
+        return _cmd_library_index(validator, root)
 
     if args.comando == "skills" and args.subcomando == "validate":
         return _cmd_skills_validate(args, validator, root)

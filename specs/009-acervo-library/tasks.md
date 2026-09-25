@@ -91,10 +91,10 @@ tarefa incompleta.
 
 **Independent Test**: quickstart §3: duas gerações seguidas com o mesmo hash; `guarda-barra-qualidade` com `⚠ reescrita pendente`.
 
-- [ ] T028 [P] [US3] Testes em `tests/unit/application/test_build_index.py` (migrando `test_build_catalog.py`): ordem por tipo e depois nome, sem data, item inválido omitido com motivo, marca de reescrita pendente, acervo vazio, falha do writer → `IndexWriteError` e o índice anterior intacto
-- [ ] T029 [P] [US3] Testes em `tests/integration/test_cli_library_index.py` (migrando `test_cli_skills_catalog.py`): idempotência byte a byte, saída `índice: N itens (M omitidos)`, falha de gravação → 3
-- [ ] T030 [US3] Implementar `build_index` em `src/praxisforge/application/build_index.py` (sucede `build_catalog.py`) e `src/praxisforge/infrastructure/filesystem_index_writer.py` (sucede `filesystem_catalog_writer.py`, com gravação atômica)
-- [ ] T031 [US3] Adicionar `library index` em `src/praxisforge/presentation/cli.py` e gerar o `library/INDEX.md` real
+- [X] T028 [P] [US3] Testes em `tests/unit/application/test_build_index.py` (migrando `test_build_catalog.py`): ordem por tipo e depois nome, sem data, item inválido omitido com motivo, marca de reescrita pendente, acervo vazio, falha do writer → `IndexWriteError` e o índice anterior intacto
+- [X] T029 [P] [US3] Testes em `tests/integration/test_cli_library_index.py` (migrando `test_cli_skills_catalog.py`): idempotência byte a byte, saída `índice: N itens (M omitidos)`, falha de gravação → 3
+- [X] T030 [US3] Implementar `build_index` em `src/praxisforge/application/build_index.py` (sucede `build_catalog.py`) e `src/praxisforge/infrastructure/filesystem_index_writer.py` (sucede `filesystem_catalog_writer.py`, com gravação atômica)
+- [X] T031 [US3] Adicionar `library index` em `src/praxisforge/presentation/cli.py` e gerar o `library/INDEX.md` real
 
 ---
 
