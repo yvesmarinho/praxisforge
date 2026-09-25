@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 25/09/2026 13:24 -->
+<!-- Modificado em: 25/09/2026 14:59 -->
 
 # Praxisforge
 
@@ -134,3 +134,15 @@ licença: MIT/BSD-3-Clause/Apache-2.0 → `verbatim`; GPL-3.0 → `verbatim` só
 - Fontes no `source-schema-v3`: **só ideias**, sem níveis de extração (a licença é só informativa).
 - Guia: [docs/guides/criar-publicar-acervo.md](docs/guides/criar-publicar-acervo.md) ·
   [ADR 0011](docs/decisions/0011-acervo-library.md) · [ADR 0012](docs/decisions/0012-fontes-so-ideias.md).
+
+### Atualização — inventário de curadoria (feature 010)
+
+- `curation inventory (<alias> | --all)`: inventário determinístico de cada pasta registrada, sem
+  LLM — todo artefato (skill, command, agent, hook, rule, reference, `CLAUDE.md`/`AGENTS.md`,
+  `.md` avulso como `unknown`) e toda exclusão com motivo. Nada é escrito na pasta.
+- `curation status [<alias>] [--json]`: situação por pasta (completa, incompleta, sem inventário) e
+  contagem por etapa.
+- Antes do primeiro uso, copie as convenções para junto do registro:
+  `cp src/data/curation-conventions.example.yaml ~/.config/praxisforge/curation-conventions.yaml`.
+- Guia: [docs/guides/inventariar-curadoria.md](docs/guides/inventariar-curadoria.md) ·
+  [ADR 0013](docs/decisions/0013-inventario-de-curadoria.md).

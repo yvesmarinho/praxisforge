@@ -1,0 +1,110 @@
+{
+  "_meta": {
+    "criado_em": "25/09/2026 14:35",
+    "modificado_em": "2026-09-25T14:35:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/curation-manifest-schema-v1.json",
+  "title": "Manifesto de inventário de uma pasta (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "alias",
+    "conventions_version",
+    "artifacts",
+    "excluded"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1"
+    },
+    "alias": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,62}$"
+    },
+    "conventions_version": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind",
+          "size",
+          "sha256",
+          "files"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$"
+          },
+          "kind": {
+            "enum": [
+              "skill",
+              "command",
+              "agent",
+              "hook",
+              "rule",
+              "reference",
+              "project_instruction",
+              "unknown"
+            ]
+          },
+          "size": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 1
+          }
+        }
+      }
+    },
+    "excluded": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "reason",
+          "is_dir"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$"
+          },
+          "reason": {
+            "enum": [
+              "fixed_dir",
+              "gitignore",
+              "too_large",
+              "binary",
+              "symlink_outside",
+              "symlink_dir",
+              "unreadable",
+              "uncurated"
+            ]
+          },
+          "is_dir": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

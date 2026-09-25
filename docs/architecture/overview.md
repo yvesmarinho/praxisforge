@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 25/09/2026 13:24 -->
+<!-- Modificado em: 25/09/2026 14:59 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -172,3 +172,20 @@ Fluxos: `library validate` → `validate_library`; `library index` → `build_in
 `library publish` → `publish_items` → `ItemPublisher`. Portas em `application/ports.py`:
 `LibraryRepository`, `IndexWriter` e `ItemPublisher`. Decisões:
 [ADR 0011](../decisions/0011-acervo-library.md) e [ADR 0012](../decisions/0012-fontes-so-ideias.md).
+
+## Inventário de curadoria (feature 010)
+
+| Camada | Módulo | Papel |
+|---|---|---|
+| Domain | `domain/curation_artifact.py` | `ArtifactKind`, `Stage`, `ExclusionReason`, `Artifact`, `ExcludedEntry`, `Manifest` (ordenado, sem data), `is_final` |
+| Domain | `domain/curation_conventions.py` | `ConventionRule`, `Conventions` (versão SHA-256; matcher injetado — domínio sem `pathspec`) |
+| Domain | `domain/curation_state.py` | `CurationState`, `reconcile` (incremental por hash), `situation`, `stage_counts` |
+| Application | `application/inventory_folders.py` | `build_manifest` (diretório mais externo é dono da subárvore), `inventory_folder`, `inventory_all` (lote tolerante) |
+| Application | `application/query_curation.py` | `curation_status` por pasta (estado corrompido não derruba as outras) |
+| Infrastructure | `infrastructure/filesystem_folder_walker.py` | Varredura somente leitura: lista fixa, `.gitignore` (pathspec), 256 KiB, binário, links, ilegível |
+| Infrastructure | `infrastructure/yaml_conventions_loader.py` | `<dir do registro>/curation-conventions.yaml` validado pelo schema |
+| Infrastructure | `infrastructure/json_curation_store.py` | `<dir do registro>/curation/<alias>/`, `flock`, validação na leitura e gravação, temp + `os.replace` |
+
+Portas novas em `application/ports.py`: `FolderWalker`, `ConventionsSource`, `CurationStore`.
+Fluxo: `curation inventory` → `inventory_folder` → locator → lock → estado anterior → walker →
+`build_manifest` → `reconcile` → store. Decisão: [ADR 0013](../decisions/0013-inventario-de-curadoria.md).

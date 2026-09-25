@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "criado_em": "25/09/2026 14:35",
+    "modificado_em": "2026-09-25T14:35:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/curation-conventions-schema-v1.json",
+  "title": "Convenções de classificação de artefatos (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "rules"
+  ],
+  "properties": {
+    "_meta": {
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1"
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "pattern",
+          "unit"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "skill",
+              "command",
+              "agent",
+              "hook",
+              "rule",
+              "reference",
+              "project_instruction"
+            ]
+          },
+          "pattern": {
+            "type": "string",
+            "minLength": 1
+          },
+          "unit": {
+            "enum": [
+              "file",
+              "directory"
+            ]
+          },
+          "marker": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^/]+$"
+          }
+        },
+        "description": "unit=file: pattern casa o caminho do arquivo. unit=directory: pattern casa o caminho do diretório (e marker, se houver, precisa existir nele); o diretório mais externo que casar vira um artefato e é dono de tudo abaixo dele."
+      }
+    }
+  }
+}

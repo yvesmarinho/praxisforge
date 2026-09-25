@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 13:20
+MODIFICADO: 25/09/2026 15:26
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -26,10 +26,12 @@ HISTÓRICO:
     - 25/09/2026 13:15: library index (T031, feature 009)
     - 25/09/2026 13:20: library publish; grupo skills removido (erro de uso com o equivalente) e
       alvo global removido (T038, feature 009)
+    - 25/09/2026 15:26: curation inventory|status (T020, T026, T032, feature 010)
 STATUS: DEV
 """
 
 import argparse
+import json
 import os
 import sys
 from datetime import datetime
@@ -44,6 +46,11 @@ from praxisforge.application.dto import RegisterFolderInput, UpdateFolderInput
 from praxisforge.application.errors import (
     ContentInspectionError,
     ContractValidationError,
+    ConventionsError,
+    ConventionsMissingError,
+    CurationLockedError,
+    CurationStateCorruptError,
+    CurationStorageError,
     FolderNotFoundError,
     FolderPathInvalidError,
     FolderPathUnreadableError,
@@ -57,6 +64,11 @@ from praxisforge.application.errors import (
     RegistryRelocationError,
     UnknownItemKindError,
 )
+from praxisforge.application.inventory_folders import (
+    InventoryResult,
+    inventory_all,
+    inventory_folder,
+)
 from praxisforge.application.migrate_registry import migrate_registry
 from praxisforge.application.ports import (
     FolderLocator,
@@ -65,6 +77,11 @@ from praxisforge.application.ports import (
     RootFolderProbe,
 )
 from praxisforge.application.publish_items import MODES, PublishReport, publish_items
+from praxisforge.application.query_curation import (
+    CurationReport,
+    Stage,
+    curation_status,
+)
 from praxisforge.application.query_folders import folder_policy, list_folders, show_folder
 from praxisforge.application.register_folder import register_folder
 from praxisforge.application.relocate_registry import relocate_registry
@@ -80,11 +97,13 @@ from praxisforge.application.validate_sources import validate_sources
 from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSource
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
+from praxisforge.infrastructure.filesystem_folder_walker import FilesystemFolderWalker
 from praxisforge.infrastructure.filesystem_index_writer import FilesystemIndexWriter
 from praxisforge.infrastructure.filesystem_item_publisher import FilesystemItemPublisher
 from praxisforge.infrastructure.filesystem_library_repository import FilesystemLibraryRepository
 from praxisforge.infrastructure.filesystem_registry_mover import FilesystemRegistryMover
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
+from praxisforge.infrastructure.json_curation_store import JsonCurationStore
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
 from praxisforge.infrastructure.logging_setup import configure_logging
 from praxisforge.infrastructure.project_root import find_project_root
@@ -93,6 +112,10 @@ from praxisforge.infrastructure.registry_location import (
     resolve_registry_path,
 )
 from praxisforge.infrastructure.source_frontmatter import FrontmatterSourceReader
+from praxisforge.infrastructure.yaml_conventions_loader import (
+    CONVENTIONS_FILE,
+    YamlConventionsSource,
+)
 from praxisforge.infrastructure.yaml_folder_registry import YamlFolderRegistryRepository
 
 _EXIT_AMBIENTE_ERRORS = (
@@ -189,6 +212,15 @@ def _build_parser() -> argparse.ArgumentParser:
     library_publish_parser.add_argument("--target", required=True)
     library_publish_parser.add_argument("--mode", choices=MODES, default="copy")
     library_publish_parser.add_argument("--prune", action="store_true")
+
+    curation = subparsers.add_parser("curation")
+    curation_sub = curation.add_subparsers(dest="subcomando", required=True)
+    inventory_parser = curation_sub.add_parser("inventory")
+    inventory_parser.add_argument("alias", nargs="?")
+    inventory_parser.add_argument("--all", dest="all_aliases", action="store_true")
+    curation_status_parser = curation_sub.add_parser("status")
+    curation_status_parser.add_argument("alias", nargs="?")
+    curation_status_parser.add_argument("--json", dest="as_json", action="store_true")
 
     skills = subparsers.add_parser("skills")
     skills.add_argument("subcomando", nargs="?", default="")
@@ -660,6 +692,112 @@ def _cmd_folders_relocate(
     return _EXIT_OK
 
 
+_EXIT_AMBIENTE_CURADORIA = (
+    ConventionsMissingError,
+    CurationLockedError,
+    CurationStorageError,
+    FolderPathInvalidError,
+    FolderPathUnreadableError,
+)
+_COLUNAS_ETAPAS = ("PEND", "TRIA", "RASC", "REVI", "PROM", "FALH", "DESC", "REMO")
+
+
+def _linha_inventario(resultado: InventoryResult) -> str:
+    return (
+        f"{resultado.alias}: {resultado.artifacts} artefatos ({resultado.pending} pendentes, "
+        f"{resultado.removed} removidos), {resultado.excluded} excluídos — "
+        f"{resultado.situation.label_pt_br()}\n"
+    )
+
+
+def _cmd_curation_inventory(
+    args: argparse.Namespace,
+    repository: FolderRegistryRepository,
+    locator: FolderLocator,
+    registry_path: Path,
+    validator: JsonSchemaContractValidator,
+) -> int:
+    if bool(args.alias) == bool(args.all_aliases):
+        sys.stderr.write("informe um alias ou --all (não os dois)\n")
+        return _EXIT_USO
+    deps = {
+        "repository": repository,
+        "locator": locator,
+        "walker": FilesystemFolderWalker(),
+        "conventions": YamlConventionsSource(registry_path.parent / CONVENTIONS_FILE, validator),
+        "store": JsonCurationStore(registry_path.parent / "curation", validator),
+    }
+    try:
+        if args.all_aliases:
+            report = inventory_all(**deps)  # type: ignore[arg-type]
+        else:
+            resultado = inventory_folder(**deps, alias=args.alias)  # type: ignore[arg-type]
+    except _EXIT_AMBIENTE_CURADORIA as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    except (FolderNotFoundError, ConventionsError, CurationStateCorruptError) as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    except PraxisForgeError as error:
+        return _falha_de_registro(error)
+    if not args.all_aliases:
+        sys.stdout.write(_linha_inventario(resultado))
+        return _EXIT_OK
+    for item in report.ok:
+        sys.stdout.write(_linha_inventario(item))
+    for failure in report.failures:
+        sys.stdout.write(f"{failure.alias}: FALHA — {failure.message}\n")
+    sys.stdout.write(
+        f"Resumo: {len(report.ok)} inventariadas, {len(report.failures)} falharam, "
+        f"{len(report.skipped)} puladas (ignore)\n"
+    )
+    return _EXIT_OK if not report.failures else _EXIT_VALIDACAO
+
+
+def _situacao_texto(relatorio: CurationReport) -> str:
+    return relatorio.situation.label_pt_br() if relatorio.situation else "estado inválido"
+
+
+def _cmd_curation_status(
+    args: argparse.Namespace, repository: FolderRegistryRepository, store: JsonCurationStore
+) -> int:
+    try:
+        relatorios = curation_status(repository, store, args.alias)
+    except FolderNotFoundError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    except PraxisForgeError as error:
+        return _falha_de_registro(error)
+    codigo = _EXIT_VALIDACAO if any(r.error for r in relatorios) else _EXIT_OK
+    if args.as_json:
+        pastas = [
+            {
+                "alias": r.alias,
+                "situation": r.situation.value if r.situation else "invalid",
+                "counts": {stage.value: n for stage, n in r.counts.items()},
+                "failures": [{"path": p, "error": e} for p, e in r.failures],
+                **({"error": r.error} if r.error else {}),
+            }
+            for r in relatorios
+        ]
+        sys.stdout.write(json.dumps({"folders": pastas}, ensure_ascii=False, indent=2) + "\n")
+        return codigo
+    sys.stdout.write(f"{'ALIAS':<24} {'SITUAÇÃO':<16} " + " ".join(_COLUNAS_ETAPAS) + "\n")
+    for r in relatorios:
+        if r.counts:
+            numeros = " ".join(f"{r.counts[stage]:>4}" for stage in Stage)
+        else:
+            numeros = " ".join(f"{'-':>4}" for _ in Stage)
+        sys.stdout.write(f"{r.alias:<24} {_situacao_texto(r):<16} {numeros}\n")
+    if args.alias:
+        for r in relatorios:
+            for path, erro in r.failures:
+                sys.stdout.write(f"  {path}: {erro}\n")
+            if r.error:
+                sys.stdout.write(f"  {r.error}\n")
+    return codigo
+
+
 def main(argv: list[str] | None = None) -> int:
     """
     Ponto de entrada da CLI `praxisforge`.
@@ -726,6 +864,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.comando == "library" and args.subcomando == "publish":
         return _cmd_library_publish(args, validator, root)
+
+    if args.comando == "curation" and args.subcomando == "inventory":
+        return _cmd_curation_inventory(args, repository, locator, registry_path, validator)
+    if args.comando == "curation" and args.subcomando == "status":
+        store = JsonCurationStore(registry_path.parent / "curation", validator)
+        return _cmd_curation_status(args, repository, store)
 
     if args.comando == "skills":
         return _cmd_skills_removido(args)

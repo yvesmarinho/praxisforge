@@ -3,7 +3,7 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 13:23
+MODIFICADO: 25/09/2026 15:10
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
@@ -18,14 +18,20 @@ HISTÓRICO:
     - 24/09/2026 16:50: +PublishedState e porta SkillPublisher (T034, feature 008)
     - 25/09/2026 13:01: portas do acervo library/ ao lado das da 008 (T012, feature 009)
     - 25/09/2026 13:23: remove SkillDocument, SkillRepository, CatalogWriter e SkillPublisher (T049)
+    - 25/09/2026 15:10: +FolderWalk, FolderWalker, ConventionsSource, CurationStore
+      (T009, feature 010)
 STATUS: DEV
 """
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from pathlib import Path
 
+from praxisforge.domain.curation_artifact import ExcludedEntry, Manifest
+from praxisforge.domain.curation_conventions import Conventions
+from praxisforge.domain.curation_state import CurationState
 from praxisforge.domain.folder_registry import FolderRegistry
 from praxisforge.domain.library_item import ItemKind
 
@@ -408,4 +414,81 @@ class ItemPublisher(ABC):
         Lista, em ordem alfabética, os itens do tipo publicados pelo praxisforge no projeto.
 
         :rtype: list[str]
+        """
+
+
+@dataclass(frozen=True)
+class WalkedFile:
+    """Arquivo regular aceito pela varredura: caminho relativo, tamanho e SHA-256."""
+
+    path: str
+    size: int
+    sha256: str
+
+
+@dataclass(frozen=True)
+class FolderWalk:
+    """Resultado da varredura de uma pasta: arquivos aceitos e exclusões (ordenados)."""
+
+    files: tuple[WalkedFile, ...]
+    excluded: tuple[ExcludedEntry, ...]
+
+
+class FolderWalker(ABC):
+    """Porta de varredura somente leitura de uma pasta registrada (feature 010)."""
+
+    @abstractmethod
+    def walk(self, root: Path) -> FolderWalk:
+        """
+        Percorre a pasta aplicando as exclusões do FR-006, sem escrever nela.
+
+        :param root: caminho real da pasta.
+        :type root: Path
+        :return: arquivos aceitos e exclusões com motivo.
+        :rtype: FolderWalk
+        :raises FolderPathInvalidError: a pasta não existe ou não é diretório.
+        """
+
+
+class ConventionsSource(ABC):
+    """Porta de leitura das convenções de classificação (fora do repositório)."""
+
+    @abstractmethod
+    def load(self) -> Conventions:
+        """
+        Lê e valida as convenções.
+
+        :return: convenções prontas para classificar.
+        :rtype: Conventions
+        :raises ConventionsMissingError: arquivo ausente.
+        :raises ConventionsError: arquivo ilegível ou fora do contrato.
+        """
+
+
+class CurationStore(ABC):
+    """Porta de persistência do manifesto e do estado de curadoria por alias."""
+
+    @abstractmethod
+    def lock(self, alias: str) -> AbstractContextManager[None]:
+        """
+        Exclusão mútua por alias enquanto o inventário roda (FR-014).
+
+        :raises CurationLockedError: outra execução segura o alias.
+        :raises CurationStorageError: não foi possível criar o lock.
+        """
+
+    @abstractmethod
+    def load_state(self, alias: str) -> CurationState | None:
+        """
+        Lê o estado validado do alias (None se nunca inventariado).
+
+        :raises CurationStateCorruptError: estado ilegível, fora do contrato ou de outro alias.
+        """
+
+    @abstractmethod
+    def save(self, manifest: Manifest, state: CurationState) -> None:
+        """
+        Valida e grava manifesto e estado de forma atômica (FR-012, FR-013).
+
+        :raises CurationStorageError: documento fora do contrato ou falha de I/O; o anterior fica.
         """
