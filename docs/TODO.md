@@ -80,3 +80,9 @@
 - [ ] Mesmo problema de horário adiantado em `specs/002-*`, `specs/003-*` e `docs/bugs/2026-09-24-ci-scan-escala-quadratica.md`
 - [ ] Convenções não têm lista de exclusão: traduções (`ja/`, `zh/`, `uk/`, `vi/`) e docs de site seguem como `unknown` — avaliar exclusões configuráveis ou deixar para a triagem (011)
 - [ ] Não existe `folders remove` (entradas espúrias exigiram edição manual do registro)
+- [x] Feature 011-triagem-llm: `curation triage`, rascunhos em `~/.config/praxisforge/curation/_drafts/`, estado v2, prompts em `prompts/curation/` (28/09/2026)
+- [ ] Triagem: paralelismo das chamadas, se a escala pedir (hoje serial; ~6 s por chamada)
+- [ ] Triagem: impressão digital por prompt (mudar só `draft.md` não precisaria refazer a triagem)
+- [ ] 012: amostrar vereditos `covered`/`out_of_scope` na revisão (risco residual de injeção que distorce veredito — ADR 0014)
+- [ ] Juiz de similaridade não determinístico (5/6 na calibração com Haiku): avaliar votação ou modelo maior para o juiz
+- [ ] Spec 011, FR-035: acrescentar o exit 130 (interrupção), já previsto no contrato da CLI (achado I1 da análise)

@@ -1,5 +1,5 @@
 <!-- Criado em: 18/09/2026 15:56 -->
-<!-- Modificado em: 25/09/2026 14:59 -->
+<!-- Modificado em: 28/09/2026 16:32 -->
 
 # Praxisforge
 
@@ -146,3 +146,16 @@ licença: MIT/BSD-3-Clause/Apache-2.0 → `verbatim`; GPL-3.0 → `verbatim` só
   `cp src/data/curation-conventions.example.yaml ~/.config/praxisforge/curation-conventions.yaml`.
 - Guia: [docs/guides/inventariar-curadoria.md](docs/guides/inventariar-curadoria.md) ·
   [ADR 0013](docs/decisions/0013-inventario-de-curadoria.md).
+
+### Atualização — triagem de curadoria com LLM (feature 011)
+
+- `curation triage (<alias> | --all)`: cada artefato pendente recebe um veredito — `covered` (a ideia
+  já existe no acervo), `gap` (falta) ou `out_of_scope` (não é conhecimento curável) — e cada
+  lacuna recebe um rascunho autoral, só com ideias, verificado contra cópia e tradução.
+- O modelo roda pelo CLI `claude` **sem nenhuma ferramenta** (texto entra, JSON sai); só o
+  praxisforge grava, e só em `~/.config/praxisforge/curation/`. Nada entra no repositório.
+- Teto por execução (`--max-calls`, padrão 50; `--max-cost-usd`); ao atingi-lo, exit 4 e a
+  retomada é o mesmo comando. `curation status` ganhou as colunas `COB LAC FORA ALERTA`.
+- Prompts versionados em `prompts/curation/`; mudar um deles reabre o que não foi revisado.
+- Guia: [docs/guides/triar-curadoria.md](docs/guides/triar-curadoria.md) ·
+  [ADR 0014](docs/decisions/0014-triagem-com-llm.md).
