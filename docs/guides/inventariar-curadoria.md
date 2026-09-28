@@ -1,5 +1,5 @@
 <!-- Criado em: 25/09/2026 14:59 -->
-<!-- Modificado em: 25/09/2026 14:59 -->
+<!-- Modificado em: 28/09/2026 15:13 -->
 
 # Guia: inventariar a curadoria de uma pasta
 
@@ -33,9 +33,9 @@ Resultado em `~/.config/praxisforge/curation/<alias>/manifest.json` e `state.jso
 
 | Tipo | Convenção (exemplo) |
 |---|---|
-| skill | diretório `**/skills/*` com `SKILL.md` (apoio incluído) |
+| skill | qualquer diretório com `SKILL.md` (`**/skills/**` ou na raiz; apoio incluído) |
 | hook | diretório `**/hooks` |
-| command / agent / rule / reference | `commands/**/*.md`, `agents/*.md`, `rules/*.md`, `references/*.md` |
+| command / agent / rule / reference | `commands/**/*.md`, `agents/**/*.md`, `rules/**/*.md`, `references/**/*.md`; Copilot: `*.prompt.md` (command), `*.agent.md`/`*.chatmode.md` (agent), `*.instructions.md` (rule) |
 | project_instruction | `CLAUDE.md`, `AGENTS.md` em qualquer nível |
 | unknown | qualquer outro `.md` (README, docs) |
 
