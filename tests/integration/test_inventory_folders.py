@@ -3,12 +3,13 @@
 NOME: test_inventory_folders.py
 TITULO: Testes de falha — caso de uso de inventário de curadoria (feature 010)
 DATA: 25/09/2026 15:05
-MODIFICADO: 25/09/2026 14:53
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.inventory_folders
 HISTÓRICO:
     - 25/09/2026 15:05: criação (T014, T029, T030, T034, feature 010)
-    - 25/09/2026 15:45: tipagem para o mypy do make lint (CI)
+    - 25/09/2026 15:11: tipagem para o mypy do make lint (CI)
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (f2b801c)
 STATUS: DEV
 """
 

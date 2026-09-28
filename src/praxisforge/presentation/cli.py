@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 15:26
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -26,7 +26,8 @@ HISTÓRICO:
     - 25/09/2026 13:15: library index (T031, feature 009)
     - 25/09/2026 13:20: library publish; grupo skills removido (erro de uso com o equivalente) e
       alvo global removido (T038, feature 009)
-    - 25/09/2026 15:26: curation inventory|status (T020, T026, T032, feature 010)
+    - 25/09/2026 15:06: curation inventory|status (T020, T026, T032, feature 010)
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
 STATUS: DEV
 """
 

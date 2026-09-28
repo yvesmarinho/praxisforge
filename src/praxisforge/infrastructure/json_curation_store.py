@@ -2,12 +2,13 @@
 """
 NOME: json_curation_store.py
 TITULO: Adapter CurationStore — manifesto e estado em JSON por alias, com lock e gravação atômica
-DATA: 25/09/2026 15:14
-MODIFICADO: 25/09/2026 14:56
+DATA: 25/09/2026 15:06
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: fcntl (Linux), praxisforge.application.ports
 HISTÓRICO:
-    - 25/09/2026 15:14: criação (T018, feature 010) — faz test_json_curation_store.py passar
+    - 25/09/2026 15:06: criação (T018, feature 010) — faz test_json_curation_store.py passar
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
 STATUS: DEV
 """
 
