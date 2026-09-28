@@ -74,7 +74,9 @@
 - [ ] Nomes `ForeignSkillDestinationError`, `SkillVersionNotBumpedError` e `SkillPublicationError` servem a todos os tipos do acervo — avaliar renomear
 - [ ] Features seguintes da curadoria automatizada: 010-inventario-curadoria → 011-triagem-llm → 012-revisao-promocao
 - [x] Feature 010-inventario-curadoria: `curation inventory|status`, convenções em `~/.config/praxisforge/curation-conventions.yaml`, manifesto/estado por alias (25/09/2026)
-- [ ] Rodar `curation inventory --all` nas 55 pastas reais e revisar os `unknown` para ampliar as convenções
+- [x] Rodar `curation inventory --all` nas 55 pastas reais e revisar os `unknown` para ampliar as convenções (28/09/2026: unknown 64% → 29%)
 - [ ] `ruff format .` reformata blocos de código dentro de `.md` (ex.: `SESSION_DOCS_STYLE_GUIDE.md`) — avaliar `extend-exclude` para docs
 - [x] Cabeçalhos da feature 010 com horário adiantado corrigidos (28/09/2026) — ver `docs/bugs/2026-09-28-cabecalhos-horario-adiantado-010.md`
 - [ ] Mesmo problema de horário adiantado em `specs/002-*`, `specs/003-*` e `docs/bugs/2026-09-24-ci-scan-escala-quadratica.md`
+- [ ] Convenções não têm lista de exclusão: traduções (`ja/`, `zh/`, `uk/`, `vi/`) e docs de site seguem como `unknown` — avaliar exclusões configuráveis ou deixar para a triagem (011)
+- [ ] Não existe `folders remove` (entradas espúrias exigiram edição manual do registro)
