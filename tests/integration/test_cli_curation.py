@@ -2,12 +2,13 @@
 """
 NOME: test_cli_curation.py
 TITULO: Testes de falha — CLI praxisforge curation inventory|status (feature 010)
-DATA: 25/09/2026 15:23
-MODIFICADO: 25/09/2026 14:57
+DATA: 25/09/2026 15:06
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
-    - 25/09/2026 15:23: criação (T021, T026, T032, feature 010)
+    - 25/09/2026 15:06: criação (T021, T026, T032, feature 010)
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
 STATUS: DEV
 """
 

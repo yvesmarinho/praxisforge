@@ -2,12 +2,13 @@
 """
 NOME: curation_conventions.py
 TITULO: Convenções de classificação de artefatos por caminho (inventário de curadoria)
-DATA: 25/09/2026 15:08
-MODIFICADO: 25/09/2026 14:54
+DATA: 25/09/2026 15:06
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; o casamento de padrões é injetado como Matcher)
 HISTÓRICO:
-    - 25/09/2026 15:08: criação (T015, feature 010) — faz test_curation_conventions.py passar
+    - 25/09/2026 15:06: criação (T015, feature 010) — faz test_curation_conventions.py passar
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
 STATUS: DEV
 """
 

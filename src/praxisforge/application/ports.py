@@ -3,7 +3,7 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 15:10
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
@@ -18,7 +18,8 @@ HISTÓRICO:
     - 24/09/2026 16:50: +PublishedState e porta SkillPublisher (T034, feature 008)
     - 25/09/2026 13:01: portas do acervo library/ ao lado das da 008 (T012, feature 009)
     - 25/09/2026 13:23: remove SkillDocument, SkillRepository, CatalogWriter e SkillPublisher (T049)
-    - 25/09/2026 15:10: +FolderWalk, FolderWalker, ConventionsSource, CurationStore
+    - 25/09/2026 15:06: +FolderWalk, FolderWalker, ConventionsSource, CurationStore
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
       (T009, feature 010)
 STATUS: DEV
 """

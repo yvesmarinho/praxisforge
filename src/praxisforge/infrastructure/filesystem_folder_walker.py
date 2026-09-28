@@ -2,12 +2,13 @@
 """
 NOME: filesystem_folder_walker.py
 TITULO: Adapter FolderWalker — varredura somente leitura com exclusões e SHA-256
-DATA: 25/09/2026 15:12
-MODIFICADO: 25/09/2026 14:55
+DATA: 25/09/2026 15:06
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: pathspec, praxisforge.application.ports
 HISTÓRICO:
-    - 25/09/2026 15:12: criação (T017, feature 010) — faz test_filesystem_folder_walker.py passar
+    - 25/09/2026 15:06: criação (T017, feature 010) — faz test_filesystem_folder_walker.py passar
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
 STATUS: DEV
 """
 

@@ -2,12 +2,13 @@
 """
 NOME: test_query_curation.py
 TITULO: Testes de falha — status da curadoria por pasta (feature 010)
-DATA: 25/09/2026 15:20
-MODIFICADO: 25/09/2026 14:56
+DATA: 25/09/2026 15:06
+MODIFICADO: 28/09/2026 15:08
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.application.query_curation
 HISTÓRICO:
-    - 25/09/2026 15:20: criação (T023, feature 010)
+    - 25/09/2026 15:06: criação (T023, feature 010)
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
 STATUS: DEV
 """
 
