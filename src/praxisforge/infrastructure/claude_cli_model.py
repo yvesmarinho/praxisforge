@@ -46,7 +46,7 @@ TESTED_MIN = (2, 1, 283)
 TESTED_MAX_EXCLUSIVE = (2, 2, 0)
 _ENV_PERMITIDO = frozenset({"HOME", "PATH", "LANG", "TERM", "TMPDIR", "CLAUDE_CONFIG_DIR"})
 _VERSAO = re.compile(r"(\d+)\.(\d+)\.(\d+)")
-_HOME = re.compile(r"/home/[^/\s]+")
+_HOME = re.compile(r"/(home|Users)/[^/\s]+")  # diretório pessoal (Linux/macOS)
 _FLAG_RECUSADO = re.compile(r"unknown option|unrecognized|unknown argument", re.IGNORECASE)
 _LIMITE_MENSAGEM = 200
 
@@ -57,10 +57,10 @@ def _env_isolado(origem: Mapping[str, str]) -> dict[str, str]:
 
 
 def _resumo_erro(texto: str) -> str:
-    """1ª linha, até 200 caracteres, com `/home/<usuário>` mascarado (FR-034)."""
+    """1ª linha, até 200 caracteres, com o diretório pessoal mascarado (FR-034)."""
     linhas = texto.strip().splitlines()
     primeira = linhas[0] if linhas else "sem mensagem"
-    return _HOME.sub("/home/***", primeira)[:_LIMITE_MENSAGEM]
+    return _HOME.sub(r"/\1/***", primeira)[:_LIMITE_MENSAGEM]
 
 
 class ClaudeCliModel(LanguageModel):
