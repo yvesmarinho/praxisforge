@@ -1,0 +1,256 @@
+{
+  "_meta": {
+    "criado_em": "28/09/2026 15:32",
+    "modificado_em": "2026-09-28T15:40:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/curation-state-schema-v2.json",
+  "title": "Estado da curadoria por pasta (v2)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "alias",
+    "conventions_version",
+    "updated_at",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2"
+    },
+    "alias": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,62}$"
+    },
+    "conventions_version": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "artifacts": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$)).+$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "sha256",
+          "stage",
+          "verdict",
+          "last_error",
+          "attempts",
+          "triage"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "skill",
+              "command",
+              "agent",
+              "hook",
+              "rule",
+              "reference",
+              "project_instruction",
+              "unknown"
+            ]
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "stage": {
+            "enum": [
+              "pending",
+              "triaged",
+              "drafted",
+              "reviewed",
+              "promoted",
+              "failed",
+              "discarded",
+              "removed"
+            ]
+          },
+          "verdict": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "attempts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "triage": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "verdict",
+                  "justification",
+                  "covered_by",
+                  "merge_target",
+                  "suggested_kind",
+                  "ideas_summary",
+                  "prompt_fingerprint",
+                  "model",
+                  "cost_usd",
+                  "triaged_at",
+                  "draft_id"
+                ],
+                "properties": {
+                  "verdict": {
+                    "enum": [
+                      "covered",
+                      "gap",
+                      "out_of_scope"
+                    ]
+                  },
+                  "justification": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                    "pattern": "\\S"
+                  },
+                  "covered_by": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^(skill|command|agent|hook|rule|reference)/[a-z0-9]+(-[a-z0-9]+)*$"
+                    },
+                    "uniqueItems": true,
+                    "maxItems": 3
+                  },
+                  "merge_target": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "ref"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "library"
+                          },
+                          "ref": {
+                            "type": "string",
+                            "pattern": "^(skill|command|agent|hook|rule|reference)/[a-z0-9]+(-[a-z0-9]+)*$"
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "kind",
+                          "ref"
+                        ],
+                        "properties": {
+                          "kind": {
+                            "const": "draft"
+                          },
+                          "ref": {
+                            "type": "string",
+                            "pattern": "^[0-9a-f]{16}$"
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "suggested_kind": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "enum": [
+                          "skill",
+                          "command",
+                          "agent",
+                          "hook",
+                          "rule",
+                          "reference"
+                        ]
+                      }
+                    ]
+                  },
+                  "ideas_summary": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 4000,
+                        "pattern": "\\S"
+                      }
+                    ]
+                  },
+                  "prompt_fingerprint": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "model": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "cost_usd": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "number",
+                        "minimum": 0
+                      }
+                    ]
+                  },
+                  "triaged_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "draft_id": {
+                    "anyOf": [
+                      {
+                        "type": "null"
+                      },
+                      {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{16}$"
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -3,12 +3,14 @@
 NOME: curation_state.py
 TITULO: Estado da curadoria de uma pasta — reconciliação incremental e situação
 DATA: 25/09/2026 15:06
-MODIFICADO: 28/09/2026 15:08
+MODIFICADO: 28/09/2026 15:54
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
     - 25/09/2026 15:06: criação (T024, T028, feature 010) — faz test_curation_state.py passar
     - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
+    - 28/09/2026 15:54: ArtifactState.triage; reconcile zera a triagem do alterado
+      (T015, feature 011)
 STATUS: DEV
 """
 
@@ -18,6 +20,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from praxisforge.domain.curation_artifact import (
     ArtifactKind,
@@ -28,12 +31,18 @@ from praxisforge.domain.curation_artifact import (
 )
 from praxisforge.domain.errors import InvalidCurationArtifactError
 
+if TYPE_CHECKING:  # só anotação: curation_triage importa este módulo
+    from praxisforge.domain.curation_triage import Triage
+
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 @dataclass(frozen=True)
 class ArtifactState:
-    """Estado de um artefato curável: último hash, etapa, veredito, falha e tentativas."""
+    """
+    Estado de um artefato curável: último hash, etapa, veredito da revisão (012), falha,
+    tentativas e o veredito da triagem (011, campo próprio).
+    """
 
     kind: ArtifactKind
     sha256: str
@@ -41,6 +50,7 @@ class ArtifactState:
     verdict: str | None = None
     last_error: str | None = None
     attempts: int = 0
+    triage: "Triage | None" = None
 
     def __post_init__(self) -> None:
         if not _SHA256.match(self.sha256):
@@ -179,6 +189,7 @@ def reconcile(previous: CurationState | None, manifest: Manifest, now: datetime)
                 stage=Stage.PENDING,
                 verdict=None,
                 last_error=None,
+                triage=None,
             )
         else:
             novos[artefato.path] = antigo

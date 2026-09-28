@@ -3,12 +3,14 @@
 NOME: json_curation_store.py
 TITULO: Adapter CurationStore — manifesto e estado em JSON por alias, com lock e gravação atômica
 DATA: 25/09/2026 15:06
-MODIFICADO: 28/09/2026 15:08
+MODIFICADO: 28/09/2026 15:55
 VERSÃO: 0.1.0
 DEPEND: fcntl (Linux), praxisforge.application.ports
 HISTÓRICO:
     - 25/09/2026 15:06: criação (T018, feature 010) — faz test_json_curation_store.py passar
     - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
+    - 28/09/2026 15:55: estado v2 (triagem), leitura de v1, save_state, permissões 0600/0700 e
+      recusa de link simbólico (T016, feature 011)
 STATUS: DEV
 """
 
@@ -20,14 +22,17 @@ import tempfile
 from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
 from datetime import datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
 from praxisforge.application.ports import ContractValidator, CurationStore
 from praxisforge.domain.curation_artifact import ArtifactKind, Manifest, Stage
 from praxisforge.domain.curation_state import ArtifactState, CurationState
+from praxisforge.domain.curation_triage import MergeTarget, Triage, TriageVerdict
 from praxisforge.domain.errors import (
     CurationLockedError,
+    CurationPathUnsafeError,
     CurationStateCorruptError,
     CurationStorageError,
     PraxisForgeError,
@@ -63,10 +68,54 @@ def manifest_document(manifest: Manifest) -> dict[str, Any]:
     }
 
 
-def state_document(state: CurationState) -> dict[str, Any]:
-    """Serializa o estado da curadoria."""
+def triage_document(triage: Triage | None) -> dict[str, Any] | None:
+    """Serializa o veredito da triagem (None quando o artefato ainda não foi triado)."""
+    if triage is None:
+        return None
+    alvo = triage.merge_target
     return {
-        "schema_version": "1",
+        "verdict": triage.verdict.value,
+        "justification": triage.justification,
+        "covered_by": list(triage.covered_by),
+        "merge_target": None if alvo is None else {"kind": alvo.kind, "ref": alvo.ref},
+        "suggested_kind": None if triage.suggested_kind is None else triage.suggested_kind.value,
+        "ideas_summary": triage.ideas_summary,
+        "prompt_fingerprint": triage.prompt_fingerprint,
+        "model": triage.model,
+        "cost_usd": None if triage.cost_usd is None else float(triage.cost_usd),
+        "triaged_at": triage.triaged_at.isoformat(timespec="seconds"),
+        "draft_id": triage.draft_id,
+    }
+
+
+def triage_from_document(documento: dict[str, Any] | None) -> Triage | None:
+    """Reconstrói o veredito já validado pelo schema (regras do domínio reaplicadas)."""
+    if documento is None:
+        return None
+    alvo = documento["merge_target"]
+    return Triage(
+        verdict=TriageVerdict.from_str(documento["verdict"]),
+        justification=documento["justification"],
+        covered_by=tuple(documento["covered_by"]),
+        merge_target=None if alvo is None else MergeTarget(alvo["kind"], alvo["ref"]),
+        suggested_kind=(
+            None
+            if documento["suggested_kind"] is None
+            else ArtifactKind.from_str(documento["suggested_kind"])
+        ),
+        ideas_summary=documento["ideas_summary"],
+        prompt_fingerprint=documento["prompt_fingerprint"],
+        model=documento["model"],
+        cost_usd=None if documento["cost_usd"] is None else Decimal(str(documento["cost_usd"])),
+        triaged_at=datetime.fromisoformat(documento["triaged_at"]),
+        draft_id=documento["draft_id"],
+    )
+
+
+def state_document(state: CurationState) -> dict[str, Any]:
+    """Serializa o estado da curadoria (sempre v2)."""
+    return {
+        "schema_version": "2",
         "alias": state.alias,
         "conventions_version": state.conventions_version,
         "updated_at": state.updated_at.isoformat(timespec="seconds"),
@@ -78,6 +127,7 @@ def state_document(state: CurationState) -> dict[str, Any]:
                 "verdict": s.verdict,
                 "last_error": s.last_error,
                 "attempts": s.attempts,
+                "triage": triage_document(s.triage),
             }
             for path, s in state.artifacts.items()
         },
@@ -105,6 +155,22 @@ class JsonCurationStore(CurationStore):
     def _dir(self, alias: str) -> Path:
         return self._base / alias
 
+    def _check_safe(self, *caminhos: Path) -> None:
+        """Recusa link simbólico na base, no diretório do alias ou no arquivo (FR-043)."""
+        for caminho in (self._base, *caminhos):
+            if caminho.is_symlink():
+                relativo = caminho.relative_to(self._base.parent)
+                raise CurationPathUnsafeError(str(relativo))
+
+    def _ensure_dir(self, alias: str) -> Path:
+        """Cria base e diretório do alias com `0700` (nunca através de link simbólico)."""
+        destino = self._dir(alias)
+        self._check_safe(destino)
+        for diretorio in (self._base, destino):
+            diretorio.mkdir(mode=0o700, parents=True, exist_ok=True)
+            diretorio.chmod(0o700)
+        return destino
+
     def lock(self, alias: str) -> AbstractContextManager[None]:
         """Ver CurationStore.lock (flock; liberado pelo kernel se o processo morrer)."""
         return self._lock(alias)
@@ -112,7 +178,7 @@ class JsonCurationStore(CurationStore):
     @contextmanager
     def _lock(self, alias: str) -> Iterator[None]:
         try:
-            self._dir(alias).mkdir(parents=True, exist_ok=True)
+            self._ensure_dir(alias)
             descritor = os.open(self._dir(alias) / _LOCK, os.O_RDWR | os.O_CREAT, 0o600)
         except OSError as error:
             raise CurationStorageError(alias, type(error).__name__) from error
@@ -131,6 +197,7 @@ class JsonCurationStore(CurationStore):
     def load_state(self, alias: str) -> CurationState | None:
         """Ver CurationStore.load_state."""
         arquivo = self._dir(alias) / _STATE
+        self._check_safe(self._dir(alias), arquivo)
         if not arquivo.exists():
             return None
         try:
@@ -140,7 +207,9 @@ class JsonCurationStore(CurationStore):
         if not isinstance(documento, dict):
             raise CurationStateCorruptError(alias, "documento não é um objeto")
         try:
-            self._validator.validate(documento, "curation-state-schema-v1")
+            versao = documento.get("schema_version")
+            schema = "curation-state-schema-v1" if versao == "1" else "curation-state-schema-v2"
+            self._validator.validate(documento, schema)
             if documento["alias"] != alias:
                 raise CurationStateCorruptError(alias, f"pertence a '{documento['alias']}'")
             return CurationState(
@@ -155,6 +224,7 @@ class JsonCurationStore(CurationStore):
                         verdict=s["verdict"],
                         last_error=s["last_error"],
                         attempts=s["attempts"],
+                        triage=triage_from_document(s.get("triage")),
                     )
                     for path, s in documento["artifacts"].items()
                 },
@@ -169,16 +239,16 @@ class JsonCurationStore(CurationStore):
         alias = state.alias
         documentos = {
             _MANIFEST: (manifest_document(manifest), "curation-manifest-schema-v1"),
-            _STATE: (state_document(state), "curation-state-schema-v1"),
+            _STATE: (state_document(state), "curation-state-schema-v2"),
         }
         try:
             for documento, schema in documentos.values():
                 self._validator.validate(documento, schema)
         except PraxisForgeError as error:
             raise CurationStorageError(alias, f"documento fora do contrato: {error}") from error
-        destino = self._dir(alias)
+        self._check_safe(self._dir(alias), *(self._dir(alias) / nome for nome in documentos))
         try:
-            destino.mkdir(parents=True, exist_ok=True)
+            destino = self._ensure_dir(alias)
             # manifesto antes do estado: o estado só aponta para um manifesto já gravado
             for nome, (documento, _) in documentos.items():
                 self._gravar(destino / nome, _dump(documento))
@@ -186,10 +256,27 @@ class JsonCurationStore(CurationStore):
             logger.error("falha ao gravar a curadoria de %s", alias, exc_info=True)
             raise CurationStorageError(alias, type(error).__name__) from error
 
+    def save_state(self, state: CurationState) -> None:
+        """Ver CurationStore.save_state (valida antes; temp + os.replace; manifesto intocado)."""
+        alias = state.alias
+        documento = state_document(state)
+        try:
+            self._validator.validate(documento, "curation-state-schema-v2")
+        except PraxisForgeError as error:
+            raise CurationStorageError(alias, f"documento fora do contrato: {error}") from error
+        self._check_safe(self._dir(alias), self._dir(alias) / _STATE)
+        try:
+            destino = self._ensure_dir(alias)
+            self._gravar(destino / _STATE, _dump(documento))
+        except OSError as error:
+            logger.error("falha ao gravar o estado de %s", alias, exc_info=True)
+            raise CurationStorageError(alias, type(error).__name__) from error
+
     @staticmethod
     def _gravar(alvo: Path, conteudo: str) -> None:
         descritor, temporario = tempfile.mkstemp(dir=alvo.parent, prefix=".tmp-", suffix=".json")
         try:
+            os.fchmod(descritor, 0o600)
             with os.fdopen(descritor, "w", encoding="utf-8") as saida:
                 saida.write(conteudo)
             os.replace(temporario, alvo)

@@ -3,12 +3,13 @@
 NOME: test_cli_curation.py
 TITULO: Testes de falha — CLI praxisforge curation inventory|status (feature 010)
 DATA: 25/09/2026 15:06
-MODIFICADO: 28/09/2026 15:08
+MODIFICADO: 28/09/2026 16:05
 VERSÃO: 0.1.0
 DEPEND: pytest, praxisforge.presentation.cli
 HISTÓRICO:
     - 25/09/2026 15:06: criação (T021, T026, T032, feature 010)
     - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
+    - 28/09/2026 16:05: colunas COB/LAC/FORA/ALERTA no status (FR-036, feature 011)
 STATUS: DEV
 """
 
@@ -127,9 +128,11 @@ def test_status_tabela(amb: _Ambiente, capsys: pytest.CaptureFixture[str]) -> No
     assert code == 0
     linhas = out.splitlines()
     assert linhas[0].split() == [
-        "ALIAS", "SITUAÇÃO", "PEND", "TRIA", "RASC", "REVI", "PROM", "FALH", "DESC", "REMO"
+        "ALIAS", "SITUAÇÃO", "PEND", "TRIA", "RASC", "REVI", "PROM", "FALH", "DESC", "REMO",
+        "COB", "LAC", "FORA", "ALERTA",
     ]  # fmt: skip
-    assert linhas[1].split() == ["demo_a", "incompleta", "1", "0", "0", "0", "0", "0", "0", "0"]
+    assert linhas[1].split() == ["demo_a", "incompleta", "1", "0", "0", "0", "0", "0", "0", "0",
+                                 "0", "0", "0", "0"]  # fmt: skip
     assert linhas[2].split()[:3] == ["legada_b", "sem", "inventário"]
 
 

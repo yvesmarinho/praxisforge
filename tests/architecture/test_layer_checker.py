@@ -3,15 +3,18 @@
 NOME: test_layer_checker.py
 TITULO: Testes de falha — layer_checker contra um pacote sintético
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:53
+MODIFICADO: 28/09/2026 16:24
 VERSÃO: 0.1.0
 DEPEND: pytest, tests.architecture.layer_checker
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T061)
+    - 28/09/2026 16:24: I/O de sistema só na infraestrutura (T051, feature 011)
 STATUS: DEV
 """
 
 from pathlib import Path
+
+import pytest
 
 from tests.architecture.layer_checker import check_layers
 
@@ -102,3 +105,14 @@ def test_mensagem_cita_modulo_import_e_regra(tmp_path: Path) -> None:
     assert violation.module == "pkg.domain.x"
     assert violation.imported == "yaml"
     assert violation.rule
+
+
+@pytest.mark.parametrize("camada", ["domain", "application"])
+@pytest.mark.parametrize("modulo", ["subprocess", "os", "shutil", "tempfile", "fcntl", "socket"])
+def test_io_de_sistema_so_na_infraestrutura(tmp_path: Path, camada: str, modulo: str) -> None:
+    """Feature 011 (K4): só a infraestrutura abre processos ou mexe no sistema de arquivos."""
+    root = _synthetic_package(tmp_path)
+    _write(root, f"{camada}/x.py", f"import {modulo}\n")
+    _write(root, "infrastructure/y.py", f"import {modulo}\n")
+    violations = check_layers(root, "pkg")
+    assert [(v.module, v.imported) for v in violations] == [(f"pkg.{camada}.x", modulo)]

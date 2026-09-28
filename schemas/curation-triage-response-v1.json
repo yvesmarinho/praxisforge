@@ -1,0 +1,168 @@
+{
+  "_meta": {
+    "criado_em": "28/09/2026 15:32",
+    "modificado_em": "2026-09-28T16:33:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/curation-triage-response-v1.json",
+  "title": "Resposta do modelo de triagem (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "justification",
+    "covered_by",
+    "merge_target",
+    "suggested_kind",
+    "ideas_summary"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": [
+        "covered",
+        "gap",
+        "out_of_scope"
+      ]
+    },
+    "justification": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "pattern": "\\S"
+    },
+    "covered_by": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^(skill|command|agent|hook|rule|reference)/[a-z0-9]+(-[a-z0-9]+)*$"
+      },
+      "uniqueItems": true,
+      "maxItems": 3
+    },
+    "merge_target": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "library"
+            },
+            "ref": {
+              "type": "string",
+              "pattern": "^(skill|command|agent|hook|rule|reference)/[a-z0-9]+(-[a-z0-9]+)*$"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "ref"
+          ],
+          "properties": {
+            "kind": {
+              "const": "draft"
+            },
+            "ref": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            }
+          }
+        }
+      ]
+    },
+    "suggested_kind": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "enum": [
+            "skill",
+            "command",
+            "agent",
+            "hook",
+            "rule",
+            "reference"
+          ]
+        }
+      ]
+    },
+    "ideas_summary": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000,
+          "pattern": "\\S"
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "const": "covered"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "covered_by": {
+            "type": "array",
+            "minItems": 1
+          },
+          "merge_target": {
+            "type": "null"
+          }
+        }
+      },
+      "else": {
+        "type": "object",
+        "properties": {
+          "covered_by": {
+            "type": "array",
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "const": "out_of_scope"
+          }
+        }
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "merge_target": {
+            "type": "null"
+          }
+        }
+      }
+    }
+  ],
+  "description": "Regras que dependem de contexto (item citado existe, tipo sugerido obrigatório para unknown, resumo obrigatório para licença link/unknown) são aplicadas pelo domínio."
+}
