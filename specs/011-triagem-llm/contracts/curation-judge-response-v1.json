@@ -1,0 +1,26 @@
+{
+  "_meta": {
+    "criado_em": "28/09/2026 15:32",
+    "modificado_em": "2026-09-28T15:40:00-03:00"
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praxisforge.local/schemas/curation-judge-response-v1.json",
+  "title": "Resposta do juiz de similaridade (v1)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "is_derivative",
+    "justification"
+  ],
+  "properties": {
+    "is_derivative": {
+      "type": "boolean"
+    },
+    "justification": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000,
+      "pattern": "\\S"
+    }
+  }
+}

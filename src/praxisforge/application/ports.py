@@ -3,7 +3,7 @@
 NOME: ports.py
 TITULO: Portas (abstrações) da Application — Dependency Inversion para integrações reais
 DATA: 22/09/2026 09:45
-MODIFICADO: 28/09/2026 15:08
+MODIFICADO: 28/09/2026 15:55
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain
 HISTÓRICO:
@@ -19,8 +19,10 @@ HISTÓRICO:
     - 25/09/2026 13:01: portas do acervo library/ ao lado das da 008 (T012, feature 009)
     - 25/09/2026 13:23: remove SkillDocument, SkillRepository, CatalogWriter e SkillPublisher (T049)
     - 25/09/2026 15:06: +FolderWalk, FolderWalker, ConventionsSource, CurationStore
-    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
       (T009, feature 010)
+    - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
+    - 28/09/2026 15:55: +LanguageModel, PromptSource, LibraryCatalog, ArtifactReader e
+      CurationStore.save_state (T017, feature 011)
 STATUS: DEV
 """
 
@@ -28,13 +30,17 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
+from decimal import Decimal
+from enum import Enum
 from pathlib import Path
 
 from praxisforge.domain.curation_artifact import ExcludedEntry, Manifest
 from praxisforge.domain.curation_conventions import Conventions
+from praxisforge.domain.curation_draft import Draft
 from praxisforge.domain.curation_state import CurationState
 from praxisforge.domain.folder_registry import FolderRegistry
 from praxisforge.domain.library_item import ItemKind
+from praxisforge.domain.prompt_set import PromptSet
 
 
 class FolderRegistryRepository(ABC):
@@ -493,3 +499,166 @@ class CurationStore(ABC):
 
         :raises CurationStorageError: documento fora do contrato ou falha de I/O; o anterior fica.
         """
+
+    @abstractmethod
+    def save_state(self, state: CurationState) -> None:
+        """
+        Valida e grava só o estado (triagem grava após cada artefato — FR-024).
+
+        :raises CurationStorageError: documento fora do contrato ou falha de I/O; o anterior fica.
+        :raises CurationPathUnsafeError: componente da área de curadoria é link simbólico.
+        """
+
+
+class ModelRole(Enum):
+    """Papel da chamada ao modelo (define o modelo e o prompt de sistema)."""
+
+    TRIAGE = "triage"
+    DRAFT = "draft"
+    JUDGE = "judge"
+
+
+@dataclass(frozen=True)
+class ModelRequest:
+    """
+    Uma chamada ao modelo: texto entra, JSON validado sai (FR-005, FR-007).
+
+    :param role: papel da chamada.
+    :param model: alias ou nome do modelo.
+    :param system_prompt: prompt de sistema do papel (versionado).
+    :param user_prompt: contexto + artefato delimitado (vai pelo stdin — FR-040).
+    :param response_schema: nome do schema da resposta em `schemas/`.
+    :param timeout_s: timeout da chamada em segundos.
+    :param max_budget_usd: orçamento restante repassado ao CLI (None: sem teto em US$).
+    """
+
+    role: ModelRole
+    model: str
+    system_prompt: str
+    user_prompt: str
+    response_schema: str
+    timeout_s: int
+    max_budget_usd: Decimal | None
+
+
+@dataclass(frozen=True)
+class ModelReply:
+    """Resposta validada: payload do schema, custo (None se não informado) e modelo real."""
+
+    payload: Mapping[str, object]
+    cost_usd: Decimal | None
+    model: str
+
+
+class LanguageModel(ABC):
+    """Porta do modelo de linguagem chamado sem ferramentas (K4)."""
+
+    @abstractmethod
+    def check_ready(self) -> None:
+        """
+        Verifica, antes da 1ª chamada, que o modelo existe e é seguro chamá-lo (FR-037).
+
+        :raises LanguageModelNotInstalledError: executável ausente.
+        :raises LanguageModelUntestedVersionError: versão fora da faixa testada.
+        """
+
+    @abstractmethod
+    def complete(self, request: ModelRequest) -> ModelReply:
+        """
+        Faz uma chamada isolada e devolve o payload validado pelo schema.
+
+        :raises LanguageModelTimeoutError: timeout (processo encerrado).
+        :raises LanguageModelUnavailableError: erro do CLI ou saída ilegível.
+        :raises LanguageModelResponseInvalidError: saída estruturada ausente ou fora do contrato.
+        :raises LanguageModelUntestedVersionError: flag de isolamento recusado (falha fechada).
+        """
+
+
+class PromptSource(ABC):
+    """Porta de leitura dos prompts versionados em `prompts/curation/`."""
+
+    @abstractmethod
+    def load(self) -> PromptSet:
+        """
+        Lê os 4 prompts.
+
+        :raises PromptSetError: arquivo ausente, vazio ou ilegível.
+        """
+
+
+@dataclass(frozen=True)
+class CatalogItem:
+    """Item do acervo visto pela triagem: referência `<tipo>/<nome>`, descrição e conteúdo."""
+
+    ref: str
+    kind: ItemKind
+    name: str
+    description: str
+    content: str
+
+
+class LibraryCatalog(ABC):
+    """Porta de leitura do acervo `library/` para a triagem (só leitura)."""
+
+    @abstractmethod
+    def index_text(self) -> str:
+        """Conteúdo de `library/INDEX.md` (vazio se não existir)."""
+
+    @abstractmethod
+    def items(self, kind: ItemKind) -> list[CatalogItem]:
+        """Itens válidos de um tipo, ordenados por nome."""
+
+    @abstractmethod
+    def exists(self, ref: str) -> bool:
+        """Diz se `<tipo>/<nome>` existe no acervo real (FR-012)."""
+
+
+class ArtifactReader(ABC):
+    """Porta de leitura do conteúdo de um artefato da pasta curada (só leitura)."""
+
+    @abstractmethod
+    def read(self, folder: Path, artifact_path: str) -> str:
+        """
+        Conteúdo do artefato; diretório = arquivo principal + apoio de texto, por caminho.
+
+        :raises ArtifactTooLargeError: acima de 256 KiB (nunca trunca).
+        :raises FolderPathInvalidError: artefato inacessível.
+        """
+
+
+class DraftStore(ABC):
+    """Porta da área global de rascunhos `curation/_drafts/` (fusão entre pastas — R8)."""
+
+    @abstractmethod
+    def lock(self) -> AbstractContextManager[None]:
+        """
+        Exclusão mútua na área de rascunhos durante a gravação.
+
+        :raises CurationLockedError: outra execução segura a área.
+        """
+
+    @abstractmethod
+    def list_pending(self) -> list[Draft]:
+        """
+        Todos os rascunhos pendentes, ordenados por id.
+
+        :raises DraftStoreCorruptError: algum rascunho ilegível ou fora do contrato (FR-044).
+        :raises CurationPathUnsafeError: link simbólico na área de rascunhos.
+        """
+
+    @abstractmethod
+    def load(self, draft_id: str) -> Draft | None:
+        """Um rascunho pelo id (None se não existe)."""
+
+    @abstractmethod
+    def save(self, draft: Draft) -> None:
+        """
+        Valida e grava o rascunho de forma atômica (`0600`), substituindo o anterior (FR-025).
+
+        :raises CurationPathUnsafeError: link simbólico na área de rascunhos.
+        :raises CurationStorageError: documento fora do contrato ou falha de I/O.
+        """
+
+    @abstractmethod
+    def alerts_for(self, alias: str) -> int:
+        """Rascunhos com alerta de similaridade que têm origem no alias (FR-036)."""

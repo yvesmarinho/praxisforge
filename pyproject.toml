@@ -58,7 +58,8 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=praxisforge --cov-report=term-missing --cov-fail-under=90"
+addopts = "--cov=praxisforge --cov-report=term-missing --cov-fail-under=90 -m 'not live'"
 markers = [
     "slow: teste de desempenho/escala, mais lento que a suíte padrão",
+    "live: chama o CLI `claude` real (custo); fora do make test — `uv run pytest -m live`",
 ]

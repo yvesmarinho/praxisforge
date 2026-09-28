@@ -3,7 +3,7 @@
 NOME: cli.py
 TITULO: CLI `praxisforge` — argparse; ponto de composição das dependências
 DATA: 22/09/2026 09:45
-MODIFICADO: 28/09/2026 15:08
+MODIFICADO: 28/09/2026 16:05
 VERSÃO: 0.1.0
 DEPEND: praxisforge.application, praxisforge.infrastructure (só aqui, ponto de composição)
 HISTÓRICO:
@@ -28,6 +28,7 @@ HISTÓRICO:
       alvo global removido (T038, feature 009)
     - 25/09/2026 15:06: curation inventory|status (T020, T026, T032, feature 010)
     - 28/09/2026 15:08: cabeçalho — horários adiantados ajustados ao commit (33d627d/8a7182f)
+    - 28/09/2026 16:05: curation triage e colunas de veredito no status (T031, feature 011)
 STATUS: DEV
 """
 
@@ -36,6 +37,7 @@ import json
 import os
 import sys
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -50,18 +52,25 @@ from praxisforge.application.errors import (
     ConventionsError,
     ConventionsMissingError,
     CurationLockedError,
+    CurationNotInventoriedError,
+    CurationPathUnsafeError,
     CurationStateCorruptError,
     CurationStorageError,
+    DraftStoreCorruptError,
     FolderNotFoundError,
     FolderPathInvalidError,
     FolderPathUnreadableError,
     GlobalTargetRemovedError,
     IndexWriteError,
     InvalidRootPathError,
+    InvalidTriageOptionsError,
+    LanguageModelNotInstalledError,
+    LanguageModelUntestedVersionError,
     LibraryNotFoundError,
     NotPublishableKindError,
     PraxisForgeError,
     ProjectRootNotFoundError,
+    PromptSetError,
     RegistryRelocationError,
     UnknownItemKindError,
 )
@@ -75,6 +84,7 @@ from praxisforge.application.ports import (
     FolderLocator,
     FolderRegistryRepository,
     GitContentInspector,
+    LanguageModel,
     RootFolderProbe,
 )
 from praxisforge.application.publish_items import MODES, PublishReport, publish_items
@@ -91,21 +101,32 @@ from praxisforge.application.resolve_folder_path import (
     resolve_folder_path,
 )
 from praxisforge.application.scan_folders import scan_all_folders, scan_folder
+from praxisforge.application.triage_folders import (
+    TriageDeps,
+    TriageOptions,
+    TriageReport,
+    triage,
+)
 from praxisforge.application.update_folder import update_folder
 from praxisforge.application.validate_library import ItemKind, validate_library
 from praxisforge.application.validate_registry import validate_registry
 from praxisforge.application.validate_sources import validate_sources
+from praxisforge.infrastructure.claude_cli_model import ClaudeCliModel
 from praxisforge.infrastructure.env_legacy_path_source import EnvLegacyPathSource
+from praxisforge.infrastructure.filesystem_artifact_reader import FilesystemArtifactReader
 from praxisforge.infrastructure.filesystem_folder_locator import FilesystemFolderLocator
 from praxisforge.infrastructure.filesystem_folder_probe import FilesystemFolderProbe
 from praxisforge.infrastructure.filesystem_folder_walker import FilesystemFolderWalker
 from praxisforge.infrastructure.filesystem_index_writer import FilesystemIndexWriter
 from praxisforge.infrastructure.filesystem_item_publisher import FilesystemItemPublisher
 from praxisforge.infrastructure.filesystem_library_repository import FilesystemLibraryRepository
+from praxisforge.infrastructure.filesystem_prompt_source import FilesystemPromptSource
 from praxisforge.infrastructure.filesystem_registry_mover import FilesystemRegistryMover
 from praxisforge.infrastructure.git_cli_inspector import GitCliInspector
 from praxisforge.infrastructure.json_curation_store import JsonCurationStore
+from praxisforge.infrastructure.json_draft_store import JsonDraftStore
 from praxisforge.infrastructure.jsonschema_validator import JsonSchemaContractValidator
+from praxisforge.infrastructure.library_catalog import FilesystemLibraryCatalog
 from praxisforge.infrastructure.logging_setup import configure_logging
 from praxisforge.infrastructure.project_root import find_project_root
 from praxisforge.infrastructure.registry_location import (
@@ -135,6 +156,9 @@ _EXIT_OK = 0
 _EXIT_VALIDACAO = 1
 _EXIT_USO = 2
 _EXIT_AMBIENTE = 3
+_EXIT_TETO = 4
+_EXIT_INTERROMPIDO = 130
+_PROMPTS_DIR = Path("prompts") / "curation"
 
 
 def _formatar_data(value: datetime | None) -> str:
@@ -219,6 +243,18 @@ def _build_parser() -> argparse.ArgumentParser:
     inventory_parser = curation_sub.add_parser("inventory")
     inventory_parser.add_argument("alias", nargs="?")
     inventory_parser.add_argument("--all", dest="all_aliases", action="store_true")
+    triage_parser = curation_sub.add_parser("triage")
+    triage_parser.add_argument("alias", nargs="?")
+    triage_parser.add_argument("--all", dest="all_aliases", action="store_true")
+    triage_parser.add_argument("--max-calls", type=int, default=50)
+    triage_parser.add_argument("--max-cost-usd")
+    triage_parser.add_argument("--triage-model", default="haiku")
+    triage_parser.add_argument("--draft-model", default="sonnet")
+    triage_parser.add_argument("--timeout", type=int, default=120)
+    triage_parser.add_argument("--similarity-threshold", type=float, default=0.7)
+    triage_parser.add_argument("--retry-failed", action="store_true")
+    triage_parser.add_argument("--max-consecutive-failures", type=int, default=5)
+    triage_parser.add_argument("--allow-untested-cli", action="store_true")
     curation_status_parser = curation_sub.add_parser("status")
     curation_status_parser.add_argument("alias", nargs="?")
     curation_status_parser.add_argument("--json", dest="as_json", action="store_true")
@@ -701,6 +737,19 @@ _EXIT_AMBIENTE_CURADORIA = (
     FolderPathUnreadableError,
 )
 _COLUNAS_ETAPAS = ("PEND", "TRIA", "RASC", "REVI", "PROM", "FALH", "DESC", "REMO")
+_COLUNAS_VEREDITOS = ("COB", "LAC", "FORA", "ALERTA")
+
+
+def _vereditos(r: CurationReport) -> str:
+    if not r.counts:
+        return " ".join(f"{'-':>{len(c)}}" for c in _COLUNAS_VEREDITOS)
+    valores = (
+        r.verdicts.get("covered", 0),
+        r.verdicts.get("gap", 0),
+        r.verdicts.get("out_of_scope", 0),
+        r.similarity_alerts,
+    )
+    return " ".join(f"{v:>{len(c)}}" for v, c in zip(valores, _COLUNAS_VEREDITOS, strict=True))
 
 
 def _linha_inventario(resultado: InventoryResult) -> str:
@@ -760,11 +809,14 @@ def _situacao_texto(relatorio: CurationReport) -> str:
 
 
 def _cmd_curation_status(
-    args: argparse.Namespace, repository: FolderRegistryRepository, store: JsonCurationStore
+    args: argparse.Namespace,
+    repository: FolderRegistryRepository,
+    store: JsonCurationStore,
+    drafts: JsonDraftStore,
 ) -> int:
     try:
-        relatorios = curation_status(repository, store, args.alias)
-    except FolderNotFoundError as error:
+        relatorios = curation_status(repository, store, args.alias, drafts.alerts_for)
+    except (FolderNotFoundError, DraftStoreCorruptError) as error:
         sys.stderr.write(f"{error}\n")
         return _EXIT_VALIDACAO
     except PraxisForgeError as error:
@@ -777,19 +829,27 @@ def _cmd_curation_status(
                 "situation": r.situation.value if r.situation else "invalid",
                 "counts": {stage.value: n for stage, n in r.counts.items()},
                 "failures": [{"path": p, "error": e} for p, e in r.failures],
+                "verdicts": r.verdicts,
+                "similarity_alerts": r.similarity_alerts,
                 **({"error": r.error} if r.error else {}),
             }
             for r in relatorios
         ]
         sys.stdout.write(json.dumps({"folders": pastas}, ensure_ascii=False, indent=2) + "\n")
         return codigo
-    sys.stdout.write(f"{'ALIAS':<24} {'SITUAÇÃO':<16} " + " ".join(_COLUNAS_ETAPAS) + "\n")
+    sys.stdout.write(
+        f"{'ALIAS':<24} {'SITUAÇÃO':<16} "
+        + " ".join(_COLUNAS_ETAPAS)
+        + " "
+        + " ".join(_COLUNAS_VEREDITOS)
+        + "\n"
+    )
     for r in relatorios:
         if r.counts:
             numeros = " ".join(f"{r.counts[stage]:>4}" for stage in Stage)
         else:
             numeros = " ".join(f"{'-':>4}" for _ in Stage)
-        sys.stdout.write(f"{r.alias:<24} {_situacao_texto(r):<16} {numeros}\n")
+        sys.stdout.write(f"{r.alias:<24} {_situacao_texto(r):<16} {numeros} {_vereditos(r)}\n")
     if args.alias:
         for r in relatorios:
             for path, erro in r.failures:
@@ -797,6 +857,142 @@ def _cmd_curation_status(
             if r.error:
                 sys.stdout.write(f"  {r.error}\n")
     return codigo
+
+
+def _criar_modelo(
+    validator: JsonSchemaContractValidator, root: Path, allow_untested: bool
+) -> LanguageModel:
+    """Fábrica do modelo (substituída nos testes por um modelo falso)."""
+    return ClaudeCliModel(
+        validator=validator, schemas_dir=root / _SCHEMAS_DIR, allow_untested=allow_untested
+    )
+
+
+def _formatar_usd(valor: Decimal) -> str:
+    """
+    Valor em US$ no formato pt-BR (`1.234,56`).
+
+    Formatação local e determinística: o CI não tem o locale pt_BR instalado, e o projeto não
+    depende de babel só para esta saída.
+    """
+    return format(valor.quantize(Decimal("0.01")), ",.2f").translate(str.maketrans(",.", ".,"))
+
+
+_MOTIVOS_PARADA = {
+    "done": "concluída",
+    "budget": "teto atingido",
+    "consecutive_failures": "falhas consecutivas do modelo",
+}
+
+
+def _opcoes_triagem(args: argparse.Namespace) -> TriageOptions:
+    custo: Decimal | None = None
+    if args.max_cost_usd is not None:
+        try:
+            custo = Decimal(args.max_cost_usd)
+        except InvalidOperation as error:
+            raise InvalidTriageOptionsError("--max-cost-usd precisa ser um número") from error
+    return TriageOptions(
+        triage_model=args.triage_model,
+        draft_model=args.draft_model,
+        timeout_s=args.timeout,
+        similarity_threshold=args.similarity_threshold,
+        retry_failed=args.retry_failed,
+        max_consecutive_failures=args.max_consecutive_failures,
+        max_calls=args.max_calls,
+        max_cost_usd=custo,
+    )
+
+
+def _imprimir_triagem(args: argparse.Namespace, report: TriageReport) -> None:
+    for pasta in report.folders:
+        v = pasta.verdicts
+        falhas = len(pasta.failures)
+        sys.stdout.write(
+            f"{pasta.alias}: {pasta.triaged} triados ({v['covered']} cobertos, {v['gap']} lacunas, "
+            f"{v['out_of_scope']} fora de escopo), {pasta.drafts} rascunhos "
+            f"({pasta.drafts_alerted} com alerta), {falhas} falha{'s' if falhas != 1 else ''}, "
+            f"{pasta.remaining} restantes\n"
+        )
+        for falha in pasta.failures:
+            sys.stderr.write(f"{pasta.alias}:{falha.path}: {falha.error_type}\n")
+    for item in report.failures:
+        sys.stdout.write(f"{item.alias}: FALHA — {item.message}\n")
+    if report.partial_dedupe:
+        sys.stdout.write("aviso: índice acima do limite; deduplicação de rascunhos parcial\n")
+    custo = f"US$ {_formatar_usd(report.cost)}" if report.cost_measurable else "custo não informado"
+    sys.stdout.write(
+        f"Resumo: {report.calls} chamadas, {custo}, parada: {_MOTIVOS_PARADA[report.stop_reason]}\n"
+    )
+    if not report.cost_measurable and args.max_cost_usd is not None:
+        sys.stdout.write("custo: não mensurável (teto em US$ ignorado)\n")
+    if report.stop_reason == "budget":
+        alvo = "--all" if args.all_aliases else args.alias
+        sys.stdout.write(f"Para continuar: praxisforge curation triage {alvo}\n")
+
+
+_EXIT_AMBIENTE_TRIAGEM = (
+    LanguageModelNotInstalledError,
+    LanguageModelUntestedVersionError,
+    PromptSetError,
+    CurationLockedError,
+    CurationPathUnsafeError,
+    CurationStorageError,
+    FolderPathInvalidError,
+    FolderPathUnreadableError,
+)
+
+
+def _cmd_curation_triage(
+    args: argparse.Namespace,
+    repository: FolderRegistryRepository,
+    locator: FolderLocator,
+    registry_path: Path,
+    validator: JsonSchemaContractValidator,
+    root: Path,
+) -> int:
+    if bool(args.alias) == bool(args.all_aliases):
+        sys.stderr.write("informe um alias ou --all (não os dois)\n")
+        return _EXIT_USO
+    try:
+        opcoes = _opcoes_triagem(args)
+    except InvalidTriageOptionsError as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_USO
+    deps = TriageDeps(
+        repository=repository,
+        locator=locator,
+        store=JsonCurationStore(registry_path.parent / "curation", validator),
+        model=_criar_modelo(validator, root, args.allow_untested_cli),
+        prompts=FilesystemPromptSource(root / _PROMPTS_DIR),
+        catalog=FilesystemLibraryCatalog(root / _LIBRARY_DIR),
+        reader=FilesystemArtifactReader(),
+        drafts=JsonDraftStore(registry_path.parent / "curation", validator),
+    )
+    try:
+        report = triage(deps, None if args.all_aliases else args.alias, opcoes)
+    except KeyboardInterrupt:
+        sys.stderr.write("interrompido; o estado até o artefato anterior está gravado\n")
+        return _EXIT_INTERROMPIDO
+    except _EXIT_AMBIENTE_TRIAGEM as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_AMBIENTE
+    except (
+        FolderNotFoundError,
+        CurationNotInventoriedError,
+        CurationStateCorruptError,
+        DraftStoreCorruptError,
+    ) as error:
+        sys.stderr.write(f"{error}\n")
+        return _EXIT_VALIDACAO
+    except PraxisForgeError as error:
+        return _falha_de_registro(error)
+    _imprimir_triagem(args, report)
+    if report.stop_reason == "consecutive_failures":
+        return _EXIT_AMBIENTE
+    if report.stop_reason == "budget":
+        return _EXIT_TETO
+    return _EXIT_VALIDACAO if report.has_failures else _EXIT_OK
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -868,9 +1064,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.comando == "curation" and args.subcomando == "inventory":
         return _cmd_curation_inventory(args, repository, locator, registry_path, validator)
+    if args.comando == "curation" and args.subcomando == "triage":
+        return _cmd_curation_triage(args, repository, locator, registry_path, validator, root)
     if args.comando == "curation" and args.subcomando == "status":
         store = JsonCurationStore(registry_path.parent / "curation", validator)
-        return _cmd_curation_status(args, repository, store)
+        drafts = JsonDraftStore(registry_path.parent / "curation", validator)
+        return _cmd_curation_status(args, repository, store, drafts)
 
     if args.comando == "skills":
         return _cmd_skills_removido(args)

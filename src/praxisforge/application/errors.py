@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Reexportação de exceções semânticas para a Presentation (sem importar Domain diretamente)
 DATA: 22/09/2026 10:05
-MODIFICADO: 25/09/2026 14:55
+MODIFICADO: 28/09/2026 16:04
 VERSÃO: 0.1.0
 DEPEND: praxisforge.domain.errors
 HISTÓRICO:
@@ -23,17 +23,22 @@ HISTÓRICO:
     - 25/09/2026 13:00: reexporta exceções do acervo library/ (T009, feature 009)
     - 25/09/2026 13:23: remove reexportações das exceções da 008 (T049)
     - 25/09/2026 14:55: reexporta exceções do inventário de curadoria (T007, feature 010)
+    - 28/09/2026 16:04: reexporta exceções da triagem com LLM (T031, feature 011)
 STATUS: DEV
 """
 
 from praxisforge.domain.errors import (
+    ArtifactTooLargeError,
     ContentInspectionError,
     ContractValidationError,
     ConventionsError,
     ConventionsMissingError,
     CurationLockedError,
+    CurationNotInventoriedError,
+    CurationPathUnsafeError,
     CurationStateCorruptError,
     CurationStorageError,
+    DraftStoreCorruptError,
     ExtractPolicyExceedsLicenseError,
     FolderNotFoundError,
     FolderPathInvalidError,
@@ -45,6 +50,14 @@ from praxisforge.domain.errors import (
     InvalidCurationArtifactError,
     InvalidLibraryItemError,
     InvalidRootPathError,
+    InvalidTriageError,
+    InvalidTriageOptionsError,
+    LanguageModelError,
+    LanguageModelNotInstalledError,
+    LanguageModelResponseInvalidError,
+    LanguageModelTimeoutError,
+    LanguageModelUnavailableError,
+    LanguageModelUntestedVersionError,
     LibraryItemNotFoundError,
     LibraryNotFoundError,
     NestedFolderPathError,
@@ -53,6 +66,7 @@ from praxisforge.domain.errors import (
     PathAlreadyRegisteredError,
     PraxisForgeError,
     ProjectRootNotFoundError,
+    PromptSetError,
     RegistryAlreadyExistsError,
     RegistryFileNotFoundError,
     RegistryMigrationRequiredError,
@@ -65,14 +79,17 @@ from praxisforge.domain.errors import (
 )
 
 __all__ = [
+    "ArtifactTooLargeError",
     "ContentInspectionError",
     "ContractValidationError",
     "ConventionsError",
     "ConventionsMissingError",
     "CurationLockedError",
+    "CurationNotInventoriedError",
+    "CurationPathUnsafeError",
     "CurationStateCorruptError",
     "CurationStorageError",
-    "InvalidCurationArtifactError",
+    "DraftStoreCorruptError",
     "ExtractPolicyExceedsLicenseError",
     "FolderNotFoundError",
     "FolderPathInvalidError",
@@ -81,8 +98,17 @@ __all__ = [
     "GlobalTargetRemovedError",
     "IncompleteAttributionError",
     "IndexWriteError",
+    "InvalidCurationArtifactError",
     "InvalidLibraryItemError",
     "InvalidRootPathError",
+    "InvalidTriageError",
+    "InvalidTriageOptionsError",
+    "LanguageModelError",
+    "LanguageModelNotInstalledError",
+    "LanguageModelResponseInvalidError",
+    "LanguageModelTimeoutError",
+    "LanguageModelUnavailableError",
+    "LanguageModelUntestedVersionError",
     "LibraryItemNotFoundError",
     "LibraryNotFoundError",
     "NestedFolderPathError",
@@ -91,6 +117,7 @@ __all__ = [
     "PathAlreadyRegisteredError",
     "PraxisForgeError",
     "ProjectRootNotFoundError",
+    "PromptSetError",
     "RegistryAlreadyExistsError",
     "RegistryFileNotFoundError",
     "RegistryMigrationRequiredError",

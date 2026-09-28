@@ -3,7 +3,7 @@
 NOME: errors.py
 TITULO: Hierarquia de exceções semânticas do Domain e Application
 DATA: 22/09/2026 09:45
-MODIFICADO: 25/09/2026 14:55
+MODIFICADO: 28/09/2026 15:53
 VERSÃO: 0.1.0
 DEPEND: (nenhuma — stdlib apenas; camada Domain)
 HISTÓRICO:
@@ -18,6 +18,7 @@ HISTÓRICO:
     - 25/09/2026 13:00: exceções do acervo library/ (T009, feature 009)
     - 25/09/2026 13:23: remove InvalidSkillError, SkillNotFoundError e CatalogWriteError (T049)
     - 25/09/2026 14:55: exceções do inventário de curadoria (T007, feature 010)
+    - 28/09/2026 15:53: exceções da triagem com LLM (T012, feature 011)
 STATUS: DEV
 """
 
@@ -586,3 +587,106 @@ class CurationStorageError(PraxisForgeError):
         self.alias = alias
         self.reason = reason
         super().__init__(f"falha ao gravar a curadoria de '{alias}': {reason}")
+
+
+class InvalidTriageError(PraxisForgeError):
+    """Veredito de triagem fora das regras do domínio (feature 011)."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"veredito de triagem inválido: {reason}")
+
+
+class PromptSetError(PraxisForgeError):
+    """Prompt de curadoria ausente, vazio ou ilegível; nenhuma chamada é feita (FR-021)."""
+
+    def __init__(self, name: str, reason: str) -> None:
+        self.name = name
+        super().__init__(f"prompt de curadoria '{name}' {reason}")
+
+
+class ArtifactTooLargeError(PraxisForgeError):
+    """Conteúdo do artefato acima do limite enviado ao modelo; nunca é truncado (FR-011b)."""
+
+    def __init__(self, path: str, size: int, limit: int) -> None:
+        self.path = path
+        super().__init__(f"artefato '{path}' tem {size} bytes (limite {limit}): tamanho")
+
+
+class DraftStoreCorruptError(PraxisForgeError):
+    """Rascunho em staging ilegível ou fora do contrato (FR-044)."""
+
+    def __init__(self, draft_id: str, reason: str) -> None:
+        self.draft_id = draft_id
+        super().__init__(f"rascunho '{draft_id}' inválido: {reason}")
+
+
+class CurationPathUnsafeError(PraxisForgeError):
+    """Componente de `curation/` é link simbólico; nada é lido nem gravado (FR-043)."""
+
+    def __init__(self, relative: str) -> None:
+        self.relative = relative
+        super().__init__(f"caminho inseguro na área de curadoria (link simbólico): {relative}")
+
+
+class LanguageModelError(PraxisForgeError):
+    """Raiz das falhas na chamada ao modelo de linguagem (feature 011)."""
+
+
+class LanguageModelNotInstalledError(LanguageModelError):
+    """Executável do CLI do modelo não encontrado (ambiente; antes da 1ª chamada)."""
+
+    def __init__(self, executable: str) -> None:
+        super().__init__(f"CLI '{executable}' não encontrado no PATH")
+
+
+class LanguageModelUntestedVersionError(LanguageModelError):
+    """CLI fora da faixa testada ou recusou flag de isolamento: falha fechada (FR-037)."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(
+            f"CLI do modelo não verificado para isolamento: {reason} "
+            "(use --allow-untested-cli só depois do teste live)"
+        )
+
+
+class LanguageModelUnavailableError(LanguageModelError):
+    """Chamada falhou (erro do CLI, saída ilegível, sem login); conta como indisponível."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"modelo indisponível: {reason}")
+
+
+class LanguageModelTimeoutError(LanguageModelError):
+    """Chamada excedeu o timeout; o processo foi encerrado."""
+
+    def __init__(self, timeout_s: int) -> None:
+        super().__init__(f"modelo não respondeu em {timeout_s} s")
+
+
+class LanguageModelResponseInvalidError(LanguageModelError):
+    """Resposta sem saída estruturada ou fora do contrato (FR-007)."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"resposta do modelo fora do contrato: {reason}")
+
+
+class CurationNotInventoriedError(PraxisForgeError):
+    """Pasta registrada sem inventário: a triagem exige o inventário antes (FR-003)."""
+
+    def __init__(self, alias: str) -> None:
+        self.alias = alias
+        super().__init__(
+            f"pasta '{alias}' ainda não foi inventariada — execute: "
+            f"praxisforge curation inventory {alias}"
+        )
+
+
+class InvalidTriageOptionsError(PraxisForgeError):
+    """Opção da triagem fora do intervalo aceito (uso — exit 2)."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(f"opção de triagem inválida: {reason}")

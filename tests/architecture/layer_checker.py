@@ -3,11 +3,13 @@
 NOME: layer_checker.py
 TITULO: Verificador de regras de dependência entre camadas (AST, sem dependência nova)
 DATA: 22/09/2026 09:45
-MODIFICADO: 22/09/2026 09:53
+MODIFICADO: 28/09/2026 16:24
 VERSÃO: 0.1.0
 DEPEND: (stdlib ast apenas)
 HISTÓRICO:
     - 22/09/2026 09:45: criação (T064) — faz T061 e T062 passarem
+    - 28/09/2026 16:24: I/O de sistema (subprocess, os, ...) só na infraestrutura
+      (T051, feature 011)
 STATUS: DEV
 """
 
@@ -99,6 +101,16 @@ def check_layers(package_root: Path, root_package: str) -> list[LayerViolation]:
             if not isinstance(node, (ast.Import, ast.ImportFrom)):
                 continue
             for imported in _imported_names(node):
+                topo = imported.split(".", 1)[0]
+                if layer in ("domain", "application") and topo in _IO_DE_SISTEMA:
+                    violations.append(
+                        LayerViolation(
+                            module=module_dotpath,
+                            imported=imported,
+                            rule=f"{layer} não faz I/O de sistema (só a infrastructure)",
+                        )
+                    )
+                    continue
                 if imported == "logging" or imported.startswith("logging."):
                     if layer == "domain":
                         violations.append(
@@ -134,6 +146,8 @@ def check_layers(package_root: Path, root_package: str) -> list[LayerViolation]:
 
 
 _STDLIB_TOP_LEVEL_BLOCKLIST_FOR_DOMAIN = {"yaml", "pydantic", "requests", "jsonschema", "logging"}
+# Feature 011 (K4): processos e sistema de arquivos só na infrastructure.
+_IO_DE_SISTEMA = {"subprocess", "os", "shutil", "tempfile", "fcntl", "socket"}
 
 
 def _stdlib_allowed(layer: str) -> set[str]:

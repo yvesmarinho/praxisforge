@@ -1,5 +1,5 @@
 <!-- Criado em: 22/09/2026 10:11 -->
-<!-- Modificado em: 25/09/2026 14:59 -->
+<!-- Modificado em: 28/09/2026 16:32 -->
 
 # Arquitetura — Feature 001: Registro de Pastas a Curar e Contratos Versionados
 
@@ -189,3 +189,25 @@ Fluxos: `library validate` → `validate_library`; `library index` → `build_in
 Portas novas em `application/ports.py`: `FolderWalker`, `ConventionsSource`, `CurationStore`.
 Fluxo: `curation inventory` → `inventory_folder` → locator → lock → estado anterior → walker →
 `build_manifest` → `reconcile` → store. Decisão: [ADR 0013](../decisions/0013-inventario-de-curadoria.md).
+
+### Triagem com LLM (feature 011)
+
+| Camada | Módulo | Papel |
+|---|---|---|
+| Domain | `domain/curation_triage.py` | `TriageVerdict`, `Triage`, `MergeTarget`, `validate_in_context`, `is_eligible`, transições |
+| Domain | `domain/curation_draft.py` | `DraftProposal`, `DraftOrigin`, `Draft` (várias origens), `draft_id_for` |
+| Domain | `domain/structure_similarity.py` | `skeleton_of`, `structural_score`, `SimilarityCheck` (independente de idioma) |
+| Domain | `domain/prompt_set.py` | `PromptSet` e a impressão digital do conjunto |
+| Application | `application/triage_context.py` | Itens parecidos (Jaccard), limites, prompts com dado de terceiros delimitado por nonce |
+| Application | `application/triage_budget.py` | Teto de chamadas e de custo, com reserva por etapa |
+| Application | `application/triage_folders.py` | `triage`: lote tolerante, triagem → rascunho → verificações, gravação por artefato |
+| Infrastructure | `infrastructure/claude_cli_model.py` | CLI `claude` sem ferramentas, env filtrado, cwd temporário, falha fechada |
+| Infrastructure | `infrastructure/json_draft_store.py` | `curation/_drafts/`, `flock`, `0600`, recusa link simbólico |
+| Infrastructure | `infrastructure/library_catalog.py`, `filesystem_artifact_reader.py`, `filesystem_prompt_source.py` | Acervo, artefato e prompts, só leitura |
+
+Portas novas: `LanguageModel`, `PromptSource`, `LibraryCatalog`, `ArtifactReader`, `DraftStore` e
+`CurationStore.save_state`. Guarda de arquitetura: domínio e aplicação não importam `subprocess`,
+`os`, `shutil`, `tempfile`, `fcntl` nem `socket`. Fluxo: `curation triage` → `triage` → verificação
+do CLI e prompts → por pasta: lock → estado → por artefato: leitor → contexto → modelo (triagem) →
+validação local → (lacuna) rascunho + esqueleto + juiz → `save_state` / `DraftStore.save`.
+Decisão: [ADR 0014](../decisions/0014-triagem-com-llm.md).
